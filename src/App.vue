@@ -1,0 +1,16 @@
+<template>
+  <router-view />
+</template>
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--p-surface-100, #f4f4f5);
+}
+h1 { font-size: 1.35rem; margin: 0 0 12px; }
+h2 { font-size: 1.05rem; margin: 16px 0 8px; }
+.page { padding: 16px 20px 40px; }
+.muted { color: var(--p-text-muted-color, #6b7280); font-size: 0.85rem; }
+.p-card { border-radius: 10px; }
+</style>
