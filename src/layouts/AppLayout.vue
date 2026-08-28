@@ -13,7 +13,6 @@
     </aside>
     <main class="content">
       <header class="topbar">
-        <Toast />
         <div></div>
         <div class="flex gap-8 align-center">
           <Badge v-if="unread > 0" :value="unread" severity="warn">
@@ -33,7 +32,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
-import Toast from 'primevue/toast'
 import { useAuth } from '../stores/auth'
 import { api } from '../api'
 

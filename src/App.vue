@@ -1,4 +1,5 @@
 <template>
+  <Toast />
   <router-view />
 </template>
 
@@ -14,3 +15,7 @@ h2 { font-size: 1.05rem; margin: 16px 0 8px; }
 .muted { color: var(--p-text-muted-color, #6b7280); font-size: 0.85rem; }
 .p-card { border-radius: 10px; }
 </style>
+
+<script setup lang="ts">
+import Toast from 'primevue/toast'
+</script>
