@@ -4,26 +4,7 @@
     <Card v-if="cycle">
       <template #title>Достижения ({{ achievements.length }}/{{ limits.self_max_ach }})</template>
       <template #content>
-        <div v-for="(a, i) in achievements" :key="i" class="ach">
-          <div class="ach-head">
-            <b>Достижение {{ i + 1 }}</b>
-            <Button icon="pi pi-trash" text severity="danger" size="small"
-                    :disabled="locked" @click="achievements.splice(i, 1)" />
-          </div>
-          <Textarea v-model="a.text" :rows="3" class="w100" :maxlength="limits.self_max_chars"
-                    :disabled="locked" placeholder="Что сделал? Какой результат? Какую пользу принесло бизнесу?" />
-          <div class="counter" :class="{ over: a.text.length > limits.self_max_chars }">
-            {{ a.text.length }} / {{ limits.self_max_chars }}
-          </div>
-          <div class="self-rating">
-            <span class="muted">Самооценка:</span>
-            <SelectButton v-model="a.self_rating" :options="letters" :disabled="locked"
-                          :allow-empty="true" option-label="l" option-value="v">
-              <template #option="{ option }">{{ option.v }}</template>
-            </SelectButton>
-            <span v-if="a.self_rating" class="muted">{{ letterWords[a.self_rating] }}</span>
-          </div>
-        </div>
+        <AchievementEditor v-model="achievements" :limits="limits" :locked="locked" />
         <div class="actions">
           <Button label="+ Добавить достижение" text size="small" :disabled="locked || achievements.length >= limits.self_max_ach"
                   @click="achievements.push({ text: '', self_rating: null })" />
@@ -64,6 +45,7 @@
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
+import AchievementEditor from '../components/AchievementEditor.vue'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import SelectButton from 'primevue/selectbutton'

@@ -1,5 +1,6 @@
 <template>
   <div class="page" v-if="session">
+    <AppBreadcrumbs :items="[{ label: 'Калибровки', to: '/calibration' }, { label: session.title }]" />
     <div class="head">
       <h1 style="margin:0">{{ session.title }}</h1>
       <Tag :value="({ voting: 'голосование', finalizing: 'финализация', closed: 'закрыта' } as Record<string,string>)[session.status] || session.status" />
@@ -182,6 +183,7 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
+import AppBreadcrumbs from '../components/AppBreadcrumbs.vue'
 import RadarChart from '../components/RadarChart.vue'
 import SparkLine from '../components/SparkLine.vue'
 import { api, errMsg } from '../api'
