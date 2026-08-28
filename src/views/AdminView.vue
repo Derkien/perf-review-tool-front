@@ -7,6 +7,7 @@
         <Tab value="settings">Настройки цикла</Tab>
         <Tab value="rules">Правила повышений</Tab>
         <Tab value="activity">Активность и аудит</Tab>
+        <Tab value="rights">Права доступа</Tab>
       </TabList>
       <TabPanels>
         <TabPanel value="users">
@@ -83,6 +84,18 @@
             </Column>
           </DataTable>
         </TabPanel>
+        <TabPanel value="rights">
+          <p class="muted">Матрица сервисных прав по ролям. admin — всегда все права. Сотрудник видит только базовые разделы.</p>
+          <DataTable :value="rightsRows" size="small">
+            <Column field="role" header="Роль" />
+            <Column v-for="p in allPermissions" :key="p" :header="permLabels[p] || p">
+              <template #body="{ data: r }">
+                <Checkbox :model-value="(rolePermissions[r.role] || []).includes(p)" binary
+                          @update:model-value="toggleRight(r.role, p)" />
+              </template>
+            </Column>
+          </DataTable>
+        </TabPanel>
         <TabPanel value="rules">
           <div class="settings">
             <label>Кулдаун повышений (мес) <InputNumber v-model="r.raise_cooldown_months" @update:model-value="saveRules" /></label>
@@ -131,6 +144,15 @@ const r = ref<any>({
   forbidden_letters: ['D', 'E'],
 })
 const activity = ref<any[]>([])
+const rolePermissions = ref<Record<string, string[]>>({})
+const allPermissions = ['view-pay', 'view-efficiency', 'view-traffic', 'edit-traffic', 'edit-competency-marks']
+const permLabels: Record<string, string> = {
+  'view-pay': 'Проплачен­ность', 'view-efficiency': 'Эффективность', 'view-traffic': 'Светофор',
+  'edit-traffic': 'Правка светофора', 'edit-competency-marks': 'Разметка компетенций',
+}
+const rightsRows = ref([
+  { role: 'employee' }, { role: 'functional-manager' }, { role: 'line-manager' }, { role: 'cto' },
+])
 const audit = ref<any[]>([])
 
 onMounted(async () => {
@@ -143,8 +165,18 @@ onMounted(async () => {
     ...st.raise_rules,
     max_raise_pct: { C: 10, B: 20, A: 30, ...(st.raise_rules?.max_raise_pct || {}) },
   }
+  rolePermissions.value = st.role_permissions || {}
   loadActivity()
 })
+
+async function toggleRight(role: string, perm: string) {
+  const cur = new Set(rolePermissions.value[role] || [])
+  if (cur.has(perm)) cur.delete(perm)
+  else cur.add(perm)
+  rolePermissions.value = { ...rolePermissions.value, [role]: Array.from(cur) }
+  await api.put('/admin/settings', { values: { role_permissions: rolePermissions.value } })
+  toast.add({ severity: 'success', summary: `${role}: ${perm} ${cur.has(perm) ? 'включено' : 'выключено'}` })
+}
 
 async function loadActivity() {
   try {
