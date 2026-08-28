@@ -8,13 +8,27 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+function notifyApiError(message: string, url?: string) {
+  window.dispatchEvent(new CustomEvent('prtool:api-error', { detail: { message, url } }))
+}
+
 api.interceptors.response.use(
   (r) => r,
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('me')
-      if (!location.hash.includes('login')) location.hash = '#/login'
+      if (!location.hash.includes('login')) {
+        // replace: кнопка «назад» не должна вести на закрытый раздел
+        location.replace(location.origin + '/#/login')
+      }
+    } else {
+      const detail = err.response?.data?.detail
+      const message = typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map((d: any) => d?.msg).join('; ')
+        : err.message
+      const url = err.config?.url ? String(err.config.url) : undefined
+      notifyApiError(message, url)
     }
     return Promise.reject(err)
   },

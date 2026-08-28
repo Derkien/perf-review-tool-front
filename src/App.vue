@@ -17,5 +17,23 @@ h2 { font-size: 1.05rem; margin: 16px 0 8px; }
 </style>
 
 <script setup lang="ts">
+import { onBeforeUnmount, onMounted } from 'vue'
 import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
+
+const toast = useToast()
+function onApiError(e: Event) {
+  const { message, url } = (e as CustomEvent).detail || {}
+  toast.add({
+    severity: 'error',
+    summary: 'Ошибка запроса' + (url ? ` (${url})` : ''),
+    detail: String(message || '').slice(0, 300),
+    life: 8000,
+  })
+}
+onMounted(() => {
+  document.getElementById('fatal-error')?.remove()
+  window.addEventListener('prtool:api-error', onApiError)
+})
+onBeforeUnmount(() => window.removeEventListener('prtool:api-error', onApiError))
 </script>

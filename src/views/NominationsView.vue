@@ -43,7 +43,7 @@
                   option-value="id" filter placeholder="Сотрудник" />
         <InputText v-model.number="form.proposed_pct" placeholder="Предлагаемый % повышения" />
         <InputText v-model.number="form.proposed_salary" placeholder="Или целевая ЗП (₽)" />
-        <InputText v-model="form.target_grade" placeholder="Целевой грейд (опционально)" />
+        <Dropdown v-model="form.target_grade" :options="grades" placeholder="Целевой грейд (опционально)" showClear filter />
         <Textarea v-model="form.rationale" rows="4" placeholder="Обоснование: за что конкретно" class="w100" />
         <Button label="Подать" :loading="busy" @click="submit" />
       </div>
@@ -71,7 +71,8 @@ const nominations = ref<any[]>([])
 const employees = ref<any[]>([])
 const dialog = ref(false)
 const busy = ref(false)
-const form = ref<any>({ employee_id: null, proposed_pct: null, proposed_salary: null, target_grade: '', rationale: '' })
+const form = ref<any>({ employee_id: null, proposed_pct: null, proposed_salary: null, target_grade: null, rationale: '' })
+const grades = ref<string[]>([])
 const statusLabels: Record<string, string> = {
   submitted: 'подана', approved: 'одобрена', rejected: 'отклонена', deferred: 'отложена',
 }
@@ -87,6 +88,7 @@ function sev(s: string) {
 }
 
 onMounted(async () => {
+  grades.value = (await api.get('/admin/settings/public')).data.grades || []
   nominations.value = (await api.get('/decisions/nominations')).data
   employees.value = (await api.get('/staff/employees')).data
 })

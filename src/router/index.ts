@@ -30,6 +30,18 @@ const routes = [
 
 const router = createRouter({ history: createWebHashHistory(), routes })
 
+// трек навигации для админ-аналитики (тихий, не блокирует и не ломает выход)
+router.afterEach((to) => {
+  document.getElementById('fatal-error')?.remove()
+  const token = localStorage.getItem('token')
+  if (!token) return
+  import('../api').then(({ api }) =>
+    api.post('/admin/activity', {
+      type: 'page-view', section: to.path, detail: { to: to.fullPath },
+    }).catch(() => undefined),
+  )
+})
+
 router.beforeEach((to) => {
   const auth = useAuth()
   if (to.path !== '/login' && !auth.isAuthed) return '/login'

@@ -57,7 +57,7 @@ async function login() {
       window.location.href = '/api/v1/auth/login-redirect'
       return
     }
-    router.push('/dashboard')
+    router.replace('/dashboard')
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Не удалось войти', detail: errMsg(e), life: 5000 })
   } finally {

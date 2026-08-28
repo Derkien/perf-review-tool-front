@@ -41,7 +41,9 @@
         <template #body="{ data: d }">{{ decisionLabels[d.decision] || d.decision }}</template>
       </Column>
       <Column field="target_grade" header="Целевой грейд">
-        <template #editor="{ data: d }"><InputText v-model="d.target_grade" @change="patch(d)" /></template>
+        <template #editor="{ data: d }">
+          <Dropdown v-model="d.target_grade" :options="grades" @change="patch(d)" />
+        </template>
       </Column>
       <Column field="target_salary" header="Целевая ЗП">
         <template #editor="{ data: d }">
@@ -98,6 +100,7 @@ const createDialog = ref(false)
 const busy = ref(false)
 const newDecision = ref<any>({ employee_id: null, decision: 'raise-now', raise_pct: null, target_salary: null })
 const decisionKinds = ['keep', 'next-cycle', 'grade-nomination', 'raise-now', 'raise-later']
+const grades = ref<string[]>([])
 const decisionLabels: Record<string, string> = {
   keep: 'оставить', 'next-cycle': 'следующий цикл', 'grade-nomination': 'номинация на грейд',
   'raise-now': 'дать сейчас', 'raise-later': 'дать потом',
@@ -113,6 +116,7 @@ function letterColor(l?: string) {
 }
 
 onMounted(async () => {
+  grades.value = (await api.get('/admin/settings/public')).data.grades || []
   cycles.value = (await api.get('/reviews/cycles')).data
   cycleId.value = cycles.value.find((c: any) => !['closed', 'imported'].includes(c.stage))?.id || null
   employees.value = (await api.get('/staff/employees')).data

@@ -6,7 +6,51 @@
       <div style="flex:1"></div>
       <Dropdown v-if="isHost || auth.isCto" v-model="newHost" :options="participants" option-label="full_name"
                 option-value="id" placeholder="Передать ведущему" size="small" @change="transferHost" />
+      <Button v-if="(isHost || auth.isCto) && session.status === 'voting'" label="Аналитика голосований"
+              severity="secondary" size="small" @click="loadAnalytics" />
+      <Button v-if="(isHost || auth.isCto) && session.status === 'voting'" label="Завершить и перенести в решения"
+              severity="success" size="small" :loading="busy" @click="closeSession" />
+      <Button v-if="(isHost || auth.isCto) && session.status !== 'closed'" label="Отменить сессию"
+              severity="danger" size="small" outlined :loading="busy"
+              :disabled="session.status === 'cancelled'" @click="cancelSession" />
     </div>
+    <Message v-if="session.status === 'closed'" severity="success" :sticky="true">
+      Сессия завершена {{ session.closed_at ? new Date(session.closed_at).toLocaleString('ru') : '' }} —
+      {{ session.close_summary || 'результаты перенесены в раздел «Решения»' }}
+    </Message>
+    <Message v-if="session.status === 'cancelled'" severity="warn" :sticky="true">
+      Сессия отменена — результаты не переносятся в решения.
+    </Message>
+    <Card v-if="analytics" style="margin-bottom: 14px">
+      <template #title>Аналитика голосований</template>
+      <template #content>
+        <DataTable :value="analytics.by_voter" size="small">
+          <Column field="voter" header="Голосующий" />
+          <Column field="voter_group" header="Направление" />
+          <Column field="votes" header="Голосов" />
+          <Column field="flips" header="Смен после вскрытия">
+            <template #body="{ data: v }">
+              <Tag :value="String(v.flips)" :severity="v.flips > 0 ? 'warn' : 'success'" />
+            </template>
+          </Column>
+          <Column field="own_avg" header="Средняя «своим»">
+            <template #body="{ data: v }">{{ v.own_avg ?? '—' }}</template>
+          </Column>
+          <Column field="others_avg" header="Средняя «чужим»">
+            <template #body="{ data: v }">{{ v.others_avg ?? '—' }}</template>
+          </Column>
+          <Column field="bias" header="Перекос">
+            <template #body="{ data: v }">
+              <Tag v-if="v.bias != null" :value="(v.bias > 0 ? '+' : '') + v.bias"
+                   :severity="Math.abs(v.bias) >= 0.8 ? 'danger' : Math.abs(v.bias) >= 0.4 ? 'warn' : 'success'"
+                   v-tooltip.top="'Положительный перекос: своим ставит выше, чем чужим'" />
+              <span v-else class="muted">—</span>
+            </template>
+          </Column>
+        </DataTable>
+        <p class="muted">Перекос ≥ 0.8 — подозрение на занижение «чужим» относительно «своих». Смены после вскрытия видны в аудит-логе и журнале голосов.</p>
+      </template>
+    </Card>
     <div class="grid">
       <Card>
         <template #title>Очередь (от младших к старшим)</template>
@@ -88,7 +132,7 @@
         <Card style="margin-top: 12px">
           <template #title>Мой голос</template>
           <template #content>
-            <div v-if="currentItem?.status === 'pending'" class="vote-row">
+            <div v-if="currentItem?.status === 'pending' && session.status === 'voting'" class="vote-row">
               <SelectButton v-model="myVote" :options="['A','B','C','D','E']" />
               <InputText v-model="myComment" placeholder="Комментарий (опционально)" size="small" />
               <Button label="Проголосовать" :disabled="!myVote" :loading="busy" @click="vote" />
@@ -97,12 +141,20 @@
               <div v-for="v in revealed?.votes" :key="v.voter" class="kv">
                 <span>{{ v.voter }}</span><b>{{ v.letter }}</b> <span class="muted">{{ v.comment }}</span>
               </div>
+              <div class="revote-row">
+                <span class="muted">Передумали после вскрытия?</span>
+                <SelectButton v-model="revoteLetter" :options="['A','B','C','D','E']" />
+                <InputText v-model="revoteComment" placeholder="Почему меняете решение (обязательно)" size="small" />
+                <Button label="Изменить голос" size="small" severity="warn"
+                        :disabled="!revoteLetter || !revoteComment.trim()" :loading="busy" @click="revote" />
+                <span class="muted">Смена фиксируется: старая оценка сохраняется в истории.</span>
+              </div>
             </Message>
             <Message v-else-if="currentItem?.status === 'final'" severity="success">
               Итог: <b>{{ currentItem.final_letter }}{{ currentItem.borderline_flag || '' }}</b>
               — {{ currentItem.comment }}
             </Message>
-            <div v-if="isHost || auth.isCto" style="margin-top: 12px" class="host-actions">
+            <div v-if="(isHost || auth.isCto) && session.status === 'voting'" style="margin-top: 12px" class="host-actions">
               <template v-if="currentItem?.status === 'pending'">
                 <Button label="Вскрыть голоса" severity="warn" :loading="busy" @click="reveal()" />
               </template>
@@ -150,6 +202,9 @@ const finalBorderline = ref('')
 const finalComment = ref('')
 const newHost = ref<number | null>(null)
 const busy = ref(false)
+const analytics = ref<any>(null)
+const revoteLetter = ref<string | null>(null)
+const revoteComment = ref('')
 const compNames: Record<string, string> = {
   peers: 'Пиры', line: 'Лин. рукль', functional: 'Функц. рукль',
   matrix: 'Матрица', efficiency: 'Эффективность',
@@ -181,6 +236,7 @@ async function load() {
 async function openPack(it: any) {
   currentItem.value = it
   myVote.value = null; myComment.value = ''
+  revoteLetter.value = null; revoteComment.value = ''
   finalLetter.value = null; finalBorderline.value = ''; finalComment.value = ''
   revealed.value = null
   pack.value = (await api.get(`/calibration/sessions/${route.params.id}/pack/${it.employee_id}`)).data
@@ -217,6 +273,54 @@ async function finalize() {
   finally { busy.value = false }
 }
 
+async function loadAnalytics() {
+  analytics.value = (await api.get(`/calibration/sessions/${route.params.id}/analytics`)).data
+}
+
+async function closeSession() {
+  busy.value = true
+  try {
+    const r = await api.post(`/calibration/sessions/${route.params.id}/close`)
+    toast.add({
+      severity: 'success', summary: 'Сессия завершена',
+      detail: r.data.summary, life: 8000,
+    })
+    await load()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Не удалось завершить', detail: errMsg(e), life: 10000 })
+  } finally { busy.value = false }
+}
+
+async function cancelSession() {
+  busy.value = true
+  try {
+    await api.post(`/calibration/sessions/${route.params.id}/cancel`)
+    toast.add({ severity: 'warn', summary: 'Сессия отменена' })
+    await load()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+  } finally { busy.value = false }
+}
+
+async function revote() {
+  busy.value = true
+  try {
+    const r = await api.post(`/calibration/sessions/${route.params.id}/revote`, {
+      item_id: currentItem.value.item_id, letter: revoteLetter.value, comment: revoteComment.value,
+    })
+    toast.add({
+      severity: 'warn', summary: `Голос изменён: ${r.data.changed_from} → ${r.data.letter}`,
+      detail: 'Смена зафиксирована в истории', life: 6000,
+    })
+    revoteLetter.value = null
+    revoteComment.value = ''
+    await load()
+    if (currentItem.value) await openPack(currentItem.value)
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+  } finally { busy.value = false }
+}
+
 async function transferHost() {
   if (!newHost.value) return
   await api.post(`/calibration/sessions/${route.params.id}/transfer-host?new_host_user_id=${newHost.value}`)
@@ -242,6 +346,7 @@ async function transferHost() {
 .ach { border-left: 3px solid #cbd5e1; padding: 4px 10px; margin: 8px 0; }
 .ach p { margin: 4px 0; }
 .vote-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.revote-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
 .host-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 10px; }
 @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
 </style>
