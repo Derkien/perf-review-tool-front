@@ -34,6 +34,20 @@ app.config.errorHandler = (err, _instance, info) => {
 }
 window.addEventListener('unhandledrejection', (e) => {
   console.error('[unhandledrejection]', e.reason)
+  // сетевые/логические ошибки промисов — в журнал и тост, без белого экрана
+  const reason = e.reason
+  const message = reason?.response?.data?.detail
+    ? (typeof reason.response.data.detail === 'string'
+        ? reason.response.data.detail
+        : JSON.stringify(reason.response.data.detail))
+    : reason instanceof Error ? reason.message : String(reason)
+  import('./api').then(({ logError }) =>
+    logError({ kind: 'unhandled', message, url: reason?.config?.url,
+               status: reason?.response?.status }),
+  )
+  window.dispatchEvent(new CustomEvent('prtool:api-error', {
+    detail: { message, url: reason?.config?.url },
+  }))
 })
 window.addEventListener('error', (e) => {
   console.error('[window]', e.message)

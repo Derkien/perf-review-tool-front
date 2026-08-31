@@ -41,6 +41,15 @@
                 <a :href="emp.intranet_url" target="_blank" class="person-link">
                   профиль <i class="pi pi-external-link" style="font-size:.7rem" /></a>
               </div>
+              <template v-if="emp.sensitive">
+                <div class="kv"><span>Зарплата (оклад)</span>
+                  <b>{{ emp.sensitive.salary.toLocaleString('ru') }} ₽</b></div>
+                <div class="kv"><span>Премия УУ</span>
+                  <b>{{ Math.round(emp.sensitive.premium_pct * 100) }}%
+                    ({{ Math.round(emp.sensitive.salary * emp.sensitive.premium_pct).toLocaleString('ru') }} ₽)</b></div>
+                <div class="kv"><span>Квартальный бонус</span>
+                  <b>{{ emp.quarterly_bonus ? emp.quarterly_bonus.toLocaleString('ru') + ' ₽' : '—' }}</b></div>
+              </template>
             </template>
           </Card>
         </TabPanel>
@@ -110,8 +119,10 @@
                      :row-class="sessionRowClass" @row-click="toggleCompare($event.data)">
             <Column header="">
               <template #body="{ data: s }">
-                <i class="pi" :style="{ color: seriesColor(s) }"
+                <i v-if="s.assessor_kind === 'manager'" class="pi"
+                   :style="{ color: seriesColor(s), cursor: 'pointer' }"
                    :class="compareKeys.includes(sessionKey(s)) ? 'pi-check-circle' : 'pi-circle'" />
+                <span v-else class="muted small">self</span>
               </template>
             </Column>
             <Column field="date" header="Дата" />
@@ -510,6 +521,7 @@ function seriesColor(s: any): string {
   return idx === 0 ? '#9333ea' : idx === 1 ? '#0d9488' : '#94a3b8'
 }
 function sessionRowClass(data: any) {
+  if (data.assessor_kind !== 'manager') return 'row-disabled'
   return compareKeys.value.includes(sessionKey(data)) ? 'row-selected' : ''
 }
 function rowLevel(row: any): string {
@@ -565,11 +577,9 @@ async function loadComp() {
 watch(compKind, loadComp)
 
 async function toggleCompare(s: any) {
+  // самооценки на сравнение не добавляются — строки визуально недоступны (см. row-class)
+  if (s.assessor_kind !== 'manager') return
   const key = sessionKey(s)
-  if (s.assessor_kind !== 'manager') {
-    toast.add({ severity: 'info', summary: 'На паутинку добавляются руководительские сессии', life: 3000 })
-    return
-  }
   if (compareKeys.value.includes(key)) {
     compareKeys.value = compareKeys.value.filter((k) => k !== key)
   } else {
@@ -742,6 +752,7 @@ async function saveSelfEdit() {
 .mark-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }
 .mark-name { font-size: 0.85rem; cursor: help; }
 :deep(.row-selected) { background: #f5f3ff !important; }
+:deep(.row-disabled) { color: #94a3b8; cursor: default; }
 .acts { display: inline-flex; gap: 10px; }
 .act { cursor: pointer; color: #2563eb; }
 .act.danger { color: #dc2626; }
