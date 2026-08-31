@@ -50,8 +50,6 @@
           <div class="comp-head">
             <SelectButton v-model="compKind" :options="compKinds" option-label="label" option-value="value" />
             <div class="comp-actions">
-              <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
-                      v-tooltip.bottom="'Увеличить паутинку'" @click="radarBig = true" />
               <Button v-if="perms.edit_marks || perms.is_self"
                       :label="markMode ? 'Закрыть разметку' : 'Внести разметку'"
                       :severity="markMode ? 'secondary' : 'primary'" size="small" @click="markMode = !markMode" />
@@ -59,9 +57,14 @@
           </div>
           <div class="comp-grid">
             <div class="comp-radar">
+              <div class="radar-toolbar">
+                <span class="muted small">веса 1–10 · норма грейда — серая</span>
+                <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
+                        v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
+              </div>
               <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                           :manager="radar.manager" :norm="radar.norm"
-                          :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="380px" />
+                          :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="620px" />
               <p v-else class="muted">Разметок по этому типу пока нет{{
                 markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
             </div>
@@ -345,10 +348,10 @@
 
     <!-- большая паутинка -->
     <Dialog v-model:visible="radarBig" modal :header="`Паутинка: ${compKind === 'hard' ? 'харды' : 'софты'}`"
-            style="width: 1000px; max-width: 95vw">
+            :style="{ width: '96vw' }" :content-style="{ height: '88vh' }" :maximizable="true">
       <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                   :manager="radar.manager" :norm="radar.norm"
-                  :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="640px" />
+                  :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="84vh" />
     </Dialog>
 
     <!-- редактирование сессии -->
@@ -732,6 +735,8 @@ async function saveSelfEdit() {
 .comp-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
 .comp-actions { display: flex; gap: 8px; align-items: center; }
 .comp-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+.radar-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.radar-toolbar .small { font-size: 0.75rem; }
 .mark-form-head { margin-bottom: 8px; }
 .mark-table { max-height: 380px; overflow: auto; margin-bottom: 10px; }
 .mark-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }

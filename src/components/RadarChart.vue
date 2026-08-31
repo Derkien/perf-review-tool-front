@@ -53,7 +53,7 @@ function render() {
       indicator: props.axis.map((a) => ({
         name: a.length > 24 ? a.slice(0, 22) + '…' : a, max: 10,
       })),
-      radius: '62%',
+      radius: '78%',
     },
     series,
   } as never, true)
