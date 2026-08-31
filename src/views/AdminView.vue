@@ -11,9 +11,29 @@
       </TabList>
       <TabPanels>
         <TabPanel value="users">
-          <DataTable :value="users" size="small" edit-mode="cell">
-            <Column field="email" header="Email" />
-            <Column field="full_name" header="Имя" />
+          <div class="assign-row">
+            <InputText v-model="assignEmail" placeholder="email сотрудника" size="small" />
+            <Dropdown v-model="assignRole" :options="roles" size="small" />
+            <Button label="Назначить роль" size="small" @click="assignByEmail" />
+            <span class="muted">Пользователь создаётся заранее — при первом входе по SSO/email роль уже ждёт его.</span>
+          </div>
+          <DataTable :value="users" size="small" edit-mode="cell" paginator :rows="20"
+                     scrollable scroll-height="560px" filter-display="menu">
+            <Column field="full_name" header="Сотрудник" sortable>
+              <template #body="{ data: u }">
+                <router-link v-if="u.employee_id" :to="`/staff/${u.employee_id}`" class="ulink">{{ u.full_name }}</router-link>
+                <span v-else>{{ u.full_name }}</span>
+              </template>
+            </Column>
+            <Column field="email" header="Email" sortable />
+            <Column field="position" header="Должность" />
+            <Column field="team" header="Команда" />
+            <Column header="Входил">
+              <template #body="{ data: u }">
+                <Tag :value="u.has_logged_in ? 'да' : 'ещё нет'"
+                     :severity="u.has_logged_in ? 'success' : 'secondary'" />
+              </template>
+            </Column>
             <Column field="role" header="Роль">
               <template #editor="{ data: u }">
                 <Dropdown v-model="u.role" :options="roles" @change="patchUser(u)" />
@@ -129,11 +149,13 @@ import TabPanels from 'primevue/tabpanels'
 import Tabs from 'primevue/tabs'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
-import { api } from '../api'
+import { api, errMsg } from '../api'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
 const users = ref<any[]>([])
+const assignEmail = ref('')
+const assignRole = ref('employee')
 const roles = ['admin', 'cto', 'line-manager', 'functional-manager', 'employee']
 const s = ref<any>({})
 const w = ref<any>({})
@@ -195,6 +217,20 @@ function deviceLabel(ua: string): string {
   return ua.slice(0, 40)
 }
 
+async function assignByEmail() {
+  if (!assignEmail.value.trim()) return
+  try {
+    await api.post('/admin/users/by-email', null, {
+      params: { email: assignEmail.value.trim().toLowerCase(), role: assignRole.value },
+    })
+    toast.add({ severity: 'success', summary: `Роль назначена: ${assignEmail.value}` })
+    assignEmail.value = ''
+    users.value = (await api.get('/admin/users')).data
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+  }
+}
+
 async function patchUser(u: any) {
   await api.patch(`/admin/users/${u.id}`, { role: u.role })
   toast.add({ severity: 'success', summary: `${u.email} → ${u.role}` })
@@ -213,6 +249,9 @@ async function saveRules() {
 </script>
 
 <style scoped>
+.assign-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.ulink { color: #2563eb; text-decoration: none; }
+.ulink:hover { text-decoration: underline; }
 .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
 .settings label { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
 .head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }

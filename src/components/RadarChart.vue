@@ -21,10 +21,14 @@ const props = withDefaults(defineProps<{
 
 const el = ref<HTMLElement>()
 let chart: echarts.ECharts | null = null
+let ro: ResizeObserver | null = null
 
 function render() {
   if (!el.value) return
-  chart = chart || echarts.init(el.value)
+  if (!chart) {
+    if (!el.value.clientWidth) return  // контейнер ещё скрыт вкладкой — придёт ResizeObserver
+    chart = echarts.init(el.value)
+  }
   const series: any[] = []
   const push = (name: string, data: any, color: string, dashed = false, area = false) =>
     series.push({
@@ -55,7 +59,20 @@ function render() {
   } as never, true)
 }
 
-onMounted(render)
+onMounted(() => {
+  render()
+  // перерисовка при появлении контейнера (вкладка стала активной) и при ресайзе
+  ro = new ResizeObserver(() => {
+    if (el.value?.clientWidth) {
+      if (chart) chart.resize()
+      else render()
+    }
+  })
+  if (el.value) ro.observe(el.value)
+})
 watch(() => [props.axis, props.self, props.manager, props.norm, props.session1, props.session2], render)
-onBeforeUnmount(() => chart?.dispose())
+onBeforeUnmount(() => {
+  ro?.disconnect()
+  chart?.dispose()
+})
 </script>

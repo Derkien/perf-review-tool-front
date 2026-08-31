@@ -18,7 +18,8 @@
     "vue": "^3.4.0",
     "vue-echarts": "^7.0.0",
     "vue-router": "^4.4.0",
-    "@primevue/themes": "^4.5.0"
+    "@primevue/themes": "^4.5.0",
+    "@sentry/vue": "^8.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.0",

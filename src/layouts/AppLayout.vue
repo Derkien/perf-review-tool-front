@@ -19,11 +19,35 @@
             <i class="pi pi-bell" style="cursor: pointer" @click="$router.push('/notifications')" />
           </Badge>
           <i v-else class="pi pi-bell muted" style="cursor: pointer" @click="$router.push('/notifications')" />
+          <Badge v-if="errCount > 0" :value="errCount" severity="danger">
+            <i class="pi pi-exclamation-triangle" style="cursor: pointer" @click="errorLogVisible = true" />
+          </Badge>
+          <i v-else class="pi pi-exclamation-triangle muted" style="cursor: pointer"
+             v-tooltip.bottom="'Журнал ошибок'" @click="errorLogVisible = true" />
           <Button label="Выйти" text size="small" @click="logout" />
         </div>
       </header>
       <router-view />
     </main>
+    <Dialog v-model:visible="errorLogVisible" modal header="Журнал ошибок (сессия)" style="width: 780px">
+      <p class="muted" style="font-size:.85rem">
+        Последние {{ errorLog.length }} ошибок с контекстом. Скопируйте и отправьте в поддержку —
+        без консоли разработчика.
+      </p>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px">
+        <Button label="Копировать всё" size="small" severity="secondary" @click="copyErrors" />
+      </div>
+      <div v-for="(e, i) in errorLog" :key="i" class="err-row">
+        <div class="err-head">
+          <b :class="'ek-' + e.kind">{{ e.kind }}</b>
+          <span class="muted">{{ new Date(e.at).toLocaleString('ru') }}</span>
+          <span v-if="e.status" class="muted">HTTP {{ e.status }}</span>
+        </div>
+        <div class="err-msg">{{ e.message }}</div>
+        <div class="muted err-ctx">{{ e.user }} · {{ e.route }} · {{ e.url }}</div>
+      </div>
+      <p v-if="!errorLog.length" class="muted">ошибок нет 🎉</p>
+    </Dialog>
   </div>
 </template>
 
@@ -33,12 +57,25 @@ import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
 import { useAuth } from '../stores/auth'
-import { api } from '../api'
+import { api, getErrorLog } from '../api'
 
 const auth = useAuth()
 const router = useRouter()
 const route = useRoute()
 const unread = ref(0)
+const errCount = ref(0)
+const errorLogVisible = ref(false)
+const errorLog = ref<any[]>([])
+
+function refreshErrors() {
+  errorLog.value = [...getErrorLog()]
+  errCount.value = errorLog.value.length
+}
+
+function copyErrors() {
+  const text = JSON.stringify(errorLog.value, null, 1)
+  navigator.clipboard.writeText(text)
+}
 
 const roleLabel = computed(
   () => ({ admin: 'админ', cto: 'СТО', 'line-manager': 'лин. рукль', 'functional-manager': 'функц. рукль', employee: 'сотрудник' }[auth.role] || auth.role),
@@ -66,6 +103,8 @@ async function refreshUnread() {
   } catch { /* тихо */ }
 }
 watch(() => route.path, refreshUnread)
+watch(() => errorLogVisible.value, refreshErrors)
+onMounted(() => window.addEventListener('prtool:error-logged', refreshErrors))
 onMounted(refreshUnread)
 
 function logout() {
@@ -88,6 +127,11 @@ function logout() {
 }
 .menu a.active, .menu a:hover { background: #334155; color: #fff; }
 .sidebar-footer { padding: 14px 16px; }
+.err-row { border: 1px solid #f1f5f9; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+.err-head { display: flex; gap: 10px; align-items: center; font-size: .78rem; }
+.ek-api { color: #b91c1c; } .ek-render { color: #b45309; } .ek-unhandled { color: #6d28d9; }
+.err-msg { font-family: monospace; font-size: .8rem; margin: 4px 0; word-break: break-all; }
+.err-ctx { font-size: .72rem; }
 .content { flex: 1; min-width: 0; }
 .topbar {
   display: flex; justify-content: space-between; align-items: center;

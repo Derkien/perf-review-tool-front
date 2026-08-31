@@ -28,7 +28,7 @@ function onApiError(e: Event) {
     severity: 'error',
     summary: 'Ошибка запроса' + (url ? ` (${url})` : ''),
     detail: String(message || '').slice(0, 300),
-    life: 8000,
+    life: 5000,
   })
 }
 onMounted(() => {

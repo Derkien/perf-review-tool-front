@@ -17,71 +17,68 @@
             <template #title>Профиль</template>
             <template #content>
               <div class="kv"><span>Должность</span><b>{{ emp.position || '—' }}</b></div>
-              <div class="kv">
-                <span>Грейд</span>
-                <span class="grade-cell">
-                  <Tag :value="emp.grade" style="cursor: pointer" @click="openGradeModal(emp.grade)" />
-                  <i class="pi pi-info-circle muted grade-info"
-                     v-tooltip.top="'Требования грейда и матрица компетенций'"
-                     @click="openGradeModal(emp.grade)" />
-                </span>
-              </div>
+              <div class="kv"><span>Грейд</span><Tag :value="emp.grade" /></div>
               <div class="kv"><span>Команда</span><b>{{ emp.org_unit || '—' }}</b></div>
               <div class="kv">
                 <span>Лин. рукль</span>
                 <b>
-                  <router-link v-if="managerLink(emp.manager) && canLinkManagers"
-                               :to="`/staff/${emp.manager_id}`" class="person-link">{{ emp.manager || '—' }}</router-link>
+                  <router-link v-if="emp.manager && canLinkManagers" :to="`/staff/${emp.manager_id}`"
+                               class="person-link">{{ emp.manager }}</router-link>
                   <template v-else>{{ emp.manager || '—' }}</template>
                 </b>
               </div>
               <div class="kv">
                 <span>Функц. рукль</span>
                 <b>
-                  <router-link v-if="managerLink(emp.functional_manager) && canLinkManagers"
-                               :to="`/staff/${emp.functional_manager_id}`" class="person-link">{{ emp.functional_manager || '—' }}</router-link>
+                  <router-link v-if="emp.functional_manager && canLinkManagers"
+                               :to="`/staff/${emp.functional_manager_id}`"
+                               class="person-link">{{ emp.functional_manager }}</router-link>
                   <template v-else>{{ emp.functional_manager || '—' }}</template>
                 </b>
               </div>
               <div class="kv"><span>Дата найма</span><b>{{ emp.hire_date || '—' }}</b></div>
               <div class="kv" v-if="emp.intranet_url"><span>Интранет</span>
-                <a :href="emp.intranet_url" target="_blank" class="person-link">профиль <i class="pi pi-external-link" style="font-size:.7rem" /></a>
+                <a :href="emp.intranet_url" target="_blank" class="person-link">
+                  профиль <i class="pi pi-external-link" style="font-size:.7rem" /></a>
               </div>
-              <template v-if="emp.sensitive">
-                <div class="kv"><span>Зарплата (оклад)</span>
-                  <b>{{ emp.sensitive.salary.toLocaleString('ru') }} ₽</b></div>
-                <div class="kv"><span>Премия УУ</span>
-                  <b>{{ Math.round(emp.sensitive.premium_pct * 100) }}%
-                    ({{ Math.round(emp.sensitive.salary * emp.sensitive.premium_pct).toLocaleString('ru') }} ₽)</b></div>
-                <div class="kv"><span>Бонус (квартальный)</span>
-                  <b>{{ emp.quarterly_bonus ? emp.quarterly_bonus.toLocaleString('ru') + ' ₽' : '—' }}</b></div>
-              </template>
             </template>
           </Card>
         </TabPanel>
 
-        <!-- КОМПЕТЕНЦИИ -->
+        <!-- КОМПЕТЕНЦИИ: |паутинка|инсайты| / история -->
         <TabPanel value="comp">
           <div class="comp-head">
             <SelectButton v-model="compKind" :options="compKinds" option-label="label" option-value="value" />
-            <Button v-if="perms.edit_marks || perms.is_self" :label="markMode ? 'Закрыть разметку' : 'Внести разметку'"
-                    :severity="markMode ? 'secondary' : 'primary'" size="small" @click="markMode = !markMode" />
+            <div class="comp-actions">
+              <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
+                      v-tooltip.bottom="'Увеличить паутинку'" @click="radarBig = true" />
+              <Button v-if="perms.edit_marks || perms.is_self"
+                      :label="markMode ? 'Закрыть разметку' : 'Внести разметку'"
+                      :severity="markMode ? 'secondary' : 'primary'" size="small" @click="markMode = !markMode" />
+            </div>
           </div>
-          <div v-if="radar && radar.axis?.length">
-            <RadarChart :axis="radar.axis" :self="radar.self" :manager="radar.manager"
-                        :norm="radar.norm" :session1="compare1" :session2="compare2" :height="compHeight" />
-            <div v-if="radar.summary" class="radar-summary">
-              <Message v-if="radar.summary.overestimated?.length" severity="warn" :sticky="true">
-                Переоценка (сотрудник ставит себе выше рукля):
-                {{ radar.summary.overestimated.join(', ') }}
+          <div class="comp-grid">
+            <div class="comp-radar">
+              <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
+                          :manager="radar.manager" :norm="radar.norm"
+                          :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="380px" />
+              <p v-else class="muted">Разметок по этому типу пока нет{{
+                markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
+            </div>
+            <div class="comp-insights">
+              <h2 style="margin-top:0">Комментарии и инсайты</h2>
+              <Message v-if="radar?.summary" severity="info" :sticky="true">
+                Средние веса (1–10): самооценка <b>{{ radar.summary.avg_self }}</b>,
+                руководитель <b>{{ radar.summary.avg_manager }}</b>, норма грейда <b>{{ radar.norm }}</b>
               </Message>
-              <Message v-if="radar.summary.growth_zones?.length" severity="info" :sticky="true">
-                Зоны роста (рукль ставит выше самооценки): {{ radar.summary.growth_zones.join(', ') }}
+              <Message v-if="radar?.summary?.overestimated?.length" severity="warn" :sticky="true">
+                Переоценка (себе выше, чем рукль): {{ radar.summary.overestimated.join(', ') }}
+              </Message>
+              <Message v-if="radar?.summary?.growth_zones?.length" severity="success" :sticky="true">
+                Зоны роста (рукль выше самооценки): {{ radar.summary.growth_zones.join(', ') }}
               </Message>
             </div>
           </div>
-          <p v-else class="muted">Разметок по этому типу пока нет{{
-            markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
 
           <!-- форма разметки -->
           <Card v-if="markMode" style="margin-top: 12px">
@@ -94,48 +91,24 @@
                 <div v-for="row in matrixRows" :key="row.item_id" class="mark-row">
                   <span class="mark-name" v-tooltip.top="rowLevel(row)">{{ row.item }}</span>
                   <Dropdown v-model="markDraft[row.item_id]" :options="gradeOptions"
-                            option-label="label" option-value="value" filter placeholder="—" size="small"
-                            :virtual-scroller-options="{ itemSize: 30 }" />
+                            option-label="label" option-value="value" filter placeholder="—" size="small" />
                 </div>
               </div>
               <Button label="Сохранить разметку" size="small" :loading="busy" @click="saveMarks" />
             </template>
           </Card>
 
-          <!-- таблица разметки -->
-          <h2>Текущая разметка</h2>
-          <DataTable v-if="matrixRows.length" :value="matrixRows" size="small" scrollable scroll-height="320px">
-            <Column field="item" header="Компетенция" />
-            <Column header="Самооценка">
-              <template #body="{ data: r }">
-                <Tag v-if="r.self" :value="`${r.self.level} · ${r.self.weight}`" severity="warn" />
-                <span v-else class="muted">—</span>
-              </template>
-            </Column>
-            <Column header="Руководитель">
-              <template #body="{ data: r }">
-                <Tag v-if="r.manager" :value="`${r.manager.level} · ${r.manager.weight}`" severity="info" />
-                <span v-else class="muted">—</span>
-              </template>
-            </Column>
-            <Column header="Расхождение">
-              <template #body="{ data: r }">
-                <b v-if="r.self && r.manager"
-                   :style="{ color: Math.abs(r.manager.weight - r.self.weight) >= 2 ? '#dc2626' : Math.abs(r.manager.weight - r.self.weight) >= 1 ? '#f59e0b' : '#16a34a' }">
-                  {{ (r.manager.weight - r.self.weight > 0 ? '+' : '') + (r.manager.weight - r.self.weight) }}
-                </b>
-                <span v-else class="muted">—</span>
-              </template>
-            </Column>
-          </DataTable>
-
-          <!-- история сессий с чекбоксами сравнения -->
-          <h2>История разметок (сравнение: отметьте до двух)</h2>
-          <DataTable :value="sessions" size="small" style="max-width: 720px">
-            <Column header="✓">
+          <!-- история разметок -->
+          <h2>История разметок</h2>
+          <p class="muted" style="margin-top:0">
+            Клик по строке — добавить/убрать сессию на паутинку (до двух сравнений).
+          </p>
+          <DataTable :value="sessions" size="small" style="max-width: 860px"
+                     :row-class="sessionRowClass" @row-click="toggleCompare($event.data)">
+            <Column header="">
               <template #body="{ data: s }">
-                <Checkbox :model-value="compareDates.includes(s.date)" :disabled="compareDates.length >= 2 && !compareDates.includes(s.date)"
-                          binary @update:model-value="toggleCompare(s.date)" />
+                <i class="pi" :style="{ color: seriesColor(s) }"
+                   :class="compareKeys.includes(sessionKey(s)) ? 'pi-check-circle' : 'pi-circle'" />
               </template>
             </Column>
             <Column field="date" header="Дата" />
@@ -145,43 +118,40 @@
               </template>
             </Column>
             <Column field="assessor_kind" header="Чья">
-              <template #body="{ data: s }">
-                {{ s.assessor_kind === 'self' ? 'самооценка' : 'руководитель' }}
-              </template>
+              <template #body="{ data: s }">{{ s.assessor_kind === 'self' ? 'самооценка' : 'руководитель' }}</template>
             </Column>
             <Column field="assessor" header="Кто заполнял" />
             <Column field="marks" header="Пунктов" />
+            <Column header="Действия">
+              <template #body="{ data: s }">
+                <span class="acts">
+                  <i class="pi pi-download act" v-tooltip.top="'Скачать XLSX'"
+                     @click.stop="downloadSession(s)" />
+                  <i v-if="perms.edit_marks" class="pi pi-pencil act" v-tooltip.top="'Редактировать'"
+                     @click.stop="openSessionEdit(s)" />
+                  <i v-if="perms.edit_marks || perms.isAdmin" class="pi pi-trash act danger"
+                     v-tooltip.top="perms.isAdmin ? 'Удалить (soft/hard)' : 'Удалить (soft)'"
+                     @click.stop="deleteSession(s)" />
+                </span>
+              </template>
+            </Column>
           </DataTable>
-
-          <h2>Динамика навыков (руководительская разметка)</h2>
-          <div v-if="dynamics.length" style="max-width: 720px">
-            <SparkLine :width="600" :height="80"
-                       :points="dynamics.map((d: any) => ({ label: d.date, value: d.avg_weight }))" />
-            <DataTable :value="dynamics" size="small" style="max-width: 360px">
-              <Column field="date" header="Дата" />
-              <Column field="avg_weight" header="Средний вес (1–10)" />
-              <Column field="items" header="Пунктов" />
-            </DataTable>
-          </div>
-          <p v-else class="muted">пока одна разметка — динамика появится после второй</p>
         </TabPanel>
 
         <!-- ПРОПЛАЧЕННОСТЬ -->
         <TabPanel v-if="perms.pay" value="pay">
-          <Card style="max-width: 640px">
-            <template #title>Вилка АМТ и положение</template>
+          <Card style="max-width: 760px">
             <template #content>
               <BandBar :band="emp.sensitive?.band" :position="emp.sensitive?.band_position"
+                       :salary="emp.sensitive?.salary || 0"
+                       :premium-pct="emp.sensitive?.premium_pct || 0"
+                       :bonus="emp.quarterly_bonus || 0"
                        :salary-total="emp.sensitive?.salary_total || 0"
                        :advice="emp.sensitive?.band_advice" />
-              <div class="band-meta muted" v-if="emp.sensitive?.band?.amt_code">
-                {{ emp.sensitive.band.amt_code }} · грейд AMT {{ emp.sensitive.band.amt_grade }}
-                <span v-if="emp.sensitive.band.qualification"> · {{ emp.sensitive.band.qualification }}</span>
-              </div>
             </template>
           </Card>
-          <Card style="margin-top: 12px; max-width: 720px">
-            <template #title>История изменений ЗП</template>
+          <Card style="margin-top: 12px; max-width: 760px">
+            <template #title>История изменений</template>
             <template #content>
               <DataTable :value="salaryHistory" size="small">
                 <Column field="date" header="Дата" sortable />
@@ -202,35 +172,48 @@
 
         <!-- ЭФФЕКТИВНОСТЬ -->
         <TabPanel v-if="perms.efficiency" value="eff">
-          <SelectButton v-model="effKind" :options="[{label: 'Эффективность', value: 'efficiency'}, {label: 'Светофор', value: 'traffic'}]"
-                        option-label="label" option-value="value" style="margin-bottom: 12px" />
+          <div class="comp-head">
+            <SelectButton v-model="effKind" :options="effKinds" option-label="label" option-value="value" />
+            <Button v-if="effKind === 'traffic' && perms.edit_traffic" label="Внести значение"
+                    size="small" @click="trafficDialog = true" />
+          </div>
           <template v-if="effKind === 'efficiency'">
-            <Card style="max-width: 760px">
-              <template #title>PersonalEfficiency — помесячно</template>
+            <Card style="max-width: 820px">
+              <template #title>Эффективность — помесячно</template>
               <template #content>
-                <SparkLine v-if="effRows.length" :width="640" :height="100"
+                <SparkLine v-if="effRows.length" :width="700" :height="100"
                            :points="effRows.map((e: any) => ({ label: e.month, value: e.value }))" />
                 <div class="trend-line" v-if="effTrend">
-                  Тренд: <b :style="{ color: effTrend.color }">{{ effTrend.text }}</b>
+                  Тренд: <b :style="{ color: effTrend.color }">{{ effTrend.arrow }} {{ effTrend.text }}</b>
                   ({{ effTrend.from }} → {{ effTrend.to }}, {{ effTrend.delta > 0 ? '+' : '' }}{{ effTrend.delta }})
                 </div>
-                <DataTable :value="effRows" size="small" style="max-width: 480px">
-                  <Column field="month" header="Месяц" sortable />
-                  <Column field="value" header="Result" sortable />
+                <DataTable :value="[...effRows].reverse()" size="small" style="max-width: 360px">
+                  <Column field="month" header="Месяц" />
+                  <Column field="value" header="Result" />
                 </DataTable>
                 <p v-if="!effRows.length" class="muted">нет данных</p>
               </template>
             </Card>
-            <Card v-if="effParams.length" style="margin-top: 12px; max-width: 760px">
+            <Card v-if="effParams.length" style="margin-top: 12px; max-width: 820px">
               <template #title>Аналитика параметров</template>
               <template #content>
                 <DataTable :value="effParams" size="small">
-                  <Column field="code" header="Код" />
-                  <Column field="last" header="Последнее" />
-                  <Column field="prev" header="Предыдущее" />
+                  <Column header="Параметр">
+                    <template #body="{ data: p }">{{ paramLabel(p.code) }}</template>
+                  </Column>
+                  <Column header="Динамика">
+                    <template #body="{ data: p }">
+                      <SparkLine v-if="p.series.length > 1" :width="160" :height="36"
+                                 :color="p.dir === 'спад' ? '#dc2626' : '#16a34a'"
+                                 :points="p.series.map((v: number, i: number) => ({ label: effRows[i]?.month || '', value: v }))" />
+                      <span v-else class="muted">одно значение</span>
+                    </template>
+                  </Column>
                   <Column header="Тренд">
                     <template #body="{ data: p }">
-                      <Tag :value="p.dir" :severity="p.dir === 'рост' ? 'success' : p.dir === 'спад' ? 'danger' : 'secondary'" />
+                      <span :style="{ color: p.dir === 'рост' ? '#16a34a' : p.dir === 'спад' ? '#dc2626' : '#64748b', fontSize: '1.1rem' }">
+                        {{ p.dir === 'рост' ? '↑' : p.dir === 'спад' ? '↓' : '=' }}
+                      </span>
                     </template>
                   </Column>
                 </DataTable>
@@ -245,20 +228,21 @@
             </Card>
           </template>
           <template v-else>
-            <Card style="max-width: 760px">
-              <template #title>Светофор — помесячно</template>
+            <Card style="max-width: 640px">
+              <template #title>Светофор</template>
               <template #content>
-                <div v-if="perms.edit_traffic" style="margin-bottom: 10px">
-                  <Button label="Внести значение" size="small" @click="trafficDialog = true" />
-                </div>
-                <div class="traffic-chips">
-                  <span v-for="t in trafficRows" :key="t.month" class="traffic-chip"
-                        :class="trafficClass(t)" v-tooltip.top="t.comment || t.month">
-                    {{ t.month }} · {{ t.value }}
-                    <i v-if="t.source === 'manual'" class="pi pi-user-edit" style="font-size:.65rem" />
-                  </span>
-                </div>
-                <p v-if="!trafficRows.length" class="muted">нет данных</p>
+                <DataTable :value="[...trafficRows].reverse()" size="small" style="max-width: 320px">
+                  <Column field="month" header="Дата" />
+                  <Column header="Значение">
+                    <template #body="{ data: t }">
+                      <span class="traffic-dot" :class="trafficClass(t)" />
+                      {{ trafficLabel(t) }}
+                      <i v-if="t.source === 'manual'" class="pi pi-user-edit muted" style="font-size:.65rem;margin-left:4px"
+                         v-tooltip.top="t.comment" />
+                    </template>
+                  </Column>
+                </DataTable>
+                <p v-if="!trafficRows.length" class="muted">нет данных — импортируйте файл светофора</p>
               </template>
             </Card>
           </template>
@@ -318,10 +302,8 @@
                 <template #title>Оценки и грейд</template>
                 <template #content>
                   <div class="kv"><span>Грейд на момент ревью</span><b>{{ result.grade_at_review || '—' }}</b></div>
-                  <div class="kv"><span>Харды (средний вес 1–10)</span>
-                    <b>{{ result.comp_summary?.hard ?? '—' }}</b></div>
-                  <div class="kv"><span>Софты (средний вес 1–10)</span>
-                    <b>{{ result.comp_summary?.soft ?? '—' }}</b></div>
+                  <div class="kv"><span>Харды (средний вес 1–10)</span><b>{{ result.comp_summary?.hard ?? '—' }}</b></div>
+                  <div class="kv"><span>Софты (средний вес 1–10)</span><b>{{ result.comp_summary?.soft ?? '—' }}</b></div>
                   <div v-for="la in result.leader_assessments" :key="la.kind" class="kv">
                     <span>{{ la.kind === 'line' ? 'Линейный' : 'Функциональный' }}</span>
                     <b>{{ la.rating || '—' }} · софт {{ la.grade_soft || '—' }} / хард {{ la.grade_hard || '—' }}</b>
@@ -349,7 +331,6 @@
                 </div>
               </template>
             </Card>
-            <!-- редактирование селф-ревью -->
             <Card v-if="selfEditing" style="margin-top: 12px">
               <template #title>Правка селф-ревью</template>
               <template #content>
@@ -362,20 +343,27 @@
       </TabPanels>
     </Tabs>
 
-    <!-- модалка требований грейда -->
-    <Dialog v-model:visible="gradeModal" modal :header="`Грейд: ${gradeModalGrade}`" style="width: 720px">
-      <DataTable :value="gradeDescriptions" size="small" scrollable scroll-height="420px">
-        <Column field="specialty" header="Матрица" />
-        <Column field="item" header="Компетенция" />
-        <Column header="Требование">
-          <template #body="{ data: g }">
-            <span class="small">{{ g.description }}</span>
-          </template>
-        </Column>
-      </DataTable>
+    <!-- большая паутинка -->
+    <Dialog v-model:visible="radarBig" modal :header="`Паутинка: ${compKind === 'hard' ? 'харды' : 'софты'}`"
+            style="width: 1000px; max-width: 95vw">
+      <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
+                  :manager="radar.manager" :norm="radar.norm"
+                  :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="640px" />
     </Dialog>
 
-    <!-- модалка ручного светофора -->
+    <!-- редактирование сессии -->
+    <Dialog v-model:visible="sessionEditVisible" modal header="Редактирование разметки" style="width: 640px">
+      <div class="mark-table" style="max-height: 420px">
+        <div v-for="row in sessionEditRows" :key="row.item_id" class="mark-row">
+          <span class="mark-name">{{ row.item }}</span>
+          <Dropdown v-model="sessionEditDraft[row.item_id]" :options="gradeOptions"
+                    option-label="label" option-value="value" filter size="small" />
+        </div>
+      </div>
+      <Button label="Сохранить изменения" size="small" :loading="busy" @click="saveSessionEdit" />
+    </Dialog>
+
+    <!-- ручной светофор -->
     <Dialog v-model:visible="trafficDialog" modal header="Внести значение светофора" style="width: 480px">
       <div class="traffic-form">
         <label>Месяц <InputText v-model="trafficForm.month" placeholder="2026-08" size="small" /></label>
@@ -395,7 +383,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
@@ -432,34 +419,30 @@ const editRequestComment = ref('')
 const selfEditing = ref(false)
 const draftAchievements = ref<any[]>([])
 const limits = ref<any>({ self_min_ach: 2, self_max_ach: 4, self_max_chars: 300 })
-const grades = ref<string[]>([])
 
 // компетенции
 const compKind = ref('hard')
-const compKinds = [
-  { label: 'Харды', value: 'hard' },
-  { label: 'Софты', value: 'soft' },
-]
+const compKinds = [{ label: 'Харды', value: 'hard' }, { label: 'Софты', value: 'soft' }]
 const radar = ref<any>(null)
 const matrixRows = ref<any[]>([])
 const sessions = ref<any[]>([])
-const dynamics = ref<any[]>([])
-const compareDates = ref<string[]>([])
 const markMode = ref(false)
 const markDate = ref(new Date().toISOString().slice(0, 10))
 const markDraft = ref<Record<number, string>>({})
 const gradeOptions = ref<{ label: string; value: string }[]>([])
-const compHeight = ref('360px')
+const radarBig = ref(false)
+const compareKeys = ref<string[]>([])
+const sessionSeries = ref<any[]>([null, null])
+const sessionEditVisible = ref(false)
+const sessionEditRows = ref<any[]>([])
+const sessionEditDraft = ref<Record<number, string>>({})
 
 // эффективность
 const effKind = ref('efficiency')
+const effKinds = [{ label: 'Эффективность', value: 'efficiency' }, { label: 'Светофор', value: 'traffic' }]
 const trafficDialog = ref(false)
 const trafficForm = ref<any>({ month: '', value: null, comment: '', correction_plan: '', dismissal_date: '' })
-
-// грейд-модалка
-const gradeModal = ref(false)
-const gradeModalGrade = ref('')
-const gradeDescriptions = ref<any[]>([])
+const effLabels = ref<Record<string, string>>({})
 
 const decisionLabels: Record<string, string> = {
   keep: 'оставить как есть', 'next-cycle': 'рассмотреть в следующем цикле',
@@ -484,20 +467,21 @@ const effTrend = computed(() => {
   return {
     from, to, delta,
     text: delta > 0.3 ? 'рост' : delta < -0.3 ? 'спад' : 'стабильно',
+    arrow: delta > 0.3 ? '↑' : delta < -0.3 ? '↓' : '=',
     color: delta > 0.3 ? '#16a34a' : delta < -0.3 ? '#dc2626' : '#475569',
   }
 })
 
 const effParams = computed(() => {
   const rows = effRows.value
-  if (rows.length < 2) return []
+  if (!rows.length) return []
   const codes = new Set<string>()
   rows.forEach((r: any) => Object.keys(r.params || {}).forEach((c) => codes.add(c)))
   return Array.from(codes).map((code) => {
-    const vals = rows.map((r: any) => r.params?.[code]).filter((v: number | null) => v != null)
-    const last = vals[vals.length - 1], prev = vals[vals.length - 2] ?? last
+    const series = rows.map((r: any) => r.params?.[code]).filter((v: number | null) => v != null)
+    const last = series[series.length - 1], prev = series[series.length - 2] ?? last
     const d = last - prev
-    return { code, last, prev, dir: d > 0.05 ? 'рост' : d < -0.05 ? 'спад' : 'ровно' }
+    return { code, series, dir: d > 0.05 ? 'рост' : d < -0.05 ? 'спад' : 'ровно' }
   })
 })
 
@@ -505,22 +489,29 @@ const effRecommendations = computed(() => {
   const out: string[] = []
   const downs = effParams.value.filter((p) => p.dir === 'спад')
   const ups = effParams.value.filter((p) => p.dir === 'рост')
-  if (downs.length) out.push(`Подтянуть параметры со спадом: ${downs.map((p) => p.code).join(', ')} — обсудить причины на 1-1`)
-  if (ups.length) out.push(`Растущие параметры (${ups.map((p) => p.code).join(', ')}) — закрепить успех, использовать как сильные стороны`)
-  if (effTrend.value?.text === 'спад') out.push('Общий тренд эффективности снижается — нужна корректировка нагрузки/задач')
+  if (downs.length) out.push(`Подтянуть параметры со спадом: ${downs.map((p) => paramLabel(p.code)).join(', ')} — обсудить причины на 1-1`)
+  if (ups.length) out.push(`Растущие параметры (${ups.map((p) => paramLabel(p.code)).join(', ')}) — закрепить успех`)
+  if (effTrend.value?.text === 'спад') out.push('Общий тренд эффективности снижается — корректировка нагрузки/задач')
   if (effTrend.value?.text === 'рост') out.push('Общий тренд положительный — кандидат на повышенную сложность задач')
   return out
 })
 
-const compare1 = computed(() => (compareDates.value[0] ? radar.value?.session_1 : null))
-const compare2 = computed(() => (compareDates.value[1] ? radar.value?.session_2 : null))
-
-function managerLink(name?: string | null): boolean {
-  return !!name
+function paramLabel(code: string): string {
+  return effLabels.value[code] || `код ${code}`
+}
+function sessionKey(s: any): string {
+  return `${s.kind}|${s.date}`
+}
+function seriesColor(s: any): string {
+  const idx = compareKeys.value.indexOf(sessionKey(s))
+  return idx === 0 ? '#9333ea' : idx === 1 ? '#0d9488' : '#94a3b8'
+}
+function sessionRowClass(data: any) {
+  return compareKeys.value.includes(sessionKey(data)) ? 'row-selected' : ''
 }
 function rowLevel(row: any): string {
   const lvl = row.manager?.level || row.self?.level
-  return (lvl && row.descriptions?.[lvl]) || 'описания нет — справочник матрицы'
+  return (lvl && row.descriptions?.[lvl]) || 'описания нет'
 }
 function stageLabel(s: string) { return stageNames[s] || s }
 function letterColor(l?: string) {
@@ -528,16 +519,19 @@ function letterColor(l?: string) {
   return { A: '#16a34a', B: '#65a30d', C: '#3b82f6', D: '#f59e0b', E: '#dc2626' }[c] || '#334155'
 }
 function trafficClass(t: any): string {
-  if (t.label) return t.label.startsWith('зел') ? 't-green' : t.label.startsWith('жёл') ? 't-yellow' : 't-red'
-  return t.value >= 5.2 ? 't-green' : t.value >= 4.2 ? 't-yellow' : 't-red'
+  return trafficLabel(t).startsWith('зел') ? 't-green' : trafficLabel(t).startsWith('жёл') ? 't-yellow' : 't-red'
+}
+function trafficLabel(t: any): string {
+  if (t.label) return t.label
+  return t.value >= 5.2 ? 'зелёный' : t.value >= 4.2 ? 'жёлтый' : 'красный'
 }
 
 onMounted(async () => {
   const id = route.params.id
   const pub = (await api.get('/admin/settings/public')).data
   limits.value = pub
-  grades.value = pub.grades || []
-  gradeOptions.value = grades.value.map((g, i) => ({ label: `${g} · ${i + 1}`, value: g }))
+  gradeOptions.value = (pub.grades || []).map((g: string, i: number) => ({ label: `${g} · ${i + 1}`, value: g }))
+  effLabels.value = pub.eff_param_labels || {}
   emp.value = (await api.get(`/staff/employees/${id}`)).data
   perms.value = emp.value.permissions || {}
   cycles.value = (await api.get('/reviews/cycles')).data
@@ -561,27 +555,35 @@ async function loadComp() {
   try {
     sessions.value = (await api.get(`/competencies/employees/${id}/sessions`, { params: { kind: compKind.value } })).data
   } catch { sessions.value = [] }
-  try {
-    dynamics.value = (await api.get(`/competencies/employees/${id}/dynamics`, { params: { kind: compKind.value } })).data
-  } catch { dynamics.value = [] }
+  compareKeys.value = []
+  sessionSeries.value = [null, null]
 }
 
-watch(compKind, () => { compareDates.value = []; loadComp() })
+watch(compKind, loadComp)
 
-async function toggleCompare(date: string) {
-  if (compareDates.value.includes(date)) {
-    compareDates.value = compareDates.value.filter((d) => d !== date)
-  } else {
-    compareDates.value = [...compareDates.value, date].slice(-2)
+async function toggleCompare(s: any) {
+  const key = sessionKey(s)
+  if (s.assessor_kind !== 'manager') {
+    toast.add({ severity: 'info', summary: 'На паутинку добавляются руководительские сессии', life: 3000 })
+    return
   }
-  if (compareDates.value.length) {
-    const joined = compareDates.value.join('|')
-    radar.value = (await api.get(`/competencies/employees/${route.params.id}/radar`, {
-      params: { kind: compKind.value, compare_sessions: joined },
-    })).data
+  if (compareKeys.value.includes(key)) {
+    compareKeys.value = compareKeys.value.filter((k) => k !== key)
   } else {
-    await loadComp()
+    compareKeys.value = [...compareKeys.value, key].slice(-2)
   }
+  await refreshCompareSeries()
+}
+
+async function refreshCompareSeries() {
+  if (!compareKeys.value.length) {
+    sessionSeries.value = [null, null]
+    return
+  }
+  const r = (await api.get(`/competencies/employees/${route.params.id}/radar`, {
+    params: { kind: compKind.value, compare_sessions: compareKeys.value.join('|') },
+  })).data
+  sessionSeries.value = [r.session_1 || null, r.session_2 || null]
 }
 
 async function saveMarks() {
@@ -601,22 +603,64 @@ async function saveMarks() {
     toast.add({ severity: 'success', summary: `Разметка сохранена (${saved} пунктов)` })
     markMode.value = false
     await loadComp()
-    emp.value = (await api.get(`/staff/employees/${route.params.id}`)).data
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
   } finally { busy.value = false }
 }
 
-async function openGradeModal(grade: string) {
-  gradeModalGrade.value = grade
-  gradeModal.value = true
+async function downloadSession(s: any) {
+  const r = await api.get(
+    `/competencies/employees/${route.params.id}/sessions/${s.kind}/${s.date}/xlsx`,
+    { responseType: 'blob' })
+  const url = URL.createObjectURL(r.data as Blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `marking-${route.params.id}-${s.kind}-${s.date}.xlsx`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function openSessionEdit(s: any) {
+  sessionEditDraft.value = {}
+  const rows = (await api.get(`/competencies/employees/${route.params.id}/matrix`, {
+    params: { kind: s.kind },
+  })).data
+  sessionEditRows.value = rows
+  rows.forEach((r: any) => {
+    const lvl = s.assessor_kind === 'self' ? r.self?.level : r.manager?.level
+    if (lvl && r.self?.date === s.date || r.manager?.date === s.date) sessionEditDraft.value[r.item_id] = lvl
+  })
+  sessionEditVisible.value = true
+}
+
+async function saveSessionEdit() {
+  const key = compareKeys.value // сессия редактируется последней открытой? берём первую из выбранных или последнюю сессию
+  const s = sessions.value.find((x) => sessionKey(x) === key[0]) || sessions.value[0]
+  if (!s) return
+  busy.value = true
   try {
-    gradeDescriptions.value = (await api.get(`/competencies/employees/${route.params.id}/matrix`)).data
-      .map((r: any) => ({ specialty: r.specialty, item: r.item, description: r.descriptions?.[grade] || '—' }))
-      .filter((r: any) => r.description !== '—')
-  } catch { gradeDescriptions.value = [] }
-  if (!gradeDescriptions.value.length) {
-    gradeDescriptions.value = [{ specialty: '—', item: 'нет описания', description: `Для грейда «${grade}» описаний в матрицах пока нет — импортируйте актуальную матрицу компетенций` }]
+    const r = await api.patch(
+      `/competencies/employees/${route.params.id}/sessions/${s.kind}/${s.date}`,
+      { levels: sessionEditDraft.value })
+    toast.add({ severity: 'success', summary: `Изменено пунктов: ${Object.keys(r.data.changed || {}).length} (аудит записан)` })
+    sessionEditVisible.value = false
+    await loadComp()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+  } finally { busy.value = false }
+}
+
+async function deleteSession(s: any) {
+  const hard = perms.value.isAdmin && window.confirm(
+    `OK — soft delete (скрыть).\nОтмена — окончательное удаление (hard).\n${s.kind} ${s.date}`)
+  const useHard = hard ? window.confirm('Точно удалить НАВСЕГДА?') : false
+  try {
+    await api.delete(`/competencies/employees/${route.params.id}/sessions/${s.kind}/${s.date}`,
+                     { params: { hard: useHard } })
+    toast.add({ severity: 'success', summary: useHard ? 'Удалено навсегда' : 'Скрыто (soft delete)' })
+    await loadComp()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
   }
 }
 
@@ -683,16 +727,19 @@ async function saveSelfEdit() {
 .kv { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; }
 .kv span { color: #64748b; flex-shrink: 0; }
 .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
-.grade-cell { display: inline-flex; gap: 6px; align-items: center; }
-.grade-info { cursor: pointer; }
 .person-link { color: #2563eb; text-decoration: none; }
 .person-link:hover { text-decoration: underline; }
 .comp-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-.radar-summary { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+.comp-actions { display: flex; gap: 8px; align-items: center; }
+.comp-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
 .mark-form-head { margin-bottom: 8px; }
 .mark-table { max-height: 380px; overflow: auto; margin-bottom: 10px; }
 .mark-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }
 .mark-name { font-size: 0.85rem; cursor: help; }
+:deep(.row-selected) { background: #f5f3ff !important; }
+.acts { display: inline-flex; gap: 10px; }
+.act { cursor: pointer; color: #2563eb; }
+.act.danger { color: #dc2626; }
 .cycle-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; max-width: 640px; }
 .cycle-row {
   display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 8px;
@@ -705,16 +752,14 @@ async function saveSelfEdit() {
 .trend-line { margin: 8px 0 12px; font-size: 0.9rem; }
 .reco { margin-top: 10px; font-size: 0.88rem; }
 .reco ul { margin: 6px 0 0 18px; padding: 0; }
-.traffic-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.traffic-chip { padding: 4px 10px; border-radius: 14px; font-size: 0.8rem; cursor: default; }
-.t-green { background: #dcfce7; color: #14532d; }
-.t-yellow { background: #fef9c3; color: #713f12; }
-.t-red { background: #fee2e2; color: #7f1d1d; }
+.traffic-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.t-green { background: #22c55e; }
+.t-yellow { background: #eab308; }
+.t-red { background: #ef4444; }
 .traffic-form { display: flex; flex-direction: column; gap: 10px; }
 .traffic-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
 .w100 { width: 100%; box-sizing: border-box; }
 .final-comment b { font-weight: 500; text-align: right; }
 .small { font-size: 0.78rem; }
-.band-meta { margin-top: 6px; }
-@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .comp-grid, .grid-2 { grid-template-columns: 1fr; } }
 </style>

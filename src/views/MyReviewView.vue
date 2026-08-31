@@ -2,7 +2,9 @@
   <div class="page">
     <h1>Моё ревью</h1>
     <Card v-if="cycle">
-      <template #title>Достижения ({{ achievements.length }}/{{ limits.self_max_ach }})</template>
+      <template #title>Достижения ({{ achievements.length }}/{{ limits.self_max_ach }})
+        <i class="pi pi-info-circle muted guide-i" v-tooltip.top="'Правила оценки достижений'" @click="guideVisible = true" />
+      </template>
       <template #content>
         <AchievementEditor v-model="achievements" :limits="limits" :locked="locked" />
         <div class="actions">
@@ -50,6 +52,7 @@ import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
+import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import { api, errMsg } from '../api'
 import { useToast } from 'primevue/usetoast'
@@ -63,10 +66,11 @@ const letterWords: Record<string, string> = {
   A: 'Превосходит ожидания', B: 'Выше ожиданий', C: 'Соответствует ожиданиям',
   D: 'Ниже ожиданий', E: 'Не соответствует ожиданиям',
 }
-const letters = ['A', 'B', 'C', 'D', 'E'].map((v) => ({ v, l: `${v} — ${letterWords[v]}` }))
+const letters = ['A', 'B', 'C', 'D', 'E'].map((v) => ({ v, l: `${v} · ${letterWords[v]}` }))
 const candidates = ref<any>({ mandatory: [], others: [] })
 const selectedPeers = ref<number[]>([])
 const busy = ref(false)
+const guideVisible = ref(false)
 const busyPeers = ref(false)
 
 const locked = computed(() => status.value === 'submitted')
@@ -121,4 +125,6 @@ async function savePeers() {
 .actions { display: flex; gap: 10px; margin-top: 8px; align-items: center; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border-radius: 12px; }
+.guide-i { cursor: pointer; margin-left: 6px; }
+.guide p { margin: 8px 0; }
 </style>

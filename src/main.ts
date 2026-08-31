@@ -1,4 +1,17 @@
 import { createApp } from 'vue'
+
+// Sentry (включается VITE_SENTRY_DSN; без DSN — выключен)
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined
+if (SENTRY_DSN) {
+  import('@sentry/vue').then((Sentry) => {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      integrations: [Sentry.browserTracingIntegration({ router: undefined })],
+      tracesSampleRate: 0.2,
+    })
+  })
+}
+
 import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
@@ -14,6 +27,9 @@ const app = createApp(App)
 // Никаких белых экранов: любая ошибка рендера видна на странице и в консоли
 app.config.errorHandler = (err, _instance, info) => {
   console.error('[vue]', info, err)
+  import('./api').then(({ logError }) =>
+    logError({ kind: 'render', message: `${info}: ${err instanceof Error ? err.message : String(err)}` }),
+  )
   showFatalError(`${info}: ${err instanceof Error ? err.message : String(err)}`)
 }
 window.addEventListener('unhandledrejection', (e) => {
