@@ -24,6 +24,9 @@
           </Badge>
           <i v-else class="pi pi-exclamation-triangle muted" style="cursor: pointer"
              v-tooltip.bottom="'Журнал ошибок'" @click="errorLogVisible = true" />
+          <div class="avatar" v-tooltip.bottom="'Мой профиль'" @click="goProfile">
+            {{ initials }}
+          </div>
           <Button label="Выйти" text size="small" @click="logout" />
         </div>
       </header>
@@ -111,6 +114,27 @@ function logout() {
   auth.logout()
   router.push('/login')
 }
+
+const initials = computed(() => {
+  const name = auth.me?.full_name || auth.me?.email || '?'
+  return name.split(/[\s._@]+/).filter(Boolean).slice(0, 2)
+    .map((p: string) => p[0]?.toUpperCase()).join('')
+})
+
+async function goProfile() {
+  const me = auth.me as any
+  if (me?.employee_id) {
+    router.push(`/staff/${me.employee_id}`)
+    return
+  }
+  // без профиля сотрудника — обновляем me (employee_id мог появиться после импорта кадровой)
+  try {
+    await auth.fetchMe()
+    const fresh = auth.me as any
+    if (fresh?.employee_id) router.push(`/staff/${fresh.employee_id}`)
+    else router.push('/notifications')
+  } catch { /* тихо */ }
+}
 </script>
 
 <style scoped>
@@ -127,6 +151,12 @@ function logout() {
 }
 .menu a.active, .menu a:hover { background: #334155; color: #fff; }
 .sidebar-footer { padding: 14px 16px; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: #3b82f6; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+  font-weight: 700; cursor: pointer; user-select: none; flex-shrink: 0;
+}
+.avatar:hover { background: #2563eb; }
 .err-row { border: 1px solid #f1f5f9; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
 .err-head { display: flex; gap: 10px; align-items: center; font-size: .78rem; }
 .ek-api { color: #b91c1c; } .ek-render { color: #b45309; } .ek-unhandled { color: #6d28d9; }

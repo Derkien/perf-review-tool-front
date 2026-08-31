@@ -10,7 +10,7 @@
           </label>
           <label class="flex-col">
             <span>Роль (локальный режим)</span>
-            <Dropdown v-model="role" :options="roles" />
+            <Dropdown v-model="role" :options="roles" @change="onRoleChange" />
           </label>
           <Button label="Войти" :loading="busy" @click="login" />
           <small class="muted">Роль применяется к вашему пользователю в локальной БД.</small>
@@ -31,6 +31,7 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
+import { homeForRole } from '../router'
 import { useAuth } from '../stores/auth'
 import { errMsg } from '../api'
 import { useToast } from 'primevue/usetoast'
@@ -41,6 +42,14 @@ const toast = useToast()
 const mode = ref('dev')
 const email = ref('admin@itgri.ru')
 const role = ref('admin')
+// ВРЕМЕННО (выпилю): employee в dev-режиме — тест под Дзюбой
+const DZUBA = 'dziuba_v_s@itgri.ru'
+
+function onRoleChange() {
+  if (role.value === 'employee' && email.value === 'admin@itgri.ru') {
+    email.value = DZUBA
+  }
+}
 const roles = ['admin', 'cto', 'line-manager', 'functional-manager', 'employee']
 const busy = ref(false)
 

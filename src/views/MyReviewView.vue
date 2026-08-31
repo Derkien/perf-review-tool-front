@@ -1,130 +1,193 @@
 <template>
   <div class="page">
-    <h1>Моё ревью</h1>
-    <Card v-if="cycle">
-      <template #title>Достижения ({{ achievements.length }}/{{ limits.self_max_ach }})
-        <i class="pi pi-info-circle muted guide-i" v-tooltip.top="'Правила оценки достижений'" @click="guideVisible = true" />
-      </template>
-      <template #content>
-        <AchievementEditor v-model="achievements" :limits="limits" :locked="locked" />
-        <div class="actions">
-          <Button label="+ Добавить достижение" text size="small" :disabled="locked || achievements.length >= limits.self_max_ach"
-                  @click="achievements.push({ text: '', self_rating: null })" />
-          <div style="flex:1"></div>
-          <Button label="Сохранить черновик" severity="secondary" :disabled="locked" :loading="busy" @click="save(false)" />
-          <Button label="Отправить" :disabled="locked" :loading="busy" @click="save(true)" />
-        </div>
-        <Message v-if="status === 'submitted'" severity="success" closable>
-          Селф-ревью отправлено. Спасибо!
-        </Message>
-        <Message severity="info" :sticky="true">
-          Хорошее достижение: конкретное действие + измеримый результат + бизнес-польза.
-          Пример: «Ускорил прогоны на 20% за счёт рефакторинга — прогон сократился с 75 до 15 минут».
-        </Message>
-      </template>
-    </Card>
-    <Message v-else severity="warn">Активного цикла ревью нет.</Message>
+    <h1>Моё ревью
+      <i class="pi pi-info-circle muted guide-i" v-tooltip.top="'Правила оценки'"
+         @click="guideVisible = true" />
+    </h1>
 
-    <Card style="margin-top: 16px">
-      <template #title>Пиры: кого попросить оценить меня</template>
-      <template #content>
-        <p class="muted">Члены команды — обязательные пиры:</p>
-        <div class="chips">
-          <Tag v-for="m in candidates.mandatory" :key="m.id" :value="m.name" severity="info" class="chip" />
-        </div>
-        <p class="muted">Дополнительные пиры ({{ selectedPeers.length }}/{{ limits.peers_max }}):</p>
-        <MultiSelect v-model="selectedPeers" :options="candidates.others" option-label="name"
-                     option-value="id" filter placeholder="Выберите коллег" class="w100"
-                     :disabled="lockedPeerPick" />
-        <Button label="Сохранить выбор пиров" size="small" style="margin-top:8px" :loading="busyPeers"
-                @click="savePeers" />
-      </template>
-    </Card>
+    <template v-if="cycle">
+      <!-- БЛОК 1: достижения -->
+      <Card>
+        <template #title>1. Достижения ({{ achievements.length }}/{{ limits.self_max_ach }})</template>
+        <template #content>
+          <Message v-if="status === 'submitted'" severity="success">
+            Селф-ревью отправлено. Правка доступна на вкладке «Ревью» карточки.
+          </Message>
+          <AchievementEditor v-else v-model="achievements" :limits="limits" />
+          <p v-if="status !== 'submitted'" class="muted small" style="margin-bottom:0">
+            Хорошее достижение: что сделал + измеримый результат + польза бизнесу.
+            Пример: «Ускорил прогоны на 20% — прогон сократился с 75 до 15 минут».
+          </p>
+        </template>
+      </Card>
+
+      <!-- БЛОК 2: пиры -->
+      <Card style="margin-top: 14px">
+        <template #title>2. Пиры: кого попросить оценить меня</template>
+        <template #content>
+          <Message v-if="noProfile" severity="warn">
+            Ваш email не связан с профилем сотрудника — выберите пиров не получится.
+            Обратитесь к администратору.
+          </Message>
+          <template v-else>
+            <p class="muted" style="margin-top:0">Члены команды — обязательные пиры:</p>
+            <div class="chips">
+              <Tag v-for="m in candidates.mandatory" :key="m.id" :value="m.name"
+                   severity="info" class="chip" icon="pi pi-lock" />
+              <span v-if="!candidates.mandatory?.length" class="muted">в команде кроме вас никого</span>
+            </div>
+            <p class="muted">Дополнительные пиры ({{ selectedPeers.length }}/{{ limits.peers_max }}):</p>
+            <MultiSelect v-model="selectedPeers" :options="candidates.others" option-label="name"
+                         option-value="id" filter placeholder="Выберите коллег" class="w100" />
+          </template>
+        </template>
+      </Card>
+
+      <!-- БЛОК 3: действия -->
+      <Card style="margin-top: 14px">
+        <template #title>3. Действия</template>
+        <template #content>
+          <div v-if="status !== 'submitted'" class="actions-row">
+            <Button label="Сохранить черновик" severity="secondary" :disabled="!dirty"
+                    :loading="busy" @click="saveDraft" />
+            <Button label="Отправить" :loading="busy" @click="confirmVisible = true" />
+            <span v-if="dirty" class="muted small">есть несохранённые изменения</span>
+          </div>
+          <Message v-else severity="success">Отправлено. Спасибо!</Message>
+        </template>
+      </Card>
+    </template>
+
+    <Message v-else severity="warn">Активного цикла ревью нет — здесь появится форма, когда цикл запустится.</Message>
+
+    <!-- гайд -->
+    <Dialog v-model:visible="guideVisible" modal header="Гайд: как формулировать достижения" style="width: 640px">
+      <div class="guide">
+        <p><b>Хорошее достижение отвечает на три вопроса:</b> что сделал? какой результат? какую пользу принесло бизнесу?</p>
+        <p><b>Хорошо:</b> «Ускорил мобильные прогоны на 20% за счёт рефакторинга — прогон сократился с 75 до 15 минут».</p>
+        <p><b>Плохо:</b> «Участвовал в разработке», «Помогал команде» — без метрик и результата.</p>
+        <p><b>Шкала самооценки:</b></p>
+        <ul>
+          <li>A — превосходит ожидания</li>
+          <li>B — выше ожиданий</li>
+          <li>C — соответствует ожиданиям</li>
+          <li>D — ниже ожиданий</li>
+          <li>E — не соответствует ожиданиям</li>
+        </ul>
+        <p class="muted">Чек-лист: есть цифры? понятна бизнес-ценность? ≤{{ limits.self_max_chars }} символов? личный вклад («я», не «мы»)? нет дублей?</p>
+      </div>
+    </Dialog>
+
+    <!-- подтверждение отправки -->
+    <Dialog v-model:visible="confirmVisible" modal header="Отправить селф-ревью?" style="width: 460px">
+      <p>После отправки пиры увидят ваши достижения. Изменения до старта пир-ревью — свободно,
+        после — только через запрос руководителю.</p>
+      <div class="actions-row" style="justify-content:flex-end">
+        <Button label="Отмена" severity="secondary" size="small" @click="confirmVisible = false" />
+        <Button label="Да, отправить" size="small" :loading="busy" @click="submit" />
+      </div>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import AchievementEditor from '../components/AchievementEditor.vue'
+import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
-import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
-import Dialog from 'primevue/dialog'
-import Textarea from 'primevue/textarea'
+import AchievementEditor from '../components/AchievementEditor.vue'
 import { api, errMsg } from '../api'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
 const cycle = ref<any>(null)
-const achievements = ref<{ text: string; self_rating: string | null }[]>([{ text: '', self_rating: null }, { text: '', self_rating: null }])
+const achievements = ref<any[]>([])
 const status = ref('empty')
 const limits = ref<any>({ self_min_ach: 2, self_max_ach: 4, self_max_chars: 300, peers_min: 3, peers_max: 8 })
-const letterWords: Record<string, string> = {
-  A: 'Превосходит ожидания', B: 'Выше ожиданий', C: 'Соответствует ожиданиям',
-  D: 'Ниже ожиданий', E: 'Не соответствует ожиданиям',
-}
-const letters = ['A', 'B', 'C', 'D', 'E'].map((v) => ({ v, l: `${v} · ${letterWords[v]}` }))
 const candidates = ref<any>({ mandatory: [], others: [] })
 const selectedPeers = ref<number[]>([])
 const busy = ref(false)
+const dirty = ref(false)
 const guideVisible = ref(false)
-const busyPeers = ref(false)
+const confirmVisible = ref(false)
+const noProfile = ref(false)
 
-const locked = computed(() => status.value === 'submitted')
-const lockedPeerPick = computed(() => status.value !== 'empty' && status.value !== 'draft')
+function markDirty() { dirty.value = true }
+
+watch(achievements, markDirty, { deep: true })
+watch(selectedPeers, markDirty, { deep: true })
+
+function beforeUnload(e: BeforeUnloadEvent) {
+  if (dirty.value && status.value !== 'submitted') {
+    e.preventDefault()
+    e.returnValue = 'Есть несохранённые изменения — сохранить черновик перед уходом?'
+  }
+}
 
 onMounted(async () => {
-  const l = await api.get('/admin/settings/public')
-  limits.value = l.data
-  letterWords.value = l.data.letter_words
+  window.addEventListener('beforeunload', beforeUnload)
+  limits.value = (await api.get('/admin/settings/public')).data
   const cycles = (await api.get('/reviews/cycles')).data
-  cycle.value = cycles.find((c: any) => !['closed', 'imported'].includes(c.stage)) || cycles[0]
+  cycle.value = cycles.find((c: any) => !['closed', 'imported'].includes(c.stage)) || null
   if (!cycle.value) return
   const mine = (await api.get('/reviews/self/mine', { params: { cycle_id: cycle.value.id } })).data
   status.value = mine.status
+  noProfile.value = mine.status === 'no-profile'
   if (mine.achievements?.length) achievements.value = mine.achievements
+  else achievements.value = [{ text: '', self_rating: null }, { text: '', self_rating: null }]
   try {
     candidates.value = (await api.get('/reviews/peer-candidates', { params: { cycle_id: cycle.value.id } })).data
-  } catch { /* кандидаты недоступны */ }
+  } catch { /* нет доступа */ }
+  // данные загрузились — сбрасываем dirty, зафиксировав чистое состояние
+  setTimeout(() => { dirty.value = false }, 0)
 })
 
-async function save(submit: boolean) {
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+
+async function saveDraft() {
   busy.value = true
   try {
     const r = await api.post('/reviews/self', {
-      cycle_id: cycle.value.id, achievements: achievements.value, submit,
+      cycle_id: cycle.value.id, achievements: achievements.value, submit: false,
     })
     status.value = r.data.status
-    toast.add({ severity: 'success', summary: submit ? 'Отправлено' : 'Черновик сохранён' })
+    dirty.value = false
+    toast.add({ severity: 'success', summary: 'Черновик сохранён' })
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Проверьте форму', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
-async function savePeers() {
-  busyPeers.value = true
+async function submit() {
+  busy.value = true
   try {
-    await api.put('/reviews/peer-selections', { cycle_id: cycle.value.id, peer_ids: selectedPeers.value })
-    toast.add({ severity: 'success', summary: 'Список пиров сохранён' })
+    await api.put('/reviews/peer-selections', {
+      cycle_id: cycle.value.id, peer_ids: selectedPeers.value,
+    })
+    const r = await api.post('/reviews/self', {
+      cycle_id: cycle.value.id, achievements: achievements.value, submit: true,
+    })
+    status.value = r.data.status
+    dirty.value = false
+    confirmVisible.value = false
+    toast.add({ severity: 'success', summary: 'Отправлено' })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
-  } finally { busyPeers.value = false }
+    confirmVisible.value = false
+    toast.add({ severity: 'error', summary: 'Проверьте форму', detail: errMsg(e), life: 8000 })
+  } finally { busy.value = false }
 }
 </script>
 
 <style scoped>
-.ach { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
-.ach-head { display: flex; justify-content: space-between; align-items: center; }
-.w100 { width: 100%; box-sizing: border-box; }
-.counter { text-align: right; font-size: 0.75rem; color: #64748b; margin-top: 2px; }
-.counter.over { color: #dc2626; font-weight: 700; }
-.self-rating { display: flex; gap: 10px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
-.actions { display: flex; gap: 10px; margin-top: 8px; align-items: center; }
+.guide-i { cursor: pointer; margin-left: 8px; font-size: 1rem; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border-radius: 12px; }
-.guide-i { cursor: pointer; margin-left: 6px; }
+.w100 { width: 100%; box-sizing: border-box; }
+.actions-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.small { font-size: 0.8rem; }
 .guide p { margin: 8px 0; }
+.guide ul { margin: 6px 0 6px 18px; padding: 0; }
 </style>

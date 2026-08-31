@@ -13,8 +13,9 @@
       </div>
       <div class="self-rating">
         <span class="muted">Самооценка:</span>
-        <SelectButton :model-value="a.self_rating" :options="['A','B','C','D','E']"
-                      :allow-empty="true" @update:model-value="a.self_rating = $event" />
+        <Dropdown :model-value="a.self_rating" :options="ratingOptions" option-label="label"
+                  option-value="value" filter placeholder="выберите оценку" class="rating-select"
+                  :disabled="locked" @update:model-value="a.self_rating = $event" />
       </div>
     </div>
     <Button label="+ Добавить достижение" text size="small" class="add-btn"
@@ -25,11 +26,19 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button'
-import SelectButton from 'primevue/selectbutton'
+import Dropdown from 'primevue/dropdown'
 import Textarea from 'primevue/textarea'
 
 const model = defineModel<any[]>({ required: true })
 defineProps<{ limits: any; locked?: boolean }>()
+
+const ratingOptions = [
+  { label: 'A — Превосходит ожидания', value: 'A' },
+  { label: 'B — Выше ожиданий', value: 'B' },
+  { label: 'C — Соответствует ожиданиям', value: 'C' },
+  { label: 'D — Ниже ожиданий', value: 'D' },
+  { label: 'E — Не соответствует ожиданиям', value: 'E' },
+]
 </script>
 
 <style scoped>
@@ -39,5 +48,6 @@ defineProps<{ limits: any; locked?: boolean }>()
 .counter { text-align: right; font-size: 0.75rem; color: #64748b; margin-top: 2px; }
 .counter.over { color: #dc2626; font-weight: 700; }
 .self-rating { display: flex; gap: 10px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.rating-select { min-width: 280px; }
 .add-btn { margin-top: 4px; }
 </style>
