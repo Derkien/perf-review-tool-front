@@ -55,7 +55,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/dev-token": {
+    "/auth/dev-token": {
         parameters: {
             query?: never;
             header?: never;
@@ -75,7 +75,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/me": {
+    "/auth/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -92,7 +92,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/config": {
+    "/auth/config": {
         parameters: {
             query?: never;
             header?: never;
@@ -109,7 +109,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/org-units": {
+    "/staff/org-units": {
         parameters: {
             query?: never;
             header?: never;
@@ -126,7 +126,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/employees": {
+    "/staff/employees": {
         parameters: {
             query?: never;
             header?: never;
@@ -143,7 +143,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/employees/{employee_id}": {
+    "/staff/employees/{employee_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -160,7 +160,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/employees/{employee_id}/salary-change": {
+    "/staff/employees/{employee_id}/salary-change": {
         parameters: {
             query?: never;
             header?: never;
@@ -177,7 +177,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/employees/{employee_id}/salary-history": {
+    "/staff/employees/{employee_id}/salary-history": {
         parameters: {
             query?: never;
             header?: never;
@@ -194,7 +194,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/employees/{employee_id}/traffic": {
+    "/staff/employees/{employee_id}/traffic": {
         parameters: {
             query?: never;
             header?: never;
@@ -215,7 +215,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/amt/codes": {
+    "/staff/amt/codes": {
         parameters: {
             query?: never;
             header?: never;
@@ -232,7 +232,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/amt/levels": {
+    "/staff/amt/levels": {
         parameters: {
             query?: never;
             header?: never;
@@ -249,7 +249,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/amt/grade-mapping": {
+    "/staff/amt/grade-mapping": {
         parameters: {
             query?: never;
             header?: never;
@@ -266,7 +266,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/amt/bands": {
+    "/staff/amt/bands": {
         parameters: {
             query?: never;
             header?: never;
@@ -283,7 +283,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/matrices": {
+    "/competencies/matrices": {
         parameters: {
             query?: never;
             header?: never;
@@ -300,7 +300,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/matrices/{matrix_id}/items": {
+    "/competencies/matrices/{matrix_id}/items": {
         parameters: {
             query?: never;
             header?: never;
@@ -317,7 +317,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/marks": {
+    "/competencies/marks": {
         parameters: {
             query?: never;
             header?: never;
@@ -334,7 +334,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/employees/{employee_id}/radar": {
+    "/competencies/employees/{employee_id}/radar": {
         parameters: {
             query?: never;
             header?: never;
@@ -351,7 +351,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/employees/{employee_id}/sessions": {
+    "/competencies/employees/{employee_id}/sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -371,7 +371,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/xlsx": {
+    "/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/xlsx": {
         parameters: {
             query?: never;
             header?: never;
@@ -392,7 +392,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/employees/{employee_id}/sessions/{kind}/{date_str}": {
+    "/competencies/employees/{employee_id}/sessions/{kind}/{date_str}": {
         parameters: {
             query?: never;
             header?: never;
@@ -416,7 +416,7 @@ export interface paths {
         patch: operations["session_edit_api_v1_competencies_employees__employee_id__sessions__kind___date_str__patch"];
         trace?: never;
     };
-    "/api/v1/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/restore": {
+    "/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -433,7 +433,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/employees/{employee_id}/dynamics": {
+    "/competencies/employees/{employee_id}/dynamics": {
         parameters: {
             query?: never;
             header?: never;
@@ -450,7 +450,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/competencies/employees/{employee_id}/matrix": {
+    "/competencies/employees/{employee_id}/matrix": {
         parameters: {
             query?: never;
             header?: never;
@@ -470,7 +470,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/cycles": {
+    "/reviews/cycles": {
         parameters: {
             query?: never;
             header?: never;
@@ -488,7 +488,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/cycles/{cycle_id}/advance-stage": {
+    "/reviews/cycles/{cycle_id}/advance-stage": {
         parameters: {
             query?: never;
             header?: never;
@@ -505,7 +505,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/self": {
+    "/reviews/self": {
         parameters: {
             query?: never;
             header?: never;
@@ -522,7 +522,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/self/mine": {
+    "/reviews/self/mine": {
         parameters: {
             query?: never;
             header?: never;
@@ -539,7 +539,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/peer-candidates": {
+    "/reviews/peer-candidates": {
         parameters: {
             query?: never;
             header?: never;
@@ -556,7 +556,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/peer-selections": {
+    "/reviews/peer-selections": {
         parameters: {
             query?: never;
             header?: never;
@@ -573,7 +573,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/peer-selections/{employee_id}": {
+    "/reviews/peer-selections/{employee_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -590,7 +590,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/peer-assignments/send": {
+    "/reviews/peer-assignments/send": {
         parameters: {
             query?: never;
             header?: never;
@@ -607,7 +607,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/peer-assignments/mine": {
+    "/reviews/peer-assignments/mine": {
         parameters: {
             query?: never;
             header?: never;
@@ -624,7 +624,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/peer-reviews/{assignment_id}": {
+    "/reviews/peer-reviews/{assignment_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -641,7 +641,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/leader-assessments": {
+    "/reviews/leader-assessments": {
         parameters: {
             query?: never;
             header?: never;
@@ -658,7 +658,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/self/{self_review_id}/edit-request": {
+    "/reviews/self/{self_review_id}/edit-request": {
         parameters: {
             query?: never;
             header?: never;
@@ -678,7 +678,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/self/{self_review_id}/approve-edit": {
+    "/reviews/self/{self_review_id}/approve-edit": {
         parameters: {
             query?: never;
             header?: never;
@@ -698,7 +698,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/cycles/{cycle_id}/result": {
+    "/reviews/cycles/{cycle_id}/result": {
         parameters: {
             query?: never;
             header?: never;
@@ -718,7 +718,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/cycles/{cycle_id}/peer-stats": {
+    "/reviews/cycles/{cycle_id}/peer-stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -735,7 +735,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reviews/cycles/{cycle_id}/dashboard": {
+    "/reviews/cycles/{cycle_id}/dashboard": {
         parameters: {
             query?: never;
             header?: never;
@@ -752,7 +752,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions": {
+    "/calibration/sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -770,7 +770,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}": {
+    "/calibration/sessions/{session_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -787,7 +787,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/pack/{employee_id}": {
+    "/calibration/sessions/{session_id}/pack/{employee_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -796,7 +796,7 @@ export interface paths {
         };
         /**
          * Session Pack
-         * @description Карточка сотрудника для калибровки: максимум инсайтов + рекомендация системы.
+         * @description Карточка сотрудника на калибровке: максимум инсайтов + рекомендация системы.
          */
         get: operations["session_pack_api_v1_calibration_sessions__session_id__pack__employee_id__get"];
         put?: never;
@@ -807,7 +807,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/vote": {
+    "/calibration/sessions/{session_id}/vote": {
         parameters: {
             query?: never;
             header?: never;
@@ -824,27 +824,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/revote": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Revote
-         * @description Смена голоса после вскрытия (до финализации пункта). Старая оценка сохраняется в журнале.
-         */
-        post: operations["revote_api_v1_calibration_sessions__session_id__revote_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/calibration/sessions/{session_id}/reveal": {
+    "/calibration/sessions/{session_id}/reveal": {
         parameters: {
             query?: never;
             header?: never;
@@ -861,7 +841,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/finalize-item": {
+    "/calibration/sessions/{session_id}/revote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revote */
+        post: operations["revote_api_v1_calibration_sessions__session_id__revote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calibration/sessions/{session_id}/finalize-item": {
         parameters: {
             query?: never;
             header?: never;
@@ -878,7 +875,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/transfer-host": {
+    "/calibration/sessions/{session_id}/transfer-host": {
         parameters: {
             query?: never;
             header?: never;
@@ -895,7 +892,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/close": {
+    "/calibration/sessions/{session_id}/close": {
         parameters: {
             query?: never;
             header?: never;
@@ -904,10 +901,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Close Session
-         * @description Завершить сессию и перенести финальные оценки в решения цикла (draft).
-         */
+        /** Close Session */
         post: operations["close_session_api_v1_calibration_sessions__session_id__close_post"];
         delete?: never;
         options?: never;
@@ -915,7 +909,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/cancel": {
+    "/calibration/sessions/{session_id}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -924,10 +918,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Cancel Session
-         * @description Отменить сессию: результаты не переносятся в решения.
-         */
+        /** Cancel Session */
         post: operations["cancel_session_api_v1_calibration_sessions__session_id__cancel_post"];
         delete?: never;
         options?: never;
@@ -935,17 +926,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/sessions/{session_id}/analytics": {
+    "/calibration/sessions/{session_id}/analytics": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Session Analytics
-         * @description Аналитика голосования: флипы, «свои vs чужие», распределение по вайберам.
-         */
+        /** Session Analytics */
         get: operations["session_analytics_api_v1_calibration_sessions__session_id__analytics_get"];
         put?: never;
         post?: never;
@@ -955,7 +943,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/ai/export": {
+    "/calibration/ai/export": {
         parameters: {
             query?: never;
             header?: never;
@@ -972,7 +960,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/ai/import": {
+    "/calibration/ai/import": {
         parameters: {
             query?: never;
             header?: never;
@@ -989,7 +977,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/calibration/ai/predict": {
+    "/calibration/ai/predict": {
         parameters: {
             query?: never;
             header?: never;
@@ -1006,7 +994,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/decisions": {
+    "/decisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1024,7 +1012,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/decisions/{decision_id}": {
+    "/decisions/{decision_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1041,7 +1029,7 @@ export interface paths {
         patch: operations["patch_decision_api_v1_decisions__decision_id__patch"];
         trace?: never;
     };
-    "/api/v1/decisions/budget": {
+    "/decisions/budget": {
         parameters: {
             query?: never;
             header?: never;
@@ -1058,7 +1046,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/decisions/nominations": {
+    "/decisions/nominations": {
         parameters: {
             query?: never;
             header?: never;
@@ -1076,7 +1064,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/decisions/nominations/{nomination_id}": {
+    "/decisions/nominations/{nomination_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1093,7 +1081,7 @@ export interface paths {
         patch: operations["decide_nomination_api_v1_decisions_nominations__nomination_id__patch"];
         trace?: never;
     };
-    "/api/v1/imports/{import_type}/preview": {
+    "/imports/{import_type}/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1110,7 +1098,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/imports/{batch_id}/apply": {
+    "/imports/{batch_id}/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -1127,7 +1115,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/imports": {
+    "/imports": {
         parameters: {
             query?: never;
             header?: never;
@@ -1144,7 +1132,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/exports/decisions": {
+    "/exports/decisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1161,7 +1149,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/exports/cycle-stats": {
+    "/exports/cycle-stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -1178,7 +1166,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/exports/staff": {
+    "/exports/staff": {
         parameters: {
             query?: never;
             header?: never;
@@ -1195,7 +1183,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/exports/nominations": {
+    "/exports/nominations": {
         parameters: {
             query?: never;
             header?: never;
@@ -1212,7 +1200,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/exports/calibration-packs": {
+    "/exports/calibration-packs": {
         parameters: {
             query?: never;
             header?: never;
@@ -1229,7 +1217,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/notifications/mine": {
+    "/notifications/mine": {
         parameters: {
             query?: never;
             header?: never;
@@ -1246,7 +1234,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/notifications/unread-count": {
+    "/notifications/unread-count": {
         parameters: {
             query?: never;
             header?: never;
@@ -1263,7 +1251,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/notifications/{notification_id}/read": {
+    "/notifications/{notification_id}/read": {
         parameters: {
             query?: never;
             header?: never;
@@ -1280,7 +1268,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/notifications/read-all": {
+    "/notifications/read-all": {
         parameters: {
             query?: never;
             header?: never;
@@ -1297,7 +1285,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/users": {
+    "/admin/users": {
         parameters: {
             query?: never;
             header?: never;
@@ -1318,7 +1306,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/users/by-email": {
+    "/admin/users/by-email": {
         parameters: {
             query?: never;
             header?: never;
@@ -1338,7 +1326,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/users/{user_id}": {
+    "/admin/users/{user_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1355,7 +1343,7 @@ export interface paths {
         patch: operations["patch_user_api_v1_admin_users__user_id__patch"];
         trace?: never;
     };
-    "/api/v1/admin/settings": {
+    "/admin/settings": {
         parameters: {
             query?: never;
             header?: never;
@@ -1373,7 +1361,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/activity": {
+    "/admin/activity": {
         parameters: {
             query?: never;
             header?: never;
@@ -1391,7 +1379,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/audit": {
+    "/admin/audit": {
         parameters: {
             query?: never;
             header?: never;
@@ -1408,7 +1396,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/settings/public": {
+    "/admin/settings/public": {
         parameters: {
             query?: never;
             header?: never;
@@ -3529,20 +3517,18 @@ export interface operations {
             };
         };
     };
-    revote_api_v1_calibration_sessions__session_id__revote_post: {
+    reveal_api_v1_calibration_sessions__session_id__reveal_post: {
         parameters: {
-            query?: never;
+            query: {
+                item_id: number;
+            };
             header?: never;
             path: {
                 session_id: number;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RevoteIn"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -3564,18 +3550,20 @@ export interface operations {
             };
         };
     };
-    reveal_api_v1_calibration_sessions__session_id__reveal_post: {
+    revote_api_v1_calibration_sessions__session_id__revote_post: {
         parameters: {
-            query: {
-                item_id: number;
-            };
+            query?: never;
             header?: never;
             path: {
                 session_id: number;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevoteIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

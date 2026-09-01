@@ -1,6 +1,7 @@
-/** Типизированный доступ к API: компоненты не строят URL и не держат знания о контракте.
- *  Типы — сгенерированы из OpenAPI (src/api/types.ts), источник истины — бэкенд. */
-import type { components, paths } from './types'
+/** Типизированный доступ к API: пути строго из сгенерированной схемы (openapi-fetch),
+ *  типы из OpenAPI. Источник истины - бэкенд (KnowledgeBase/00-ROLE-&-MINDSET). */
+import type { components } from './types'
+import { client } from './client'
 import { api } from './http'
 
 export type Employee = components['schemas']['EmployeeOut']
@@ -75,18 +76,31 @@ export type Nomination = {
 }
 
 export const staffApi = {
-  listEmployees: (params?: { org_unit_id?: number; grade?: string; functional_group?: string; active?: boolean; q?: string }) =>
-    api.get<Employee[]>('/staff/employees', { params }).then((r) => r.data),
-  card: (id: number | string) =>
-    api.get<EmployeeCard>(`/staff/employees/${id}`).then((r) => r.data),
-  salaryHistory: (id: number | string) =>
-    api.get<{ date: string; salary: number; premium_pct: number; grade: string | null; reason: string; source: string }[]>(`/staff/employees/${id}/salary-history`).then((r) => r.data),
+  async listEmployees(params?: { org_unit_id?: number; grade?: string; functional_group?: string; active?: boolean; q?: string }): Promise<Employee[]> {
+    const { data } = await client.GET('/staff/employees', { params: params as never })
+    return data as Employee[]
+  },
+  async card(id: number | string): Promise<EmployeeCard> {
+    const { data } = await client.GET('/staff/employees/{employee_id}', {
+      params: { path: { employee_id: Number(id) } },
+    })
+    return data as EmployeeCard
+  },
+  async salaryHistory(id: number | string): Promise<{ date: string; salary: number; premium_pct: number; grade: string | null; reason: string; source: string }[]> {
+    const { data } = await client.GET('/staff/employees/{employee_id}/salary-history', {
+      params: { path: { employee_id: Number(id) } },
+    })
+    return data as never
+  },
   setTraffic: (id: number | string, body: { month: string; value: number; comment: string; correction_plan?: string; dismissal_date?: string | null }) =>
     api.post<{ ok: boolean; zone: string }>(`/staff/employees/${id}/traffic`, body).then((r) => r.data),
 }
 
 export const reviewsApi = {
-  cycles: () => api.get<Cycle[]>('/reviews/cycles').then((r) => r.data),
+  async cycles(): Promise<Cycle[]> {
+    const { data } = await client.GET('/reviews/cycles')
+    return data as Cycle[]
+  },
   publicSettings: () => api.get<PublicSettings>('/admin/settings/public').then((r) => r.data),
   mySelf: (cycleId: number) =>
     api.get<{ achievements: { text: string; self_rating?: string | null }[]; status: string }>(
