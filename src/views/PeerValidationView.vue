@@ -50,7 +50,7 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 

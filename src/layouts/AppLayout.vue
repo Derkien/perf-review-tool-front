@@ -60,7 +60,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
 import { useAuth } from '../stores/auth'
-import { api, getErrorLog } from '../api'
+import { api, getErrorLog } from '../api/http'
 
 const auth = useAuth()
 const router = useRouter()

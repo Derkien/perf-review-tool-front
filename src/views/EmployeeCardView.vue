@@ -417,7 +417,8 @@ import AppBreadcrumbs from '../components/AppBreadcrumbs.vue'
 import BandBar from '../components/BandBar.vue'
 import RadarChart from '../components/RadarChart.vue'
 import SparkLine from '../components/SparkLine.vue'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
+import { competenciesApi, reviewsApi, staffApi } from '../api/endpoints'
 import { useToast } from 'primevue/usetoast'
 
 const route = useRoute()
@@ -542,8 +543,8 @@ function trafficLabel(t: any): string {
 }
 
 onMounted(async () => {
-  const id = route.params.id
-  const pub = (await api.get('/admin/settings/public')).data
+  const id = String(route.params.id)
+  const pub = await reviewsApi.publicSettings()
   limits.value = pub
   gradeOptions.value = (pub.grades || []).map((g: string, i: number) => ({ label: `${g} · ${i + 1}`, value: g }))
   effLabels.value = pub.eff_param_labels || {}
@@ -551,24 +552,24 @@ onMounted(async () => {
   perms.value = emp.value.permissions || {}
   cycles.value = (await api.get('/reviews/cycles')).data
   if (perms.value.pay) {
-    try { salaryHistory.value = (await api.get(`/staff/employees/${id}/salary-history`)).data } catch { /* нет */ }
+    try { salaryHistory.value = await staffApi.salaryHistory(id) } catch { /* нет */ }
   }
   await loadComp()
 })
 
 async function loadComp() {
-  const id = route.params.id
+  const id = String(route.params.id)
   try {
-    radar.value = (await api.get(`/competencies/employees/${id}/radar`, { params: { kind: compKind.value } })).data
+    radar.value = await competenciesApi.radar(id, compKind.value as 'hard' | 'soft')
   } catch { radar.value = null }
   try {
-    matrixRows.value = (await api.get(`/competencies/employees/${id}/matrix`, { params: { kind: compKind.value } })).data
+    matrixRows.value = await competenciesApi.matrix(id, compKind.value as 'hard' | 'soft')
     matrixRows.value.forEach((r) => {
       markDraft.value[r.item_id] = (perms.value.edit_marks ? r.manager?.level : r.self?.level) || ''
     })
   } catch { matrixRows.value = [] }
   try {
-    sessions.value = (await api.get(`/competencies/employees/${id}/sessions`, { params: { kind: compKind.value } })).data
+    sessions.value = await competenciesApi.sessions(id, compKind.value as 'hard' | 'soft')
   } catch { sessions.value = [] }
   compareKeys.value = []
   sessionSeries.value = [null, null]
@@ -593,9 +594,9 @@ async function refreshCompareSeries() {
     sessionSeries.value = [null, null]
     return
   }
-  const r = (await api.get(`/competencies/employees/${route.params.id}/radar`, {
-    params: { kind: compKind.value, compare_sessions: compareKeys.value.join('|') },
-  })).data
+  // контракт API: compare_sessions = ISO-даты через | (kind передаётся отдельным параметром)
+  const dates = compareKeys.value.map((k) => k.split('|')[1])
+  const r = await competenciesApi.radar(String(route.params.id), compKind.value as 'hard' | 'soft', dates)
   sessionSeries.value = [r.session_1 || null, r.session_2 || null]
 }
 
@@ -622,15 +623,11 @@ async function saveMarks() {
 }
 
 async function downloadSession(s: any) {
-  const r = await api.get(
-    `/competencies/employees/${route.params.id}/sessions/${s.kind}/${s.date}/xlsx`,
-    { responseType: 'blob' })
-  const url = URL.createObjectURL(r.data as Blob)
+  const url = competenciesApi.sessionXlsxUrl(String(route.params.id), s.kind, s.date)
   const a = document.createElement('a')
   a.href = url
   a.download = `marking-${route.params.id}-${s.kind}-${s.date}.xlsx`
   a.click()
-  URL.revokeObjectURL(url)
 }
 
 async function openSessionEdit(s: any) {
@@ -684,7 +681,7 @@ async function saveTraffic() {
     toast.add({ severity: 'success', summary: 'Светофор сохранён' })
     trafficDialog.value = false
     trafficForm.value = { month: '', value: null, comment: '', correction_plan: '', dismissal_date: '' }
-    emp.value = (await api.get(`/staff/employees/${route.params.id}`)).data
+    emp.value = await staffApi.card(String(route.params.id))
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
   } finally { busy.value = false }
@@ -696,9 +693,7 @@ async function openResult(cycleId: number) {
   selfEditing.value = false
   if (selectedCycle.value == null) return
   try {
-    result.value = (await api.get(`/reviews/cycles/${cycleId}/result`, {
-      params: { employee_id: route.params.id },
-    })).data
+    result.value = await reviewsApi.result(cycleId, String(route.params.id))
     if (result.value?.self_review) draftAchievements.value = result.value.self_review.achievements || []
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Не удалось открыть результат', detail: errMsg(e) })

@@ -51,7 +51,7 @@ router.afterEach((to) => {
   document.getElementById('fatal-error')?.remove()
   const token = localStorage.getItem('token')
   if (!token) return
-  import('../api').then(({ api }) =>
+  import('../api/http').then(({ api }) =>
     api.post('/admin/activity', {
       type: 'page-view', section: to.path, detail: { to: to.fullPath },
     }).catch(() => undefined),

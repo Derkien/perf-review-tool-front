@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../src/api', () => ({
+vi.mock('../src/api/http', () => ({
   api: {
     get: vi.fn(async () => ({ data: { auth_mode: 'dev' } })),
     post: vi.fn(async () => ({ data: { access_token: 'x' } })),

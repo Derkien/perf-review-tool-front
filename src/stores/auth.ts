@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { api } from '../api'
+import { api } from '../api/http'
 
 export interface Me { id: number; email: string; full_name: string; role: string }
 

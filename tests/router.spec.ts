@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../src/api', () => ({
+vi.mock('../src/api/http', () => ({
   api: { get: vi.fn(), post: vi.fn() },
   errMsg: (e: unknown) => String(e),
 }))

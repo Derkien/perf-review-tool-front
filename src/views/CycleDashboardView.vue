@@ -71,7 +71,7 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 

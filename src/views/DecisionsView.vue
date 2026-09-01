@@ -87,7 +87,7 @@ import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import ProgressBar from 'primevue/progressbar'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()

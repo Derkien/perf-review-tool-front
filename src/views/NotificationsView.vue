@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import Button from 'primevue/button'
-import { api } from '../api'
+import { api } from '../api/http'
 
 const items = ref<any[]>([])
 const icons: Record<string, string> = {

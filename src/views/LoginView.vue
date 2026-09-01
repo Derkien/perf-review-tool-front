@@ -33,7 +33,7 @@ import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import { homeForRole } from '../router'
 import { useAuth } from '../stores/auth'
-import { errMsg } from '../api'
+import { errMsg } from '../api/http'
 import { useToast } from 'primevue/usetoast'
 
 const auth = useAuth()

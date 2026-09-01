@@ -186,7 +186,7 @@ import Tag from 'primevue/tag'
 import AppBreadcrumbs from '../components/AppBreadcrumbs.vue'
 import RadarChart from '../components/RadarChart.vue'
 import SparkLine from '../components/SparkLine.vue'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 

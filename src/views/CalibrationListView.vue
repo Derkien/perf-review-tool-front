@@ -35,7 +35,7 @@ import DataTable from 'primevue/datatable'
 import Dropdown from 'primevue/dropdown'
 import FileUpload from 'primevue/fileupload'
 import Tag from 'primevue/tag'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 

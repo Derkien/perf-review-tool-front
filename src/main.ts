@@ -27,10 +27,17 @@ const app = createApp(App)
 // Никаких белых экранов: любая ошибка рендера видна на странице и в консоли
 app.config.errorHandler = (err, _instance, info) => {
   console.error('[vue]', info, err)
-  import('./api').then(({ logError }) =>
-    logError({ kind: 'render', message: `${info}: ${err instanceof Error ? err.message : String(err)}` }),
+  const isNetwork = !!(err as any)?.isAxiosError
+  import('./api/http').then(({ logError }) =>
+    logError({
+      kind: isNetwork ? 'api' : 'render',
+      message: `${info}: ${err instanceof Error ? err.message : String(err)}`,
+      url: (err as any)?.config?.url,
+      status: (err as any)?.response?.status,
+    }),
   )
-  showFatalError(`${info}: ${err instanceof Error ? err.message : String(err)}`)
+  // сетевые ошибки не роняют интерфейс: их уже показали тостом из interceptor
+  if (!isNetwork) showFatalError(`${info}: ${err instanceof Error ? err.message : String(err)}`)
 }
 window.addEventListener('unhandledrejection', (e) => {
   console.error('[unhandledrejection]', e.reason)
@@ -41,7 +48,7 @@ window.addEventListener('unhandledrejection', (e) => {
         ? reason.response.data.detail
         : JSON.stringify(reason.response.data.detail))
     : reason instanceof Error ? reason.message : String(reason)
-  import('./api').then(({ logError }) =>
+  import('./api/http').then(({ logError }) =>
     logError({ kind: 'unhandled', message, url: reason?.config?.url,
                status: reason?.response?.status }),
   )

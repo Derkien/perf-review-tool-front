@@ -149,7 +149,7 @@ import TabPanels from 'primevue/tabpanels'
 import Tabs from 'primevue/tabs'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()

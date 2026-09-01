@@ -63,7 +63,7 @@ import Message from 'primevue/message'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()

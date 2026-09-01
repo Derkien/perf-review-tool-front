@@ -61,7 +61,7 @@ import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 

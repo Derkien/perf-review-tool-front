@@ -99,7 +99,8 @@ import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import AchievementEditor from '../components/AchievementEditor.vue'
-import { api, errMsg } from '../api'
+import { api, errMsg } from '../api/http'
+import { reviewsApi } from '../api/endpoints'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
@@ -129,17 +130,17 @@ function beforeUnload(e: BeforeUnloadEvent) {
 
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload)
-  limits.value = (await api.get('/admin/settings/public')).data
+  limits.value = await reviewsApi.publicSettings()
   const cycles = (await api.get('/reviews/cycles')).data
   cycle.value = cycles.find((c: any) => !['closed', 'imported'].includes(c.stage)) || null
   if (!cycle.value) return
-  const mine = (await api.get('/reviews/self/mine', { params: { cycle_id: cycle.value.id } })).data
+  const mine = await reviewsApi.mySelf(cycle.value.id)
   status.value = mine.status
   noProfile.value = mine.status === 'no-profile'
   if (mine.achievements?.length) achievements.value = mine.achievements
   else achievements.value = [{ text: '', self_rating: null }, { text: '', self_rating: null }]
   try {
-    candidates.value = (await api.get('/reviews/peer-candidates', { params: { cycle_id: cycle.value.id } })).data
+    candidates.value = await reviewsApi.peerCandidates(cycle.value.id)
   } catch { /* нет доступа */ }
   // данные загрузились — сбрасываем dirty, зафиксировав чистое состояние
   setTimeout(() => { dirty.value = false }, 0)

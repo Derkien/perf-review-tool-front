@@ -28,7 +28,7 @@ import DataTable from 'primevue/datatable'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
-import { api } from '../api'
+import { api } from '../api/http'
 import { useAuth } from '../stores/auth'
 
 const auth = useAuth()
