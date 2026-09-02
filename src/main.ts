@@ -27,8 +27,9 @@ const app = createApp(App)
 // Никаких белых экранов: любая ошибка рендера видна на странице и в консоли
 app.config.errorHandler = (err, _instance, info) => {
   console.error('[vue]', info, err)
-  const isNetwork = !!(err as any)?.isAxiosError
-  import('./api/http').then(({ logError }) =>
+  const anyErr = err as { isAxiosError?: boolean; isNetwork?: boolean }
+  const isNetwork = !!anyErr?.isAxiosError || !!anyErr?.isNetwork
+  import('./api/errors').then(({ logError }) =>
     logError({
       kind: isNetwork ? 'api' : 'render',
       message: `${info}: ${err instanceof Error ? err.message : String(err)}`,
@@ -48,7 +49,7 @@ window.addEventListener('unhandledrejection', (e) => {
         ? reason.response.data.detail
         : JSON.stringify(reason.response.data.detail))
     : reason instanceof Error ? reason.message : String(reason)
-  import('./api/http').then(({ logError }) =>
+  import('./api/errors').then(({ logError }) =>
     logError({ kind: 'unhandled', message, url: reason?.config?.url,
                status: reason?.response?.status }),
   )

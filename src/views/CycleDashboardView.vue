@@ -7,7 +7,7 @@
         <div v-for="(d, s) in cycle.stage_deadlines" :key="s" class="muted" style="margin-top:4px">
           {{ stageNames[s] || s }}: до {{ String(d).slice(0, 10) }}
         </div>
-        <Button v-if="auth.isCto" label="Следующая стадия" size="small" style="margin-top:8px"
+        <Button v-if="auth.can('ROLE_U_CYCLE_STAGE')" label="Следующая стадия" size="small" style="margin-top:8px"
                 :loading="busy" @click="advance" />
       </template></Card>
       <Card><template #title>Селф-ревью</template><template #content>
@@ -71,7 +71,8 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
-import { api, errMsg } from '../api/http'
+import { reviewsApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
@@ -99,18 +100,17 @@ function pct(L: string) {
 }
 
 async function load() {
-  const cycles = await api.get('/reviews/cycles')
-  const active = cycles.data.find((c: any) => !['closed', 'imported'].includes(c.stage))
-    || cycles.data[0]
+  const cycles = await reviewsApi.cycles()
+  const active = cycles.find((c: any) => !['closed', 'imported'].includes(c.stage))
+    || cycles[0]
   if (!active) return
-  const r = await api.get(`/reviews/cycles/${active.id}/dashboard`)
-  data.value = r.data
+  data.value = await reviewsApi.dashboard(active.id)
 }
 
 async function advance() {
   busy.value = true
   try {
-    await api.post(`/reviews/cycles/${cycle.value.id}/advance-stage`)
+    await reviewsApi.advanceStage(cycle.value.id)
     await load()
     toast.add({ severity: 'success', summary: 'Стадия переключена' })
   } catch (e) {

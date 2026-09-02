@@ -273,7 +273,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Amt Bands */
+        /**
+         * Amt Bands
+         * @description Вилки — зарплатные данные: доступны только по деньгам-правам.
+         */
         get: operations["amt_bands_api_v1_staff_amt_bands_get"];
         put?: never;
         post?: never;
@@ -725,7 +728,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Peer Stats Ep */
+        /**
+         * Peer Stats Ep
+         * @description Именные оценки — только по праву ROLE_V_PEER_REVIEWS_NAMED (cto/admin).
+         */
         get: operations["peer_stats_ep_api_v1_reviews_cycles__cycle_id__peer_stats_get"];
         put?: never;
         post?: never;
@@ -1343,6 +1349,26 @@ export interface paths {
         patch: operations["patch_user_api_v1_admin_users__user_id__patch"];
         trace?: never;
     };
+    "/admin/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Permissions Catalog
+         * @description Каталог пермишенов + текущая матрица роль→права (для редактора в админке).
+         */
+        get: operations["permissions_catalog_api_v1_admin_permissions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/settings": {
         parameters: {
             query?: never;
@@ -1845,6 +1871,16 @@ export interface components {
             full_name: string;
             /** Role */
             role: string;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: string[];
+            /**
+             * Permissions
+             * @default []
+             */
+            permissions: string[];
             /** Employee Id */
             employee_id?: number | null;
         };
@@ -4480,6 +4516,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    permissions_catalog_api_v1_admin_permissions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

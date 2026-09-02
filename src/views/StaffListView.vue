@@ -16,7 +16,7 @@
       </Column>
       <Column field="org_unit" header="Команда" />
       <Column field="manager" header="Рукль" />
-      <Column v-if="auth.role !== 'employee'" field="email" header="Email" />
+      <Column v-if="auth.can('ROLE_R_STAFF')" field="email" header="Email" />
     </DataTable>
   </div>
 </template>
@@ -28,7 +28,7 @@ import DataTable from 'primevue/datatable'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
-import { api } from '../api/http'
+import { staffApi } from '../api/endpoints'
 import { useAuth } from '../stores/auth'
 
 const auth = useAuth()
@@ -47,8 +47,7 @@ async function load() {
   if (q.value) params.q = q.value
   if (group.value) params.functional_group = group.value
   if (grade.value) params.grade = grade.value
-  const r = await api.get('/staff/employees', { params })
-  rows.value = r.data
+  rows.value = await staffApi.listEmployees(params)
 }
 onMounted(load)
 </script>

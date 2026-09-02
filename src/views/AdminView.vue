@@ -105,16 +105,32 @@
           </DataTable>
         </TabPanel>
         <TabPanel value="rights">
-          <p class="muted">Матрица сервисных прав по ролям. admin — всегда все права. Сотрудник видит только базовые разделы.</p>
-          <DataTable :value="rightsRows" size="small">
-            <Column field="role" header="Роль" />
-            <Column v-for="p in allPermissions" :key="p" :header="permLabels[p] || p">
-              <template #body="{ data: r }">
-                <Checkbox :model-value="(rolePermissions[r.role] || []).includes(p)" binary
-                          @update:model-value="toggleRight(r.role, p)" />
-              </template>
-            </Column>
-          </DataTable>
+          <p class="muted">
+            Матрица прав: роли × пермишены (fixes5). Роль <b>{{ superuserRole }}</b> — неявный
+            суперпользователь (все права всегда) и в матрице не нуждается. Изменения применяются
+            сразу и действуют со следующего входа пользователя.
+          </p>
+          <p v-if="!catalog" class="muted">Загрузка каталога прав…</p>
+          <div v-for="group in permissionGroups" :key="group.name" class="rights-group">
+            <h3 class="rights-title">{{ group.name }}</h3>
+            <DataTable :value="matrixRows" size="small" scrollable>
+              <Column field="role" header="Роль" class="role-col">
+                <template #body="{ data: r }">
+                  <Tag :value="roleLabels[r.role] || r.role" severity="secondary" />
+                </template>
+              </Column>
+              <Column v-for="p in group.perms" :key="p.code" style="min-width:130px">
+                <template #header>
+                  <span v-tooltip.top="p.code">{{ p.title }}</span>
+                </template>
+                <template #body="{ data: r }">
+                  <Checkbox :model-value="(matrix[r.role] || []).includes(p.code)" binary
+                            :disabled="r.role === superuserRole"
+                            @update:model-value="toggleRight(r.role, p.code)" />
+                </template>
+              </Column>
+            </DataTable>
+          </div>
         </TabPanel>
         <TabPanel value="rules">
           <div class="settings">
@@ -137,7 +153,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dropdown from 'primevue/dropdown'
@@ -149,7 +166,9 @@ import TabPanels from 'primevue/tabpanels'
 import Tabs from 'primevue/tabs'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
-import { api, errMsg } from '../api/http'
+import { adminApi } from '../api/endpoints'
+import type { PermissionsCatalog } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
@@ -157,6 +176,10 @@ const users = ref<any[]>([])
 const assignEmail = ref('')
 const assignRole = ref('employee')
 const roles = ['admin', 'cto', 'line-manager', 'functional-manager', 'employee']
+const roleLabels: Record<string, string> = {
+  admin: 'админ', cto: 'СТО', 'line-manager': 'лин. рукль',
+  'functional-manager': 'функц. рукль', employee: 'сотрудник',
+}
 const s = ref<any>({})
 const w = ref<any>({})
 // дефолты сразу: шаблон рендерится до загрузки настроек с сервера
@@ -166,45 +189,63 @@ const r = ref<any>({
   forbidden_letters: ['D', 'E'],
 })
 const activity = ref<any[]>([])
-const rolePermissions = ref<Record<string, string[]>>({})
-const allPermissions = ['view-pay', 'view-efficiency', 'view-traffic', 'edit-traffic', 'edit-competency-marks']
-const permLabels: Record<string, string> = {
-  'view-pay': 'Проплачен­ность', 'view-efficiency': 'Эффективность', 'view-traffic': 'Светофор',
-  'edit-traffic': 'Правка светофора', 'edit-competency-marks': 'Разметка компетенций',
-}
-const rightsRows = ref([
-  { role: 'employee' }, { role: 'functional-manager' }, { role: 'line-manager' }, { role: 'cto' },
-])
 const audit = ref<any[]>([])
 
+// --- матрица прав (fixes5): каталог приезжает с бэкенда, никакие коды не хардкодятся ---
+const catalog = ref<PermissionsCatalog | null>(null)
+const matrix = ref<Record<string, string[]>>({})
+const superuserRole = computed(() => catalog.value?.superuser_role || 'admin')
+const matrixRows = computed(() =>
+  (catalog.value?.roles || [])
+    .filter((role) => role !== superuserRole.value)
+    .map((role) => ({ role })))
+const permissionGroups = computed(() => {
+  const byGroup = new Map<string, { code: string; title: string }[]>()
+  for (const p of catalog.value?.permissions || []) {
+    if (!byGroup.has(p.group)) byGroup.set(p.group, [])
+    byGroup.get(p.group)!.push({ code: p.code, title: p.title })
+  }
+  return [...byGroup.entries()].map(([name, perms]) => ({ name, perms }))
+})
+
 onMounted(async () => {
-  users.value = (await api.get('/admin/users')).data
-  const st = (await api.get('/admin/settings')).data
+  users.value = await adminApi.users()
+  const st = await adminApi.settings()
   s.value = { self_min_ach: st.self_min_ach, self_max_ach: st.self_max_ach,
     self_max_chars: st.self_max_chars, peers_min: st.peers_min, peers_max: st.peers_max }
-  w.value = st.autocalibration_weights
+  w.value = st.autocalibration_weights as Record<string, number>
   r.value = {
-    ...st.raise_rules,
-    max_raise_pct: { C: 10, B: 20, A: 30, ...(st.raise_rules?.max_raise_pct || {}) },
-  }
-  rolePermissions.value = st.role_permissions || {}
+    ...st.raise_rules as Record<string, unknown>,
+    max_raise_pct: { C: 10, B: 20, A: 30, ...((st.raise_rules as any)?.max_raise_pct || {}) },
+  } as any
+  await loadRights()
   loadActivity()
 })
 
+async function loadRights() {
+  catalog.value = await adminApi.permissionsCatalog()
+  matrix.value = { ...catalog.value.matrix }
+}
+
 async function toggleRight(role: string, perm: string) {
-  const cur = new Set(rolePermissions.value[role] || [])
-  if (cur.has(perm)) cur.delete(perm)
-  else cur.add(perm)
-  rolePermissions.value = { ...rolePermissions.value, [role]: Array.from(cur) }
-  await api.put('/admin/settings', { values: { role_permissions: rolePermissions.value } })
-  toast.add({ severity: 'success', summary: `${role}: ${perm} ${cur.has(perm) ? 'включено' : 'выключено'}` })
+  const cur = new Set(matrix.value[role] || [])
+  const enabled = !cur.has(perm)
+  if (enabled) cur.add(perm)
+  else cur.delete(perm)
+  matrix.value = { ...matrix.value, [role]: Array.from(cur) }
+  try {
+    await adminApi.putSettings({ role_permissions: matrix.value })
+    toast.add({ severity: 'success',
+      summary: `${roleLabels[role] || role}: ${perm} ${enabled ? 'включено' : 'выключено'}` })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Не сохранено', detail: errMsg(e) })
+    await loadRights()
+  }
 }
 
 async function loadActivity() {
   try {
-    [activity.value, audit.value] = (await Promise.all([
-      api.get('/admin/activity'), api.get('/admin/audit'),
-    ])).map((x) => x.data)
+    [activity.value, audit.value] = await Promise.all([adminApi.activity(), adminApi.audit()])
   } catch { /* недоступно */ }
 }
 
@@ -220,31 +261,29 @@ function deviceLabel(ua: string): string {
 async function assignByEmail() {
   if (!assignEmail.value.trim()) return
   try {
-    await api.post('/admin/users/by-email', null, {
-      params: { email: assignEmail.value.trim().toLowerCase(), role: assignRole.value },
-    })
+    await adminApi.ensureUser(assignEmail.value.trim().toLowerCase(), assignRole.value)
     toast.add({ severity: 'success', summary: `Роль назначена: ${assignEmail.value}` })
     assignEmail.value = ''
-    users.value = (await api.get('/admin/users')).data
+    users.value = await adminApi.users()
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
   }
 }
 
 async function patchUser(u: any) {
-  await api.patch(`/admin/users/${u.id}`, { role: u.role })
+  await adminApi.patchUser(u.id, { role: u.role })
   toast.add({ severity: 'success', summary: `${u.email} → ${u.role}` })
 }
 async function save(cur: any) {
-  await api.put('/admin/settings', { values: {
+  await adminApi.putSettings({
     self_min_ach: cur.self_min_ach, self_max_ach: cur.self_max_ach,
-    self_max_chars: cur.self_max_chars, peers_min: cur.peers_min, peers_max: cur.peers_max } })
+    self_max_chars: cur.self_max_chars, peers_min: cur.peers_min, peers_max: cur.peers_max })
 }
 async function saveWeights() {
-  await api.put('/admin/settings', { values: { autocalibration_weights: w.value } })
+  await adminApi.putSettings({ autocalibration_weights: w.value })
 }
 async function saveRules() {
-  await api.put('/admin/settings', { values: { raise_rules: r.value } })
+  await adminApi.putSettings({ raise_rules: r.value })
 }
 </script>
 
@@ -257,4 +296,7 @@ async function saveRules() {
 .head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .small { font-size: 0.78rem; }
 .diff { font-size: 0.72rem; max-width: 480px; overflow: auto; background: #f8fafc; padding: 6px; border-radius: 6px; }
+.rights-group { margin-bottom: 18px; }
+.rights-title { margin: 10px 0 6px; font-size: 0.95rem; }
+.role-col { min-width: 120px; }
 </style>

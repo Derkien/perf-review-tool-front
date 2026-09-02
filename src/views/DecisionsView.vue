@@ -87,7 +87,8 @@ import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import ProgressBar from 'primevue/progressbar'
-import { api, errMsg } from '../api/http'
+import { decisionsApi, reviewsApi, staffApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
@@ -116,25 +117,25 @@ function letterColor(l?: string) {
 }
 
 onMounted(async () => {
-  grades.value = (await api.get('/admin/settings/public')).data.grades || []
-  cycles.value = (await api.get('/reviews/cycles')).data
+  grades.value = (await reviewsApi.publicSettings()).grades || []
+  cycles.value = await reviewsApi.cycles()
   cycleId.value = cycles.value.find((c: any) => !['closed', 'imported'].includes(c.stage))?.id || null
-  employees.value = (await api.get('/staff/employees')).data
+  employees.value = await staffApi.listEmployees()
 })
 watch(cycleId, load)
 async function load() {
   if (!cycleId.value) return
-  decisions.value = (await api.get('/decisions', { params: { cycle_id: cycleId.value } })).data
-  budget.value = (await api.get('/decisions/budget', { params: { cycle_id: cycleId.value } })).data
+  decisions.value = await decisionsApi.list(cycleId.value)
+  budget.value = await decisionsApi.budget(cycleId.value)
 }
 
 async function patch(d: any) {
   try {
-    const r = await api.patch(`/decisions/${d.id}`, {
+    const r = await decisionsApi.patch(d.id, {
       final_rating: d.final_rating, decision: d.decision, target_grade: d.target_grade,
       target_salary: d.target_salary, raise_pct: d.raise_pct,
     })
-    d.warnings = r.data.warnings || d.warnings
+    d.warnings = r.warnings || d.warnings
     await load()
   } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
 }
@@ -142,7 +143,7 @@ async function patch(d: any) {
 async function create() {
   busy.value = true
   try {
-    await api.post(`/decisions?cycle_id=${cycleId.value}`, newDecision.value)
+    await decisionsApi.create(cycleId.value!, newDecision.value)
     createDialog.value = false
     await load()
   } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
@@ -150,8 +151,9 @@ async function create() {
 }
 
 async function exportXlsx() {
-  const r = await api.get(`/exports/decisions?cycle_id=${cycleId.value}`, { responseType: 'blob' })
-  const url = URL.createObjectURL(r.data as Blob)
+  if (!cycleId.value) return
+  const blob = await decisionsApi.exportDecisions(cycleId.value)
+  const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url; a.download = `decisions-${cycleId.value}.xlsx`; a.click()
   URL.revokeObjectURL(url)

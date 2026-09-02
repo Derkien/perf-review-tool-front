@@ -50,7 +50,8 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
-import { api, errMsg } from '../api/http'
+import { reviewsApi, staffApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
@@ -75,9 +76,9 @@ function nameOf(id: number): string {
 }
 
 onMounted(async () => {
-  const cycles = (await api.get('/reviews/cycles')).data
+  const cycles = await reviewsApi.cycles()
   cycleId.value = cycles.find((c: any) => !['closed', 'imported'].includes(c.stage))?.id || cycles[0]?.id
-  const all = (await api.get('/staff/employees')).data
+  const all = await staffApi.listEmployees()
   others.value = all.map((e: any) => ({ id: e.id, name: e.full_name }))
   // рукль видит всех своих: для простоты локально — всех активных
   subordinates.value = all
@@ -85,23 +86,23 @@ onMounted(async () => {
 
 async function loadSub() {
   if (!subordinateId.value || !cycleId.value) return
-  const cand = (await api.get('/reviews/peer-candidates', { params: { cycle_id: cycleId.value } })).data
-  const mine = await api.get(`/reviews/cycles/${cycleId.value}/peer-stats`)
+  const cand = await reviewsApi.peerCandidates(cycleId.value)
+  await reviewsApi.peerStats(cycleId.value)
   // merged-список получаем через PUT-запрос логики: читаем peer-candidates + собственные данные
   // для подчинённого получаем их merged так: используем открытый эндпоинт сотрудников
   const empId = subordinateId.value
-  const merged = await api.get(`/reviews/cycles/${cycleId.value}/peer-stats?employee_id=${empId}`)
+  await reviewsApi.peerStats(cycleId.value, empId)
   // отдаём UI: mandatory из candidates подчинённого не доступны напрямую — используем final
   sel.value = { mandatory: cand.mandatory, selected: [], removed: [], final: [] }
   // загрузка фактического состояния — через stats named доступно только cto; руклю достаточно final
   try {
-    const r = await api.put(`/reviews/peer-selections/${empId}`, {
+    const r = await reviewsApi.managerEditPeers(empId, {
       cycle_id: cycleId.value, add_ids: [], remove_ids: [],
     })
     sel.value.mandatory = cand.mandatory
-    sel.value.final = r.data.merged.final
-    sel.value.selected = r.data.merged.selected
-    sel.value.removed = r.data.merged.removed
+    sel.value.final = r.merged.final
+    sel.value.selected = r.merged.selected
+    sel.value.removed = r.merged.removed
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
   }
@@ -109,25 +110,25 @@ async function loadSub() {
 
 async function addPeer() {
   if (!addId.value) return
-  await api.put(`/reviews/peer-selections/${subordinateId.value}`, {
-    cycle_id: cycleId.value, add_ids: [addId.value], remove_ids: [],
+  await reviewsApi.managerEditPeers(subordinateId.value as number, {
+    cycle_id: cycleId.value as number, add_ids: [addId.value], remove_ids: [],
   })
   await loadSub()
 }
 async function removePeer() {
   if (!removeId.value) return
-  await api.put(`/reviews/peer-selections/${subordinateId.value}`, {
-    cycle_id: cycleId.value, add_ids: [], remove_ids: [removeId.value],
+  await reviewsApi.managerEditPeers(subordinateId.value as number, {
+    cycle_id: cycleId.value as number, add_ids: [], remove_ids: [removeId.value],
   })
   await loadSub()
 }
 async function send() {
   busy.value = true
   try {
-    const r = await api.post('/reviews/peer-assignments/send', {
-      cycle_id: cycleId.value, employee_ids: [subordinateId.value],
+    const r = await reviewsApi.sendAssignments({
+      cycle_id: cycleId.value as number, employee_ids: [subordinateId.value as number],
     })
-    toast.add({ severity: 'success', summary: `Заданий создано: ${r.data.created}, уведомлено: ${r.data.notified}` })
+    toast.add({ severity: 'success', summary: `Заданий создано: ${r.created}, уведомлено: ${r.notified}` })
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
   } finally { busy.value = false }

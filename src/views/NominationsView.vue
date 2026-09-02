@@ -61,7 +61,8 @@ import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
-import { api, errMsg } from '../api/http'
+import { decisionsApi, reviewsApi, staffApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
@@ -76,8 +77,8 @@ const grades = ref<string[]>([])
 const statusLabels: Record<string, string> = {
   submitted: 'подана', approved: 'одобрена', rejected: 'отклонена', deferred: 'отложена',
 }
-const canNominate = computed(() => ['admin', 'cto', 'line-manager'].includes(auth.role))
-const canDecide = computed(() => ['admin', 'cto'].includes(auth.role))
+const canNominate = computed(() => auth.can('ROLE_C_NOMINATION'))
+const canDecide = computed(() => auth.can('ROLE_U_NOMINATION'))
 
 function statusLabel(n: any): string {
   return statusLabels[String(n?.status)] || String(n?.status ?? '')
@@ -88,17 +89,17 @@ function sev(s: string) {
 }
 
 onMounted(async () => {
-  grades.value = (await api.get('/admin/settings/public')).data.grades || []
-  nominations.value = (await api.get('/decisions/nominations')).data
-  employees.value = (await api.get('/staff/employees')).data
+  grades.value = (await reviewsApi.publicSettings()).grades || []
+  nominations.value = await decisionsApi.listNominations()
+  if (auth.can('ROLE_R_STAFF')) employees.value = await staffApi.listEmployees()
 })
 
 async function submit() {
   busy.value = true
   try {
-    await api.post('/decisions/nominations', form.value)
+    await decisionsApi.createNomination(form.value)
     dialog.value = false
-    nominations.value = (await api.get('/decisions/nominations')).data
+    nominations.value = await decisionsApi.listNominations()
     toast.add({ severity: 'success', summary: 'Номинация подана' })
   } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
   finally { busy.value = false }
@@ -107,13 +108,13 @@ async function submit() {
 async function decide(n: any) {
   const transitions: Record<string, string> = { submitted: 'approved', approved: 'rejected', rejected: 'deferred', deferred: 'approved' }
   const next = transitions[String(n.status)]
-  await api.patch(`/decisions/nominations/${n.id}`, { status: next, decision_comment: '' })
-  nominations.value = (await api.get('/decisions/nominations')).data
+  await decisionsApi.patchNomination(n.id, { status: next, decision_comment: '' })
+  nominations.value = await decisionsApi.listNominations()
 }
 
 async function exportXlsx() {
-  const r = await api.get('/exports/nominations', { responseType: 'blob' })
-  const url = URL.createObjectURL(r.data as Blob)
+  const blob = await decisionsApi.exportNominations()
+  const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url; a.download = 'nominations.xlsx'; a.click()
   URL.revokeObjectURL(url)

@@ -49,7 +49,8 @@ import Dropdown from 'primevue/dropdown'
 import FileUpload from 'primevue/fileupload'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
-import { api, errMsg } from '../api/http'
+import { importsApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
@@ -71,7 +72,7 @@ const previewFields = computed(() =>
   Object.keys(previewData.value?.preview?.[0] || {}).slice(0, 8))
 
 onMounted(load)
-async function load() { batches.value = (await api.get('/imports')).data }
+async function load() { batches.value = await importsApi.list() }
 
 function onSelect(ev: any) { file.value = ev.files[0] }
 
@@ -79,10 +80,9 @@ async function preview() {
   if (!file.value || !type.value) return
   busy.value = true
   try {
-    const fd = new FormData()
-    fd.append('file', file.value)
-    const params = month.value && ['traffic', 'efficiency'].includes(type.value) ? `?month=${month.value}` : ''
-    previewData.value = (await api.post(`/imports/${type.value}/preview${params}`, fd)).data
+    const params: Record<string, unknown> = {}
+    if (month.value && ['traffic', 'efficiency'].includes(type.value)) params.month = month.value
+    previewData.value = await importsApi.preview(type.value, file.value, params)
   } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка разбора', detail: errMsg(e), life: 10000 }) }
   finally { busy.value = false }
 }
@@ -90,10 +90,10 @@ async function preview() {
 async function apply() {
   busy.value = true
   try {
-    const params = new URLSearchParams()
-    if (month.value && ['traffic', 'efficiency'].includes(type.value!)) params.set('month', month.value)
-    const r = await api.post(`/imports/${previewData.value.batch_id}/apply?${params}`)
-    toast.add({ severity: 'success', summary: 'Применено', detail: r.data.summary, life: 8000 })
+    const params: Record<string, unknown> = {}
+    if (month.value && ['traffic', 'efficiency'].includes(type.value!)) params.month = month.value
+    const r = await importsApi.apply(previewData.value.batch_id, params)
+    toast.add({ severity: 'success', summary: 'Применено', detail: String(r.summary || ''), life: 8000 })
     previewData.value = null
     file.value = null
     await load()

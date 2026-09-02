@@ -143,8 +143,8 @@
                      @click.stop="downloadSession(s)" />
                   <i v-if="perms.edit_marks" class="pi pi-pencil act" v-tooltip.top="'Редактировать'"
                      @click.stop="openSessionEdit(s)" />
-                  <i v-if="perms.edit_marks || perms.isAdmin" class="pi pi-trash act danger"
-                     v-tooltip.top="perms.isAdmin ? 'Удалить (soft/hard)' : 'Удалить (soft)'"
+                  <i v-if="perms.edit_marks || canHardDelete" class="pi pi-trash act danger"
+                     v-tooltip.top="canHardDelete ? 'Удалить (soft/hard)' : 'Удалить (soft)'"
                      @click.stop="deleteSession(s)" />
                 </span>
               </template>
@@ -417,12 +417,14 @@ import AppBreadcrumbs from '../components/AppBreadcrumbs.vue'
 import BandBar from '../components/BandBar.vue'
 import RadarChart from '../components/RadarChart.vue'
 import SparkLine from '../components/SparkLine.vue'
-import { api, errMsg } from '../api/http'
 import { competenciesApi, reviewsApi, staffApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
+import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
 const route = useRoute()
 const toast = useToast()
+const auth = useAuth()
 const emp = ref<any>(null)
 const perms = ref<any>({})
 const cycles = ref<any[]>([])
@@ -548,9 +550,9 @@ onMounted(async () => {
   limits.value = pub
   gradeOptions.value = (pub.grades || []).map((g: string, i: number) => ({ label: `${g} · ${i + 1}`, value: g }))
   effLabels.value = pub.eff_param_labels || {}
-  emp.value = (await api.get(`/staff/employees/${id}`)).data
+  emp.value = await staffApi.card(id)
   perms.value = emp.value.permissions || {}
-  cycles.value = (await api.get('/reviews/cycles')).data
+  cycles.value = await reviewsApi.cycles()
   if (perms.value.pay) {
     try { salaryHistory.value = await staffApi.salaryHistory(id) } catch { /* нет */ }
   }
@@ -608,7 +610,7 @@ async function saveMarks() {
     for (const row of matrixRows.value) {
       const level = markDraft.value[row.item_id]
       if (!level) continue
-      await api.post('/competencies/marks', {
+      await competenciesApi.createMark({
         employee_id: Number(route.params.id), item_id: row.item_id, level,
         assessed_on: markDate.value, assessor_kind: kind,
       })
@@ -623,18 +625,22 @@ async function saveMarks() {
 }
 
 async function downloadSession(s: any) {
-  const url = competenciesApi.sessionXlsxUrl(String(route.params.id), s.kind, s.date)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `marking-${route.params.id}-${s.kind}-${s.date}.xlsx`
-  a.click()
+  try {
+    const blob = await competenciesApi.sessionXlsx(String(route.params.id), s.kind, s.date)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `marking-${route.params.id}-${s.kind}-${s.date}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Не удалось выгрузить', detail: errMsg(e) })
+  }
 }
 
 async function openSessionEdit(s: any) {
   sessionEditDraft.value = {}
-  const rows = (await api.get(`/competencies/employees/${route.params.id}/matrix`, {
-    params: { kind: s.kind },
-  })).data
+  const rows = await competenciesApi.matrix(String(route.params.id), s.kind as 'hard' | 'soft')
   sessionEditRows.value = rows
   rows.forEach((r: any) => {
     const lvl = s.assessor_kind === 'self' ? r.self?.level : r.manager?.level
@@ -649,10 +655,8 @@ async function saveSessionEdit() {
   if (!s) return
   busy.value = true
   try {
-    const r = await api.patch(
-      `/competencies/employees/${route.params.id}/sessions/${s.kind}/${s.date}`,
-      { levels: sessionEditDraft.value })
-    toast.add({ severity: 'success', summary: `Изменено пунктов: ${Object.keys(r.data.changed || {}).length} (аудит записан)` })
+    const r = await competenciesApi.editSession(String(route.params.id), s.kind, s.date, sessionEditDraft.value)
+    toast.add({ severity: 'success', summary: `Изменено пунктов: ${Object.keys(r.changed || {}).length} (аудит записан)` })
     sessionEditVisible.value = false
     await loadComp()
   } catch (e) {
@@ -660,13 +664,14 @@ async function saveSessionEdit() {
   } finally { busy.value = false }
 }
 
+const canHardDelete = computed(() => auth.can('ROLE_D_COMPETENCY_SESSION'))
+
 async function deleteSession(s: any) {
-  const hard = perms.value.isAdmin && window.confirm(
+  const hard = canHardDelete.value && window.confirm(
     `OK — soft delete (скрыть).\nОтмена — окончательное удаление (hard).\n${s.kind} ${s.date}`)
   const useHard = hard ? window.confirm('Точно удалить НАВСЕГДА?') : false
   try {
-    await api.delete(`/competencies/employees/${route.params.id}/sessions/${s.kind}/${s.date}`,
-                     { params: { hard: useHard } })
+    await competenciesApi.deleteSession(String(route.params.id), s.kind, s.date, useHard)
     toast.add({ severity: 'success', summary: useHard ? 'Удалено навсегда' : 'Скрыто (soft delete)' })
     await loadComp()
   } catch (e) {
@@ -677,7 +682,11 @@ async function deleteSession(s: any) {
 async function saveTraffic() {
   busy.value = true
   try {
-    await api.post(`/staff/employees/${route.params.id}/traffic`, trafficForm.value)
+    await staffApi.setTraffic(String(route.params.id), {
+      month: trafficForm.value.month, value: trafficForm.value.value,
+      comment: trafficForm.value.comment, correction_plan: trafficForm.value.correction_plan,
+      dismissal_date: trafficForm.value.dismissal_date || null,
+    })
     toast.add({ severity: 'success', summary: 'Светофор сохранён' })
     trafficDialog.value = false
     trafficForm.value = { month: '', value: null, comment: '', correction_plan: '', dismissal_date: '' }
@@ -705,9 +714,7 @@ function startSelfEdit() { selfEditing.value = true }
 async function requestEdit() {
   busy.value = true
   try {
-    await api.post(`/reviews/self/${result.value.self_review.id}/edit-request`, null, {
-      params: { comment: editRequestComment.value },
-    })
+    await reviewsApi.requestSelfEdit(result.value.self_review.id, editRequestComment.value)
     toast.add({ severity: 'success', summary: 'Запрос отправлен руководителю' })
     editRequestComment.value = ''
     await openResult(selectedCycle.value!)
@@ -719,8 +726,8 @@ async function requestEdit() {
 async function saveSelfEdit() {
   busy.value = true
   try {
-    await api.post('/reviews/self', {
-      cycle_id: selectedCycle.value, achievements: draftAchievements.value, submit: true,
+    await reviewsApi.saveSelf({
+      cycle_id: selectedCycle.value as number, achievements: draftAchievements.value, submit: true,
     })
     toast.add({ severity: 'success', summary: 'Селф-ревью обновлено' })
     selfEditing.value = false

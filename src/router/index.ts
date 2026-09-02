@@ -4,7 +4,8 @@ import { useAuth } from '../stores/auth'
 const Login = () => import('../views/LoginView.vue')
 const Layout = () => import('../layouts/AppLayout.vue')
 
-// роли, которым доступен раздел; employee пускается везде, где не указан meta.roles
+// доступ к разделу по пермишену (fixes5): мета.role больше не используется;
+// эндпоинты без пермишена доступны любому аутентифицированному (свои данные)
 const routes = [
   { path: '/login', component: Login },
   {
@@ -13,26 +14,26 @@ const routes = [
     children: [
       { path: '', redirect: '/dashboard' },
       { path: 'dashboard', component: () => import('../views/CycleDashboardView.vue'),
-        meta: { roles: ['admin', 'cto', 'line-manager', 'functional-manager'] } },
+        meta: { perm: 'ROLE_R_DASHBOARD' } },
       { path: 'staff', component: () => import('../views/StaffListView.vue'),
-        meta: { roles: ['admin', 'cto', 'line-manager', 'functional-manager'] } },
+        meta: { perm: 'ROLE_R_STAFF' } },
       { path: 'staff/:id', component: () => import('../views/EmployeeCardView.vue') },
       { path: 'my-review', component: () => import('../views/MyReviewView.vue') },
       { path: 'peer-review', component: () => import('../views/PeerReviewView.vue') },
       { path: 'peer-validation', component: () => import('../views/PeerValidationView.vue'),
-        meta: { roles: ['admin', 'cto', 'line-manager'] } },
+        meta: { perm: 'ROLE_C_PEER_ASSIGNMENT' } },
       { path: 'calibration', component: () => import('../views/CalibrationListView.vue'),
-        meta: { roles: ['admin', 'cto', 'line-manager', 'functional-manager'] } },
+        meta: { perm: 'ROLE_V_REVIEW_RESULT' } },
       { path: 'calibration/:id', component: () => import('../views/CalibrationSessionView.vue'),
-        meta: { roles: ['admin', 'cto', 'line-manager', 'functional-manager'] } },
+        meta: { perm: 'ROLE_V_REVIEW_RESULT' } },
       { path: 'decisions', component: () => import('../views/DecisionsView.vue'),
-        meta: { roles: ['admin', 'cto'] } },
+        meta: { perm: 'ROLE_R_DECISION_ANY' } },
       { path: 'nominations', component: () => import('../views/NominationsView.vue'),
-        meta: { roles: ['admin', 'cto', 'line-manager'] } },
+        meta: { perm: 'ROLE_R_NOMINATION' } },
       { path: 'imports', component: () => import('../views/ImportsView.vue'),
-        meta: { roles: ['admin'] } },
+        meta: { perm: 'ROLE_C_IMPORT' } },
       { path: 'admin', component: () => import('../views/AdminView.vue'),
-        meta: { roles: ['admin'] } },
+        meta: { perm: 'ROLE_U_SETTINGS' } },
       { path: 'notifications', component: () => import('../views/NotificationsView.vue') },
     ],
   },
@@ -40,10 +41,9 @@ const routes = [
 
 const router = createRouter({ history: createWebHashHistory(), routes })
 
-// куда попадает роль после логина (dashboard сотруднику закрыт)
-export function homeForRole(role: string): string {
-  return ['admin', 'cto', 'line-manager', 'functional-manager'].includes(role)
-    ? '/dashboard' : '/my-review'
+// куда попадает пользователь после логина (dashboard — только с правом ROLE_R_DASHBOARD)
+export function homeForAuth(can: (code: string) => boolean): string {
+  return can('ROLE_R_DASHBOARD') ? '/dashboard' : '/my-review'
 }
 
 // трек навигации для админ-аналитики (тихий, не блокирует и не ломает выход)
@@ -51,20 +51,20 @@ router.afterEach((to) => {
   document.getElementById('fatal-error')?.remove()
   const token = localStorage.getItem('token')
   if (!token) return
-  import('../api/http').then(({ api }) =>
-    api.post('/admin/activity', {
-      type: 'page-view', section: to.path, detail: { to: to.fullPath },
-    }).catch(() => undefined),
+  import('../api/endpoints').then(({ postActivity }) =>
+    postActivity({ type: 'page-view', section: to.path, detail: { to: to.fullPath } }),
   )
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuth()
   if (to.path !== '/login' && !auth.isAuthed) return '/login'
-  if (to.path === '/login' && auth.isAuthed) return homeForRole(auth.role)
-  // раздел закрыт для роли → её домашняя страница (никаких красных экранов и «задних» входов)
-  const allowed = to.meta?.roles as string[] | undefined
-  if (allowed && !allowed.includes(auth.role)) return homeForRole(auth.role)
+  // старая сессия без пермишенов — обновляем me (там теперь список прав)
+  if (auth.isAuthed && !Array.isArray(auth.me?.permissions)) await auth.ensurePermissions()
+  if (to.path === '/login' && auth.isAuthed) return homeForAuth(auth.can)
+  // раздел закрыт без пермишена → домашняя страница (никаких красных экранов)
+  const perm = to.meta?.perm as string | undefined
+  if (perm && !auth.can(perm)) return homeForAuth(auth.can)
 })
 
 export default router

@@ -1,25 +1,29 @@
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../src/api/http', () => ({
-  api: { get: vi.fn(), post: vi.fn() },
-  errMsg: (e: unknown) => String(e),
+vi.mock('../src/api/endpoints', () => ({
+  postActivity: vi.fn(async () => undefined),
 }))
 
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuth } from '../src/stores/auth'
-import router, { homeForRole } from '../src/router'
+import router, { homeForAuth } from '../src/router'
 
-describe('router guards', () => {
-  it('homeForRole: employee → /my-review, managers → /dashboard', () => {
-    expect(homeForRole('employee')).toBe('/my-review')
-    expect(homeForRole('admin')).toBe('/dashboard')
-    expect(homeForRole('line-manager')).toBe('/dashboard')
+const canAll = () => true
+const canNone = () => false
+
+describe('router guards (permissions)', () => {
+  it('homeForAuth: с правом ROLE_R_DASHBOARD → /dashboard, без → /my-review', () => {
+    expect(homeForAuth(canAll)).toBe('/dashboard')
+    expect(homeForAuth(canNone)).toBe('/my-review')
   })
 
   it('employee не попадает на /dashboard — редирект на /my-review', async () => {
     setActivePinia(createPinia())
     const auth = useAuth()
-    auth.me = { id: 1, email: 'e@x.ru', full_name: 'E', role: 'employee' }
+    auth.me = {
+      id: 1, email: 'e@x.ru', full_name: 'E', role: 'employee', roles: ['employee'],
+      permissions: ['ROLE_V_EMPLOYEE_SUBORDINATE'],
+    }
     await router.push('/dashboard')
     await router.isReady()
     expect(router.currentRoute.value.path).toBe('/my-review')
@@ -28,16 +32,22 @@ describe('router guards', () => {
   it('employee не попадает в /admin', async () => {
     setActivePinia(createPinia())
     const auth = useAuth()
-    auth.me = { id: 1, email: 'e@x.ru', full_name: 'E', role: 'employee' }
+    auth.me = {
+      id: 1, email: 'e@x.ru', full_name: 'E', role: 'employee', roles: ['employee'],
+      permissions: [],
+    }
     await router.push('/admin')
     await router.isReady()
     expect(router.currentRoute.value.path).toBe('/my-review')
   })
 
-  it('admin свободно ходит в /admin', async () => {
+  it('пользователь с ROLE_U_SETTINGS свободно ходит в /admin', async () => {
     setActivePinia(createPinia())
     const auth = useAuth()
-    auth.me = { id: 2, email: 'a@x.ru', full_name: 'A', role: 'admin' }
+    auth.me = {
+      id: 2, email: 'a@x.ru', full_name: 'A', role: 'admin', roles: ['admin'],
+      permissions: ['ROLE_U_SETTINGS', 'ROLE_R_DASHBOARD'],
+    }
     await router.push('/admin')
     await router.isReady()
     expect(router.currentRoute.value.path).toBe('/admin')

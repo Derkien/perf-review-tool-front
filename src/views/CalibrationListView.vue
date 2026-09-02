@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <h1>Калибровочные сессии</h1>
-    <div v-if="auth.isCto" class="head">
+    <div v-if="auth.can('ROLE_C_CALIBRATION')" class="head">
       <Dropdown v-model="cycleId" :options="cycles" option-label="name" option-value="id" placeholder="Цикл" />
       <Dropdown v-model="group" :options="groups" placeholder="Функц. группа" />
       <Dropdown v-model="hostId" :options="users" option-label="full_name" option-value="id" placeholder="Ведущий" filter />
@@ -35,7 +35,8 @@ import DataTable from 'primevue/datatable'
 import Dropdown from 'primevue/dropdown'
 import FileUpload from 'primevue/fileupload'
 import Tag from 'primevue/tag'
-import { api, errMsg } from '../api/http'
+import { adminApi, calibrationApi, reviewsApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
@@ -51,17 +52,16 @@ const hostId = ref<number | null>(null)
 const busy = ref(false)
 
 onMounted(async () => {
-  cycles.value = (await api.get('/reviews/cycles')).data
+  cycles.value = await reviewsApi.cycles()
   cycleId.value = cycles.value.find((c: any) => !['closed', 'imported'].includes(c.stage))?.id || null
   await loadSessions()
-  if (auth.role === 'admin') {
-    users.value = (await api.get('/admin/users')).data
+  if (auth.can('ROLE_R_USERS')) {
+    users.value = await adminApi.users()
   }
 })
 
 async function loadSessions() {
-  const params = cycleId.value ? { cycle_id: cycleId.value } : {}
-  sessions.value = (await api.get('/calibration/sessions', { params })).data
+  sessions.value = await calibrationApi.sessions(cycleId.value || undefined)
 }
 
 async function create() {
@@ -71,7 +71,7 @@ async function create() {
   }
   busy.value = true
   try {
-    await api.post('/calibration/sessions', {
+    await calibrationApi.createSession({
       cycle_id: cycleId.value, group: group.value, host_user_id: hostId.value, participant_ids: [],
     })
     await loadSessions()
@@ -82,18 +82,17 @@ async function create() {
 }
 
 async function exportAi() {
-  const r = await api.post(`/calibration/ai/export?cycle_id=${cycleId.value}`, null, { responseType: 'blob' })
-  downloadBlob(r.data as Blob, `ai-pack-cycle${cycleId.value}.xlsx`)
+  if (!cycleId.value) return
+  downloadBlob(await calibrationApi.aiExport(cycleId.value), `ai-pack-cycle${cycleId.value}.xlsx`)
 }
 
 async function importAi(ev: any) {
   const file = ev.files[0]
-  const fd = new FormData()
-  fd.append('file', file)
   try {
-    const r = await api.post('/calibration/ai/import', fd)
-    toast.add({ severity: r.data.conflicts?.length ? 'warn' : 'success',
-      summary: `AI-ответы: ${r.data.imported} импортировано, конфликтов ${r.data.conflicts?.length || 0}` })
+    const r = await calibrationApi.aiImport(file)
+    const conflicts = (r.conflicts as unknown[])?.length || 0
+    toast.add({ severity: conflicts ? 'warn' : 'success',
+      summary: `AI-ответы: ${r.imported} импортировано, конфликтов ${conflicts}` })
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка импорта', detail: errMsg(e) })
   }

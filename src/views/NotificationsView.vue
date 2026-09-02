@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import Button from 'primevue/button'
-import { api } from '../api/http'
+import { notificationsApi } from '../api/endpoints'
 
 const items = ref<any[]>([])
 const icons: Record<string, string> = {
@@ -29,15 +29,15 @@ const icons: Record<string, string> = {
   'host-assigned': 'pi pi-crown', 'nomination-decision': 'pi pi-arrow-circle-up',
 }
 
-onMounted(async () => { items.value = (await api.get('/notifications/mine')).data })
+onMounted(async () => { items.value = await notificationsApi.mine() })
 
 async function read(n: any) {
   if (n.is_read) return
-  await api.post(`/notifications/${n.id}/read`)
+  await notificationsApi.markRead(n.id)
   n.is_read = true
 }
 async function readAll() {
-  await api.post('/notifications/read-all')
+  await notificationsApi.readAll()
   items.value = items.value.map((i) => ({ ...i, is_read: true }))
 }
 </script>

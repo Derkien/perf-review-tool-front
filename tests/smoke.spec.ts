@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../src/api/http', () => ({
-  api: {
-    get: vi.fn(async () => ({ data: { auth_mode: 'dev' } })),
-    post: vi.fn(async () => ({ data: { access_token: 'x' } })),
+vi.mock('../src/api/endpoints', () => ({
+  authApi: {
+    config: vi.fn(async () => ({
+      auth_mode: 'dev', keycloak_server_url: '', keycloak_realm: '', keycloak_client_id: '',
+    })),
+    devToken: vi.fn(async () => 'x'),
+    me: vi.fn(async () => ({
+      id: 1, email: 'a@b.c', full_name: 'A', role: 'admin', roles: ['admin'],
+      permissions: ['ROLE_R_DASHBOARD'],
+    })),
   },
-  errMsg: (e: unknown) => String(e),
+  postActivity: vi.fn(async () => undefined),
 }))
 
 describe('SPA smoke (прод-сценарий: реальный main.ts в jsdom)', () => {

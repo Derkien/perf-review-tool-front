@@ -63,7 +63,8 @@ import Message from 'primevue/message'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
-import { api, errMsg } from '../api/http'
+import { reviewsApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
@@ -80,10 +81,10 @@ const letterOptions = Object.entries(letterWords).map(([value, label]) => ({ val
 
 onMounted(load)
 async function load() {
-  const cycles = (await api.get('/reviews/cycles')).data
+  const cycles = await reviewsApi.cycles()
   const active = cycles.find((c: any) => !['closed', 'imported'].includes(c.stage)) || cycles[0]
   if (!active) return
-  assignments.value = (await api.get('/reviews/peer-assignments/mine', { params: { cycle_id: active.id } })).data
+  assignments.value = await reviewsApi.myAssignments(active.id)
 }
 
 function open(a: any) {
@@ -101,7 +102,7 @@ async function submit() {
   }
   busy.value = true
   try {
-    await api.post(`/reviews/peer-reviews/${current.value.assignment_id}`, {
+    await reviewsApi.submitPeerReview(current.value.assignment_id, {
       ratings: payload.map((i: number) => ({ ach_index: i, letter: ratings.value[i] })),
       free_text: freeText.value,
     })

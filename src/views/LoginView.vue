@@ -31,9 +31,9 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
-import { homeForRole } from '../router'
+import { homeForAuth } from '../router'
 import { useAuth } from '../stores/auth'
-import { errMsg } from '../api/http'
+import { errMsg } from '../api/errors'
 import { useToast } from 'primevue/usetoast'
 
 const auth = useAuth()
@@ -66,7 +66,7 @@ async function login() {
       window.location.href = '/api/v1/auth/login-redirect'
       return
     }
-    router.replace('/dashboard')
+    router.replace(homeForAuth(auth.can))
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Не удалось войти', detail: errMsg(e), life: 5000 })
   } finally {

@@ -99,8 +99,8 @@ import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import AchievementEditor from '../components/AchievementEditor.vue'
-import { api, errMsg } from '../api/http'
 import { reviewsApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
@@ -131,7 +131,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload)
   limits.value = await reviewsApi.publicSettings()
-  const cycles = (await api.get('/reviews/cycles')).data
+  const cycles = await reviewsApi.cycles()
   cycle.value = cycles.find((c: any) => !['closed', 'imported'].includes(c.stage)) || null
   if (!cycle.value) return
   const mine = await reviewsApi.mySelf(cycle.value.id)
@@ -151,10 +151,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 async function saveDraft() {
   busy.value = true
   try {
-    const r = await api.post('/reviews/self', {
+    const r = await reviewsApi.saveSelf({
       cycle_id: cycle.value.id, achievements: achievements.value, submit: false,
     })
-    status.value = r.data.status
+    status.value = r.status
     dirty.value = false
     toast.add({ severity: 'success', summary: 'Черновик сохранён' })
   } catch (e) {
@@ -165,13 +165,11 @@ async function saveDraft() {
 async function submit() {
   busy.value = true
   try {
-    await api.put('/reviews/peer-selections', {
-      cycle_id: cycle.value.id, peer_ids: selectedPeers.value,
-    })
-    const r = await api.post('/reviews/self', {
+    await reviewsApi.savePeers(cycle.value.id, selectedPeers.value)
+    const r = await reviewsApi.saveSelf({
       cycle_id: cycle.value.id, achievements: achievements.value, submit: true,
     })
-    status.value = r.data.status
+    status.value = r.status
     dirty.value = false
     confirmVisible.value = false
     toast.add({ severity: 'success', summary: 'Отправлено' })

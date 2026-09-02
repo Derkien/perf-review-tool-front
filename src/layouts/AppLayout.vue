@@ -60,7 +60,8 @@ import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
 import { useAuth } from '../stores/auth'
-import { api, getErrorLog } from '../api/http'
+import { getErrorLog } from '../api/errors'
+import { notificationsApi } from '../api/endpoints'
 
 const auth = useAuth()
 const router = useRouter()
@@ -84,25 +85,25 @@ const roleLabel = computed(
   () => ({ admin: 'админ', cto: 'СТО', 'line-manager': 'лин. рукль', 'functional-manager': 'функц. рукль', employee: 'сотрудник' }[auth.role] || auth.role),
 )
 
+// меню динамически зависит от пермишенов (fixes5): пункты без perm — всем аутентифицированным
 const allItems = [
-  { to: '/dashboard', label: 'Дашборд цикла', icon: 'pi pi-chart-bar', roles: ['admin', 'cto', 'line-manager', 'functional-manager'] },
-  { to: '/staff', label: 'Сотрудники', icon: 'pi pi-users', roles: ['admin', 'cto', 'line-manager', 'functional-manager'] },
-  { to: '/my-review', label: 'Моё ревью', icon: 'pi pi-pencil', roles: ['admin', 'cto', 'line-manager', 'functional-manager', 'employee'] },
-  { to: '/peer-review', label: 'Оценить коллег', icon: 'pi pi-star', roles: ['admin', 'cto', 'line-manager', 'functional-manager', 'employee'] },
-  { to: '/peer-validation', label: 'Валидация пиров', icon: 'pi pi-check-square', roles: ['admin', 'cto', 'line-manager'] },
-  { to: '/calibration', label: 'Калибровки', icon: 'pi pi-balance', roles: ['admin', 'cto', 'line-manager', 'functional-manager'] },
-  { to: '/decisions', label: 'Решения и бюджет', icon: 'pi pi-wallet', roles: ['admin', 'cto'] },
-  { to: '/nominations', label: 'Номинации', icon: 'pi pi-arrow-circle-up', roles: ['admin', 'cto', 'line-manager'] },
-  { to: '/imports', label: 'Импорт', icon: 'pi pi-download', roles: ['admin'] },
-  { to: '/admin', label: 'Админ', icon: 'pi pi-cog', roles: ['admin'] },
+  { to: '/dashboard', label: 'Дашборд цикла', icon: 'pi pi-chart-bar', perm: 'ROLE_R_DASHBOARD' },
+  { to: '/staff', label: 'Сотрудники', icon: 'pi pi-users', perm: 'ROLE_R_STAFF' },
+  { to: '/my-review', label: 'Моё ревью', icon: 'pi pi-pencil' },
+  { to: '/peer-review', label: 'Оценить коллег', icon: 'pi pi-star' },
+  { to: '/peer-validation', label: 'Валидация пиров', icon: 'pi pi-check-square', perm: 'ROLE_C_PEER_ASSIGNMENT' },
+  { to: '/calibration', label: 'Калибровки', icon: 'pi pi-balance', perm: 'ROLE_V_REVIEW_RESULT' },
+  { to: '/decisions', label: 'Решения и бюджет', icon: 'pi pi-wallet', perm: 'ROLE_R_DECISION_ANY' },
+  { to: '/nominations', label: 'Номинации', icon: 'pi pi-arrow-circle-up', perm: 'ROLE_R_NOMINATION' },
+  { to: '/imports', label: 'Импорт', icon: 'pi pi-download', perm: 'ROLE_C_IMPORT' },
+  { to: '/admin', label: 'Админ', icon: 'pi pi-cog', perm: 'ROLE_U_SETTINGS' },
 ]
-const items = computed(() => allItems.filter((i) => i.roles.includes(auth.role)))
+const items = computed(() => allItems.filter((i) => !i.perm || auth.can(i.perm)))
 
 async function refreshUnread() {
   if (!auth.isAuthed) return
   try {
-    const r = await api.get('/notifications/unread-count')
-    unread.value = r.data.count
+    unread.value = (await notificationsApi.unreadCount()).count
   } catch { /* тихо */ }
 }
 watch(() => route.path, refreshUnread)

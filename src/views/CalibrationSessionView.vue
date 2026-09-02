@@ -5,13 +5,13 @@
       <h1 style="margin:0">{{ session.title }}</h1>
       <Tag :value="({ voting: 'голосование', finalizing: 'финализация', closed: 'закрыта' } as Record<string,string>)[session.status] || session.status" />
       <div style="flex:1"></div>
-      <Dropdown v-if="isHost || auth.isCto" v-model="newHost" :options="participants" option-label="full_name"
+      <Dropdown v-if="isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')" v-model="newHost" :options="participants" option-label="full_name"
                 option-value="id" placeholder="Передать ведущему" size="small" @change="transferHost" />
-      <Button v-if="(isHost || auth.isCto) && session.status === 'voting'" label="Аналитика голосований"
+      <Button v-if="(isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')) && session.status === 'voting'" label="Аналитика голосований"
               severity="secondary" size="small" @click="loadAnalytics" />
-      <Button v-if="(isHost || auth.isCto) && session.status === 'voting'" label="Завершить и перенести в решения"
+      <Button v-if="(isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')) && session.status === 'voting'" label="Завершить и перенести в решения"
               severity="success" size="small" :loading="busy" @click="closeSession" />
-      <Button v-if="(isHost || auth.isCto) && session.status !== 'closed'" label="Отменить сессию"
+      <Button v-if="(isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')) && session.status !== 'closed'" label="Отменить сессию"
               severity="danger" size="small" outlined :loading="busy"
               :disabled="session.status === 'cancelled'" @click="cancelSession" />
     </div>
@@ -155,7 +155,7 @@
               Итог: <b>{{ currentItem.final_letter }}{{ currentItem.borderline_flag || '' }}</b>
               — {{ currentItem.comment }}
             </Message>
-            <div v-if="(isHost || auth.isCto) && session.status === 'voting'" style="margin-top: 12px" class="host-actions">
+            <div v-if="(isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')) && session.status === 'voting'" style="margin-top: 12px" class="host-actions">
               <template v-if="currentItem?.status === 'pending'">
                 <Button label="Вскрыть голоса" severity="warn" :loading="busy" @click="reveal()" />
               </template>
@@ -186,7 +186,8 @@ import Tag from 'primevue/tag'
 import AppBreadcrumbs from '../components/AppBreadcrumbs.vue'
 import RadarChart from '../components/RadarChart.vue'
 import SparkLine from '../components/SparkLine.vue'
-import { api, errMsg } from '../api/http'
+import { calibrationApi } from '../api/endpoints'
+import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
@@ -230,7 +231,7 @@ function letterOf(ratings: any[]): string {
 
 onMounted(load)
 async function load() {
-  session.value = (await api.get(`/calibration/sessions/${route.params.id}`)).data
+  session.value = await calibrationApi.detail(String(route.params.id))
   const first = session.value.items.find((i: any) => i.status !== 'final')
   if (first) await openPack(first)
 }
@@ -241,15 +242,15 @@ async function openPack(it: any) {
   revoteLetter.value = null; revoteComment.value = ''
   finalLetter.value = null; finalBorderline.value = ''; finalComment.value = ''
   revealed.value = null
-  pack.value = (await api.get(`/calibration/sessions/${route.params.id}/pack/${it.employee_id}`)).data
+  pack.value = await calibrationApi.pack(String(route.params.id), it.employee_id)
   if (it.status === 'revealed') await reveal(true)
 }
 
 async function vote() {
   busy.value = true
   try {
-    await api.post(`/calibration/sessions/${route.params.id}/vote`,
-      { item_id: currentItem.value.item_id, letter: myVote.value, comment: myComment.value })
+    await calibrationApi.vote(String(route.params.id),
+      { item_id: currentItem.value.item_id, letter: myVote.value as string, comment: myComment.value })
     await load()
     if (currentItem.value) await openPack(currentItem.value)
   } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
@@ -257,16 +258,15 @@ async function vote() {
 }
 
 async function reveal(silent = false) {
-  const r = await api.post(`/calibration/sessions/${route.params.id}/reveal?item_id=${currentItem.value.item_id}`)
-  revealed.value = r.data
+  revealed.value = await calibrationApi.reveal(String(route.params.id), currentItem.value.item_id)
   if (!silent) await load()
 }
 
 async function finalize() {
   busy.value = true
   try {
-    await api.post(`/calibration/sessions/${route.params.id}/finalize-item`, {
-      item_id: currentItem.value.item_id, final_letter: finalLetter.value,
+    await calibrationApi.finalizeItem(String(route.params.id), {
+      item_id: currentItem.value.item_id, final_letter: finalLetter.value as string,
       borderline_flag: finalBorderline.value || null, comment: finalComment.value,
     })
     toast.add({ severity: 'success', summary: 'Итог зафиксирован' })
@@ -276,16 +276,16 @@ async function finalize() {
 }
 
 async function loadAnalytics() {
-  analytics.value = (await api.get(`/calibration/sessions/${route.params.id}/analytics`)).data
+  analytics.value = await calibrationApi.analytics(String(route.params.id))
 }
 
 async function closeSession() {
   busy.value = true
   try {
-    const r = await api.post(`/calibration/sessions/${route.params.id}/close`)
+    const r = await calibrationApi.close(String(route.params.id))
     toast.add({
       severity: 'success', summary: 'Сессия завершена',
-      detail: r.data.summary, life: 8000,
+      detail: String(r.summary || ''), life: 8000,
     })
     await load()
   } catch (e) {
@@ -296,7 +296,7 @@ async function closeSession() {
 async function cancelSession() {
   busy.value = true
   try {
-    await api.post(`/calibration/sessions/${route.params.id}/cancel`)
+    await calibrationApi.cancel(String(route.params.id))
     toast.add({ severity: 'warn', summary: 'Сессия отменена' })
     await load()
   } catch (e) {
@@ -307,11 +307,12 @@ async function cancelSession() {
 async function revote() {
   busy.value = true
   try {
-    const r = await api.post(`/calibration/sessions/${route.params.id}/revote`, {
-      item_id: currentItem.value.item_id, letter: revoteLetter.value, comment: revoteComment.value,
+    const r = await calibrationApi.revote(String(route.params.id), {
+      item_id: currentItem.value.item_id, letter: revoteLetter.value as string,
+      comment: revoteComment.value,
     })
     toast.add({
-      severity: 'warn', summary: `Голос изменён: ${r.data.changed_from} → ${r.data.letter}`,
+      severity: 'warn', summary: `Голос изменён: ${r.changed_from} → ${r.letter}`,
       detail: 'Смена зафиксирована в истории', life: 6000,
     })
     revoteLetter.value = null
@@ -325,7 +326,7 @@ async function revote() {
 
 async function transferHost() {
   if (!newHost.value) return
-  await api.post(`/calibration/sessions/${route.params.id}/transfer-host?new_host_user_id=${newHost.value}`)
+  await calibrationApi.transferHost(String(route.params.id), newHost.value as number)
   await load()
   toast.add({ severity: 'success', summary: 'Ведущий передан' })
 }
