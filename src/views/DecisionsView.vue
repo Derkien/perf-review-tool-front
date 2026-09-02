@@ -137,7 +137,7 @@ async function patch(d: any) {
     })
     d.warnings = r.warnings || d.warnings
     await load()
-  } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
+  } catch (e) { toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 }) }
 }
 
 async function create() {
@@ -146,7 +146,7 @@ async function create() {
     await decisionsApi.create(cycleId.value!, newDecision.value)
     createDialog.value = false
     await load()
-  } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
+  } catch (e) { toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 }) }
   finally { busy.value = false }
 }
 

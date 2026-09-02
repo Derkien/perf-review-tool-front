@@ -103,7 +103,8 @@
                 <div v-for="row in matrixRows" :key="row.item_id" class="mark-row">
                   <span class="mark-name" v-tooltip.top="rowLevel(row)">{{ row.item }}</span>
                   <Dropdown v-model="markDraft[row.item_id]" :options="gradeOptions"
-                            option-label="label" option-value="value" filter placeholder="—" size="small" />
+                            option-label="label" option-value="value" filter placeholder="—"
+                            size="small" class="mark-select" />
                 </div>
               </div>
               <Button label="Сохранить разметку" size="small" :loading="busy" @click="saveMarks" />
@@ -264,39 +265,71 @@
 
         <!-- РЕВЬЮ -->
         <TabPanel value="review">
-          <div class="cycle-list">
-            <div v-for="c in cycles" :key="c.id" class="cycle-row"
-                 :class="{ active: selectedCycle === c.id }" @click="openResult(c.id)">
-              <i class="pi" :class="selectedCycle === c.id ? 'pi-chevron-down' : 'pi-chevron-right'" />
-              <b>{{ c.name }}</b>
-              <Tag :value="stageLabel(c.stage)" severity="secondary" />
+          <div class="review-wrap">
+            <div class="review-selector">
+              <Dropdown :model-value="selectedCycle" :options="cycleOptions"
+                        option-label="label" option-value="id"
+                        placeholder="Цикл ревью" class="w100" @update:model-value="openResult" />
             </div>
-          </div>
-          <div v-if="result" class="result">
-            <div class="grid-2">
+
+            <div v-if="result" class="review-blocks">
+              <!-- 1. Итоговая оценка и решение -->
               <Card>
-                <template #title>Достижения и оценки</template>
+                <template #title>Итоговая оценка и решение</template>
                 <template #content>
-                  <DataTable v-if="result.achievements_table?.length" :value="result.achievements_table" size="small">
-                    <Column header="Достижение">
-                      <template #body="{ data: a }"><span class="ach-text">{{ a.text }}</span></template>
-                    </Column>
-                    <Column header="Своя">
-                      <template #body="{ data: a }"><b>{{ a.self_rating || '—' }}</b></template>
-                    </Column>
-                    <Column header="Пиры">
-                      <template #body="{ data: a }">
-                        <b v-if="a.peer_avg">{{ a.peer_letter }} ({{ a.peer_avg }})</b>
-                        <span v-else class="muted">—</span>
-                      </template>
-                    </Column>
-                    <Column header="Рукль">
-                      <template #body="{ data: a }">
-                        <b v-if="a.manager_avg">{{ a.manager_letter }} ({{ a.manager_avg }})</b>
-                        <span v-else class="muted">—</span>
-                      </template>
-                    </Column>
-                  </DataTable>
+                  <template v-if="result.decision">
+                    <div class="kv"><span>Итоговая оценка</span>
+                      <b :style="{ color: letterColor(result.decision.final_rating) }">
+                        {{ result.decision.final_rating || '—' }}</b></div>
+                    <div class="kv"><span>Решение</span>
+                      <b>{{ decisionLabels[result.decision.decision] || result.decision.decision }}</b></div>
+                    <div v-if="result.decision.target_grade" class="kv"><span>Целевой грейд</span>
+                      <b>{{ result.decision.target_grade }}</b></div>
+                    <div v-if="result.decision.raise_pct" class="kv"><span>Повышение</span>
+                      <b>{{ result.decision.raise_pct }}%</b></div>
+                    <div v-if="result.decision.target_salary" class="kv"><span>Целевая ЗП</span>
+                      <b>{{ result.decision.target_salary.toLocaleString('ru') }} ₽</b></div>
+                    <div v-if="result.decision.final_comment" class="kv final-comment">
+                      <span>Комментарий по итогу</span>
+                      <b>{{ result.decision.final_comment }}</b></div>
+                  </template>
+                  <p v-else class="muted">решение ещё не принято</p>
+                </template>
+              </Card>
+
+              <!-- 2. Оценки и грейд -->
+              <Card style="margin-top: 12px">
+                <template #title>Оценки и грейд</template>
+                <template #content>
+                  <div class="kv"><span>Грейд на момент ревью</span>
+                    <b>{{ result.grade_at_review || '—' }}</b></div>
+                  <div class="kv"><span>Харды (средний вес 1–10)</span>
+                    <b class="radar-link" @click="openReviewRadar('hard')">
+                      {{ result.comp_summary?.hard ?? '—' }} <i class="pi pi-chart-radar" /></b></div>
+                  <div class="kv"><span>Софты (средний вес 1–10)</span>
+                    <b class="radar-link" @click="openReviewRadar('soft')">
+                      {{ result.comp_summary?.soft ?? '—' }} <i class="pi pi-chart-radar" /></b></div>
+                  <div v-if="result.peer_stats" class="kv"><span>Средняя пиров</span>
+                    <b>{{ result.peer_stats.avg_rating || '—' }}
+                      {{ result.peer_stats.avg_rating_num ? `(${result.peer_stats.avg_rating_num})` : '' }}</b></div>
+                  <template v-if="result.leader_assessments?.length">
+                    <div v-for="la in result.leader_assessments" :key="la.kind" class="kv">
+                      <span>Оценка руководителя ({{ la.kind === 'line' ? 'линейный' : 'функц.' }})</span>
+                      <b>{{ la.rating || '—' }}
+                        <span v-if="la.grade_soft || la.grade_soft" class="muted small">
+                          софт {{ la.grade_soft || '—' }} / хард {{ la.grade_hard || '—' }}</span></b>
+                    </div>
+                  </template>
+                </template>
+              </Card>
+
+              <!-- 3. Достижения -->
+              <Card style="margin-top: 12px">
+                <template #title>Достижения</template>
+                <template #content>
+                  <ul v-if="result.achievements_table?.length" class="ach-list">
+                    <li v-for="(a, i) in result.achievements_table" :key="i">{{ a.text }}</li>
+                  </ul>
                   <p v-else class="muted">селф-ревью не отправлялось</p>
                   <div v-if="result.self_review?.can_edit || result.self_review?.can_request_edit" class="edit-line">
                     <Button v-if="result.self_review.can_edit" label="Поправить селф-ревью" size="small" text
@@ -312,49 +345,19 @@
                   </Message>
                 </template>
               </Card>
-              <Card>
-                <template #title>Оценки и грейд</template>
+
+              <Card v-if="selfEditing" style="margin-top: 12px">
+                <template #title>Правка селф-ревью</template>
                 <template #content>
-                  <div class="kv"><span>Грейд на момент ревью</span><b>{{ result.grade_at_review || '—' }}</b></div>
-                  <div class="kv"><span>Харды (средний вес 1–10)</span><b>{{ result.comp_summary?.hard ?? '—' }}</b></div>
-                  <div class="kv"><span>Софты (средний вес 1–10)</span><b>{{ result.comp_summary?.soft ?? '—' }}</b></div>
-                  <div v-for="la in result.leader_assessments" :key="la.kind" class="kv">
-                    <span>{{ la.kind === 'line' ? 'Линейный' : 'Функциональный' }}</span>
-                    <b>{{ la.rating || '—' }} · софт {{ la.grade_soft || '—' }} / хард {{ la.grade_hard || '—' }}</b>
-                  </div>
+                  <AchievementEditor v-model="draftAchievements" :limits="limits" />
+                  <Button label="Сохранить и отправить" size="small" :loading="busy" @click="saveSelfEdit" />
                 </template>
               </Card>
             </div>
-            <Card v-if="result.decision" style="margin-top: 12px">
-              <template #title>Итоговая оценка и решение</template>
-              <template #content>
-                <div class="kv"><span>Итоговая оценка</span>
-                  <b :style="{ color: letterColor(result.decision.final_rating) }">
-                    {{ result.decision.final_rating || '—' }}</b></div>
-                <div class="kv"><span>Решение</span>
-                  <b>{{ decisionLabels[result.decision.decision] || result.decision.decision }}</b></div>
-                <div v-if="result.decision.target_grade" class="kv"><span>Целевой грейд</span>
-                  <b>{{ result.decision.target_grade }}</b></div>
-                <div v-if="result.decision.raise_pct" class="kv"><span>Повышение</span>
-                  <b>{{ result.decision.raise_pct }}%</b></div>
-                <div v-if="result.decision.target_salary" class="kv"><span>Целевая ЗП</span>
-                  <b>{{ result.decision.target_salary.toLocaleString('ru') }} ₽</b></div>
-                <div v-if="result.decision.final_comment" class="kv final-comment">
-                  <span>Комментарий по итогу</span>
-                  <b>{{ result.decision.final_comment }}</b>
-                </div>
-              </template>
-            </Card>
-            <Card v-if="selfEditing" style="margin-top: 12px">
-              <template #title>Правка селф-ревью</template>
-              <template #content>
-                <AchievementEditor v-model="draftAchievements" :limits="limits" />
-                <Button label="Сохранить и отправить" size="small" :loading="busy" @click="saveSelfEdit" />
-              </template>
-            </Card>
           </div>
         </TabPanel>
-      </TabPanels>
+
+              </TabPanels>
     </Tabs>
 
     <!-- большая паутинка -->
@@ -363,6 +366,17 @@
       <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                   :manager="radar.manager" :norm="radar.norm"
                   :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="84vh" />
+    </Dialog>
+
+    <!-- паутинка из блока «Оценки и грейд» -->
+    <Dialog v-model:visible="reviewRadar.visible" modal
+            :header="`Паутинка: ${reviewRadar.kind === 'hard' ? 'харды' : 'софты'}`"
+            :style="{ width: '720px' }" :content-style="{ height: '560px' }">
+      <RadarChart v-if="reviewRadar.data?.axis?.length"
+                  :axis="reviewRadar.data.axis" :self="reviewRadar.data.self"
+                  :manager="reviewRadar.data.manager" :norm="reviewRadar.data.norm"
+                  height="520px" />
+      <p v-else class="muted">разметки этого типа нет</p>
     </Dialog>
 
     <!-- редактирование сессии -->
@@ -553,6 +567,8 @@ onMounted(async () => {
   emp.value = await staffApi.card(id)
   perms.value = emp.value.permissions || {}
   cycles.value = await reviewsApi.cycles()
+  const def = defaultReviewCycle()
+  if (def) await openResult(def)
   if (perms.value.pay) {
     try { salaryHistory.value = await staffApi.salaryHistory(id) } catch { /* нет */ }
   }
@@ -616,11 +632,11 @@ async function saveMarks() {
       })
       saved++
     }
-    toast.add({ severity: 'success', summary: `Разметка сохранена (${saved} пунктов)` })
+    toast.add({  severity: 'success', summary: `Разметка сохранена (${saved} пунктов)`, life: 4000 })
     markMode.value = false
     await loadComp()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
@@ -634,7 +650,7 @@ async function downloadSession(s: any) {
     a.click()
     URL.revokeObjectURL(url)
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не удалось выгрузить', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Не удалось выгрузить', detail: errMsg(e), life: 8000 })
   }
 }
 
@@ -656,11 +672,11 @@ async function saveSessionEdit() {
   busy.value = true
   try {
     const r = await competenciesApi.editSession(String(route.params.id), s.kind, s.date, sessionEditDraft.value)
-    toast.add({ severity: 'success', summary: `Изменено пунктов: ${Object.keys(r.changed || {}).length} (аудит записан)` })
+    toast.add({  severity: 'success', summary: `Изменено пунктов: ${Object.keys(r.changed || {}).length} (аудит записан)`, life: 4000 })
     sessionEditVisible.value = false
     await loadComp()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
@@ -672,10 +688,10 @@ async function deleteSession(s: any) {
   const useHard = hard ? window.confirm('Точно удалить НАВСЕГДА?') : false
   try {
     await competenciesApi.deleteSession(String(route.params.id), s.kind, s.date, useHard)
-    toast.add({ severity: 'success', summary: useHard ? 'Удалено навсегда' : 'Скрыто (soft delete)' })
+    toast.add({  severity: 'success', summary: useHard ? 'Удалено навсегда' : 'Скрыто (soft delete)', life: 4000 })
     await loadComp()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   }
 }
 
@@ -687,17 +703,17 @@ async function saveTraffic() {
       comment: trafficForm.value.comment, correction_plan: trafficForm.value.correction_plan,
       dismissal_date: trafficForm.value.dismissal_date || null,
     })
-    toast.add({ severity: 'success', summary: 'Светофор сохранён' })
+    toast.add({  severity: 'success', summary: 'Светофор сохранён', life: 4000 })
     trafficDialog.value = false
     trafficForm.value = { month: '', value: null, comment: '', correction_plan: '', dismissal_date: '' }
     emp.value = await staffApi.card(String(route.params.id))
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
 async function openResult(cycleId: number) {
-  selectedCycle.value = selectedCycle.value === cycleId ? null : cycleId
+  selectedCycle.value = cycleId
   result.value = null
   selfEditing.value = false
   if (selectedCycle.value == null) return
@@ -705,7 +721,31 @@ async function openResult(cycleId: number) {
     result.value = await reviewsApi.result(cycleId, String(route.params.id))
     if (result.value?.self_review) draftAchievements.value = result.value.self_review.achievements || []
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не удалось открыть результат', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Не удалось открыть результат', detail: errMsg(e), life: 8000 })
+  }
+}
+
+// селектор циклов (fixes6 п.4): название · дата · статус; дефолт — последний завершённый
+const cycleOptions = computed(() => cycles.value.map((c: any) => ({
+  id: c.id,
+  label: `${c.name}${c.period_end ? ' · ' + c.period_end.slice(0, 10) : ''} · ${stageLabel(c.stage)}`,
+})))
+
+function defaultReviewCycle(): number | null {
+  const finished = cycles.value.filter((c: any) => ['closed', 'imported'].includes(c.stage))
+  return (finished[0] || cycles.value[0])?.id || null
+}
+
+// паутинка из блока «Оценки и грейд»
+const reviewRadar = ref<{ visible: boolean; kind: 'hard' | 'soft'; data: any }>(
+  { visible: false, kind: 'hard', data: null })
+
+async function openReviewRadar(kind: 'hard' | 'soft') {
+  reviewRadar.value = { visible: true, kind, data: null }
+  try {
+    reviewRadar.value.data = await competenciesApi.radar(String(route.params.id), kind)
+  } catch {
+    reviewRadar.value.data = null
   }
 }
 
@@ -715,11 +755,11 @@ async function requestEdit() {
   busy.value = true
   try {
     await reviewsApi.requestSelfEdit(result.value.self_review.id, editRequestComment.value)
-    toast.add({ severity: 'success', summary: 'Запрос отправлен руководителю' })
+    toast.add({  severity: 'success', summary: 'Запрос отправлен руководителю', life: 4000 })
     editRequestComment.value = ''
     await openResult(selectedCycle.value!)
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
@@ -729,16 +769,29 @@ async function saveSelfEdit() {
     await reviewsApi.saveSelf({
       cycle_id: selectedCycle.value as number, achievements: draftAchievements.value, submit: true,
     })
-    toast.add({ severity: 'success', summary: 'Селф-ревью обновлено' })
+    toast.add({  severity: 'success', summary: 'Селф-ревью обновлено', life: 4000 })
     selfEditing.value = false
     await openResult(selectedCycle.value!)
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 </script>
 
 <style scoped>
+/* ревью-таб (fixes6 п.4): компактная колонка ≤ половины экрана, блоки друг под другом */
+.review-wrap { max-width: 640px; }
+.review-selector { margin-bottom: 12px; }
+.review-blocks > * { max-width: 100%; }
+.radar-link { color: #2563eb; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.radar-link:hover { text-decoration: underline; color: #1d4ed8; }
+.ach-list { margin: 0; padding-left: 18px; }
+.ach-list li { margin: 4px 0; }
+/* форма разметки (fixes6 п.3): фиксированная ширина, названия в одну строку */
+.mark-table { max-width: 620px; }
+.mark-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
+.mark-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mark-select { width: 200px; flex-shrink: 0; }
 .kv { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; }
 .kv span { color: #64748b; flex-shrink: 0; }
 .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }

@@ -66,7 +66,7 @@ async function loadSessions() {
 
 async function create() {
   if (!cycleId.value || !hostId.value) {
-    toast.add({ severity: 'warn', summary: 'Выберите цикл и ведущего' })
+    toast.add({  severity: 'warn', summary: 'Выберите цикл и ведущего', life: 6000 })
     return
   }
   busy.value = true
@@ -75,9 +75,9 @@ async function create() {
       cycle_id: cycleId.value, group: group.value, host_user_id: hostId.value, participant_ids: [],
     })
     await loadSessions()
-    toast.add({ severity: 'success', summary: 'Сессия создана' })
+    toast.add({  severity: 'success', summary: 'Сессия создана', life: 4000 })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
@@ -91,10 +91,10 @@ async function importAi(ev: any) {
   try {
     const r = await calibrationApi.aiImport(file)
     const conflicts = (r.conflicts as unknown[])?.length || 0
-    toast.add({ severity: conflicts ? 'warn' : 'success',
-      summary: `AI-ответы: ${r.imported} импортировано, конфликтов ${conflicts}` })
+    toast.add({  severity: conflicts ? 'warn' : 'success',
+      summary: `AI-ответы: ${r.imported} импортировано, конфликтов ${conflicts}`, life: 4000 })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка импорта', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка импорта', detail: errMsg(e), life: 8000 })
   }
 }
 

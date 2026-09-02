@@ -60,6 +60,56 @@
             <label>матрица <InputNumber v-model="w.matrix" :min-fraction-digits="2" :max-fraction-digits="2" @update:model-value="saveWeights" /></label>
             <label>эффективность <InputNumber v-model="w.efficiency" :min-fraction-digits="2" :max-fraction-digits="2" @update:model-value="saveWeights" /></label>
           </div>
+
+          <h2 style="margin:18px 0 8px">Предоценки руководителей</h2>
+          <div class="settings">
+            <label>Оценка обязательна
+              <ToggleSwitch :model-value="la.require_rating"
+                            @update:model-value="la.require_rating = $event; saveLeaderAssessment()" />
+            </label>
+            <label>Отзыв обязателен
+              <ToggleSwitch :model-value="la.require_feedback"
+                            @update:model-value="la.require_feedback = $event; saveLeaderAssessment()" />
+            </label>
+          </div>
+          <p class="muted" style="font-size:.82rem; margin:6px 0 0">
+            Обязательность проверяется при отправке предоценки; заполнить может руководитель
+            сотрудника, вышестоящий руководитель, админ или делегат (ниже).
+          </p>
+
+          <h2 style="margin:18px 0 8px">Валидаторы переходов цикла (стейт-машина)</h2>
+          <div class="settings">
+            <label>Ачивки у всех → пиры
+              <ToggleSwitch :model-value="gates.self_review_gate"
+                            @update:model-value="gates.self_review_gate = $event; saveGates()" />
+            </label>
+            <label>Предоценки у всех → калибровки
+              <ToggleSwitch :model-value="gates.leader_assessment_gate"
+                            @update:model-value="gates.leader_assessment_gate = $event; saveGates()" />
+            </label>
+            <label>Калибровки закрыты → решения
+              <ToggleSwitch :model-value="gates.calibration_finished_gate"
+                            @update:model-value="gates.calibration_finished_gate = $event; saveGates()" />
+            </label>
+          </div>
+
+          <h2 style="margin:18px 0 8px">Делегирование</h2>
+          <div class="delegate-block">
+            <label>Заполнение предоценок за руководителей
+              <MultiSelect v-model="delegation.leader_assessment_user_ids" :options="userOptions"
+                           option-label="label" option-value="id" filter placeholder="Выбрать сотрудников"
+                           class="w100" @change="saveDelegation" />
+            </label>
+            <label>Правка пиров сотрудников
+              <MultiSelect v-model="delegation.peer_edit_user_ids" :options="userOptions"
+                           option-label="label" option-value="id" filter placeholder="Выбрать сотрудников"
+                           class="w100" @change="saveDelegation" />
+            </label>
+          </div>
+          <p class="muted" style="font-size:.82rem; margin:6px 0 0">
+            Делегаты работают вне матрицы подчинения: могут выполнять действие за любых
+            руководителей. Роли при этом не меняются.
+          </p>
         </TabPanel>
         <TabPanel value="activity">
           <div class="head-row">
@@ -165,6 +215,7 @@ import TabPanel from 'primevue/tabpanel'
 import TabPanels from 'primevue/tabpanels'
 import Tabs from 'primevue/tabs'
 import Tag from 'primevue/tag'
+import MultiSelect from 'primevue/multiselect'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { adminApi } from '../api/endpoints'
 import type { PermissionsCatalog } from '../api/endpoints'
@@ -190,6 +241,15 @@ const r = ref<any>({
 })
 const activity = ref<any[]>([])
 const audit = ref<any[]>([])
+// fixes6: предоценки/гейты/делегирование
+const la = ref<{ require_rating: boolean; require_feedback: boolean }>(
+  { require_rating: true, require_feedback: true })
+const gates = ref<{ self_review_gate: boolean; leader_assessment_gate: boolean; calibration_finished_gate: boolean }>(
+  { self_review_gate: false, leader_assessment_gate: true, calibration_finished_gate: true })
+const delegation = ref<{ leader_assessment_user_ids: number[]; peer_edit_user_ids: number[] }>(
+  { leader_assessment_user_ids: [], peer_edit_user_ids: [] })
+const userOptions = computed(() =>
+  users.value.filter((u: any) => u.id).map((u: any) => ({ id: u.id, label: `${u.full_name} (${u.email})` })))
 
 // --- матрица прав (fixes5): каталог приезжает с бэкенда, никакие коды не хардкодятся ---
 const catalog = ref<PermissionsCatalog | null>(null)
@@ -218,6 +278,11 @@ onMounted(async () => {
     ...st.raise_rules as Record<string, unknown>,
     max_raise_pct: { C: 10, B: 20, A: 30, ...((st.raise_rules as any)?.max_raise_pct || {}) },
   } as any
+  la.value = { require_rating: true, require_feedback: true, ...(st.leader_assessment as any) }
+  gates.value = { self_review_gate: false, leader_assessment_gate: true, calibration_finished_gate: true,
+                  ...(st.workflow_gates as any) }
+  delegation.value = { leader_assessment_user_ids: [], peer_edit_user_ids: [],
+                       ...(st.delegation as any) }
   await loadRights()
   loadActivity()
 })
@@ -235,10 +300,10 @@ async function toggleRight(role: string, perm: string) {
   matrix.value = { ...matrix.value, [role]: Array.from(cur) }
   try {
     await adminApi.putSettings({ role_permissions: matrix.value })
-    toast.add({ severity: 'success',
-      summary: `${roleLabels[role] || role}: ${perm} ${enabled ? 'включено' : 'выключено'}` })
+    toast.add({  severity: 'success',
+      summary: `${roleLabels[role] || role}: ${perm} ${enabled ? 'включено' : 'выключено'}`, life: 4000 })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не сохранено', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Не сохранено', detail: errMsg(e), life: 8000 })
     await loadRights()
   }
 }
@@ -262,17 +327,17 @@ async function assignByEmail() {
   if (!assignEmail.value.trim()) return
   try {
     await adminApi.ensureUser(assignEmail.value.trim().toLowerCase(), assignRole.value)
-    toast.add({ severity: 'success', summary: `Роль назначена: ${assignEmail.value}` })
+    toast.add({  severity: 'success', summary: `Роль назначена: ${assignEmail.value}`, life: 4000 })
     assignEmail.value = ''
     users.value = await adminApi.users()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   }
 }
 
 async function patchUser(u: any) {
   await adminApi.patchUser(u.id, { role: u.role })
-  toast.add({ severity: 'success', summary: `${u.email} → ${u.role}` })
+  toast.add({  severity: 'success', summary: `${u.email} → ${u.role}`, life: 4000 })
 }
 async function save(cur: any) {
   await adminApi.putSettings({
@@ -281,6 +346,15 @@ async function save(cur: any) {
 }
 async function saveWeights() {
   await adminApi.putSettings({ autocalibration_weights: w.value })
+}
+async function saveLeaderAssessment() {
+  await adminApi.putSettings({ leader_assessment: la.value })
+}
+async function saveGates() {
+  await adminApi.putSettings({ workflow_gates: gates.value })
+}
+async function saveDelegation() {
+  await adminApi.putSettings({ delegation: delegation.value })
 }
 async function saveRules() {
   await adminApi.putSettings({ raise_rules: r.value })
@@ -297,6 +371,8 @@ async function saveRules() {
 .small { font-size: 0.78rem; }
 .diff { font-size: 0.72rem; max-width: 480px; overflow: auto; background: #f8fafc; padding: 6px; border-radius: 6px; }
 .rights-group { margin-bottom: 18px; }
+.delegate-block { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.delegate-block label { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
 .rights-title { margin: 10px 0 6px; font-size: 0.95rem; }
 .role-col { min-width: 120px; }
 </style>

@@ -253,7 +253,7 @@ async function vote() {
       { item_id: currentItem.value.item_id, letter: myVote.value as string, comment: myComment.value })
     await load()
     if (currentItem.value) await openPack(currentItem.value)
-  } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
+  } catch (e) { toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 }) }
   finally { busy.value = false }
 }
 
@@ -269,9 +269,9 @@ async function finalize() {
       item_id: currentItem.value.item_id, final_letter: finalLetter.value as string,
       borderline_flag: finalBorderline.value || null, comment: finalComment.value,
     })
-    toast.add({ severity: 'success', summary: 'Итог зафиксирован' })
+    toast.add({  severity: 'success', summary: 'Итог зафиксирован', life: 4000 })
     await load()
-  } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
+  } catch (e) { toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 }) }
   finally { busy.value = false }
 }
 
@@ -297,10 +297,10 @@ async function cancelSession() {
   busy.value = true
   try {
     await calibrationApi.cancel(String(route.params.id))
-    toast.add({ severity: 'warn', summary: 'Сессия отменена' })
+    toast.add({  severity: 'warn', summary: 'Сессия отменена', life: 6000 })
     await load()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
@@ -320,7 +320,7 @@ async function revote() {
     await load()
     if (currentItem.value) await openPack(currentItem.value)
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 
@@ -328,7 +328,7 @@ async function transferHost() {
   if (!newHost.value) return
   await calibrationApi.transferHost(String(route.params.id), newHost.value as number)
   await load()
-  toast.add({ severity: 'success', summary: 'Ведущий передан' })
+  toast.add({  severity: 'success', summary: 'Ведущий передан', life: 4000 })
 }
 </script>
 

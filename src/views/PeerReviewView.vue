@@ -97,7 +97,7 @@ async function submit() {
   const expected = current.value.achievements.map((_: any, i: number) => i + 1)
   const payload = expected.filter((i: number) => ratings.value[i])
   if (payload.length !== expected.length) {
-    toast.add({ severity: 'warn', summary: 'Оцените каждое достижение' })
+    toast.add({  severity: 'warn', summary: 'Оцените каждое достижение', life: 6000 })
     return
   }
   busy.value = true
@@ -106,11 +106,11 @@ async function submit() {
       ratings: payload.map((i: number) => ({ ach_index: i, letter: ratings.value[i] })),
       free_text: freeText.value,
     })
-    toast.add({ severity: 'success', summary: 'Оценка отправлена' })
+    toast.add({  severity: 'success', summary: 'Оценка отправлена', life: 4000 })
     current.value = null
     await load()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) })
+    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 </script>

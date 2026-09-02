@@ -4,12 +4,16 @@
  *  Этот слой самодостаточен: при переносе в общую админку копируется целиком. */
 import type { components } from './types'
 import { client } from './client'
-import { ApiError } from './errors'
+import { ApiError, notifyApiError } from './errors'
 
 export type Employee = components['schemas']['EmployeeOut']
 export type EmployeeCard = components['schemas']['EmployeeCardOut']
 export type Me = components['schemas']['MeOut']
-export type Cycle = { id: number; name: string; stage: string; stage_deadlines: Record<string, string>; is_locked?: boolean }
+export type Cycle = { id: number; name: string; stage: string; stage_deadlines: Record<string, string>; is_locked?: boolean; period_start?: string | null; period_end?: string | null }
+export type CycleTransition = {
+  name: string; to: string; to_label: string; label: string
+  permission: string; allowed: boolean; reasons: string[]
+}
 export type MarkSession = {
   kind: 'hard' | 'soft'
   date: string
@@ -97,7 +101,8 @@ export type AuditRow = {
   after: Record<string, unknown> | null
 }
 
-/** Ответ API с ошибкой → ApiError (единая точка). */
+/** Ответ API с ошибкой → журнал + ApiError (единая точка: кнопка «Журнал ошибок»
+ *  в топбаре всегда наполнена, тост уже показывают view). */
 function raise<ErrorShape extends object>(error: ErrorShape, url: string): never {
   const detail = (error as { detail?: unknown }).detail
   let message = 'ошибка запроса'
@@ -107,6 +112,7 @@ function raise<ErrorShape extends object>(error: ErrorShape, url: string): never
       `${(d.loc || []).join('.')}: ${d.msg}`).join('; ')
   }
   const status = (error as { status?: number }).status
+  notifyApiError(message, url, status)
   throw new ApiError(message, { status, url, detail })
 }
 
@@ -138,7 +144,7 @@ export const authApi = {
 }
 
 export const staffApi = {
-  async listEmployees(params?: { org_unit_id?: number; grade?: string; functional_group?: string; active?: boolean; q?: string }): Promise<Employee[]> {
+  async listEmployees(params?: { org_unit_id?: number; grade?: string; functional_group?: string; active?: boolean; q?: string; scope?: 'mine' | 'team' | 'all' }): Promise<Employee[]> {
     const { data, error } = await client.GET('/staff/employees', { params: { query: params as never } })
     if (error) raise(error, '/staff/employees')
     return data as never
@@ -178,11 +184,39 @@ export const reviewsApi = {
     if (error) raise(error, '/admin/settings/public')
     return data as never
   },
-  async advanceStage(cycleId: number): Promise<{ id: number; stage: string }> {
+  async advanceStage(cycleId: number): Promise<{ id: number; stage: string; transition: string }> {
     const { data, error } = await client.POST('/reviews/cycles/{cycle_id}/advance-stage', {
       params: { path: { cycle_id: cycleId } },
     })
     if (error) raise(error, '/reviews/cycles/{cycle_id}/advance-stage')
+    return data as never
+  },
+  async createCycle(body: { name: string; stage?: string; stage_deadlines?: Record<string, string>; prev_cycle_id?: number | null }): Promise<{ id: number }> {
+    const { data, error } = await client.POST('/reviews/cycles', {
+      body: { stage: 'preparation', stage_deadlines: {}, ...body },
+    })
+    if (error) raise(error, 'POST /reviews/cycles')
+    return data as never
+  },
+  async transitions(cycleId: number): Promise<{ stage: string; stage_label: string; transitions: CycleTransition[] }> {
+    const { data, error } = await client.GET('/reviews/cycles/{cycle_id}/transitions', {
+      params: { path: { cycle_id: cycleId } },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/transitions')
+    return data as never
+  },
+  async applyTransition(cycleId: number, name: string): Promise<{ id: number; stage: string; transition: string }> {
+    const { data, error } = await client.POST('/reviews/cycles/{cycle_id}/transition/{name}', {
+      params: { path: { cycle_id: cycleId, name } },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/transition/{name}')
+    return data as never
+  },
+  async cancelCycle(cycleId: number): Promise<{ id: number; stage: string; transition: string }> {
+    const { data, error } = await client.POST('/reviews/cycles/{cycle_id}/cancel', {
+      params: { path: { cycle_id: cycleId } },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/cancel')
     return data as never
   },
   async mySelf(cycleId: number): Promise<{ id?: number; achievements: { text: string; self_rating?: string | null }[]; status: string }> {

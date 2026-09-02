@@ -156,7 +156,7 @@ async function saveDraft() {
     })
     status.value = r.status
     dirty.value = false
-    toast.add({ severity: 'success', summary: 'Черновик сохранён' })
+    toast.add({  severity: 'success', summary: 'Черновик сохранён', life: 4000 })
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Проверьте форму', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
@@ -172,7 +172,7 @@ async function submit() {
     status.value = r.status
     dirty.value = false
     confirmVisible.value = false
-    toast.add({ severity: 'success', summary: 'Отправлено' })
+    toast.add({  severity: 'success', summary: 'Отправлено', life: 4000 })
   } catch (e) {
     confirmVisible.value = false
     toast.add({ severity: 'error', summary: 'Проверьте форму', detail: errMsg(e), life: 8000 })

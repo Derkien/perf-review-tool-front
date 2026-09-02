@@ -20,8 +20,6 @@ const routes = [
       { path: 'staff/:id', component: () => import('../views/EmployeeCardView.vue') },
       { path: 'my-review', component: () => import('../views/MyReviewView.vue') },
       { path: 'peer-review', component: () => import('../views/PeerReviewView.vue') },
-      { path: 'peer-validation', component: () => import('../views/PeerValidationView.vue'),
-        meta: { perm: 'ROLE_C_PEER_ASSIGNMENT' } },
       { path: 'calibration', component: () => import('../views/CalibrationListView.vue'),
         meta: { perm: 'ROLE_V_REVIEW_RESULT' } },
       { path: 'calibration/:id', component: () => import('../views/CalibrationSessionView.vue'),

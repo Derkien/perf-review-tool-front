@@ -100,8 +100,8 @@ async function submit() {
     await decisionsApi.createNomination(form.value)
     dialog.value = false
     nominations.value = await decisionsApi.listNominations()
-    toast.add({ severity: 'success', summary: 'Номинация подана' })
-  } catch (e) { toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e) }) }
+    toast.add({  severity: 'success', summary: 'Номинация подана', life: 4000 })
+  } catch (e) { toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 }) }
   finally { busy.value = false }
 }
 
