@@ -43,18 +43,39 @@
       <Card><template #title>Предоценки руклей</template><template #content>
         <big>{{ t.leader_done }} / {{ t.employees }}</big>
       </template></Card>
+      <Card class="actions-card">
+        <template #title>Доступно действий</template>
+        <template #content>
+          <big :class="{ zero: !actions.length }">{{ actions.length }}</big>
+          <div v-for="a in actions.slice(0, 3)" :key="a.code" class="action-row">
+            <span class="action-title">{{ a.title }}</span>
+            <Button v-if="a.template && canBroadcast" label="Напомнить" size="small" text
+                    :loading="busy && busyAction === a.code"
+                    v-tooltip.top="`Масс-уведомление ${a.count} сотрудникам`"
+                    @click="runAction(a)" />
+            <Button v-else-if="a.href" label="Перейти" size="small" text
+                    @click="$router.push(a.href!)" />
+          </div>
+          <p v-if="!actions.length" class="muted small" style="margin:6px 0 0">
+            Всё под контролем — блокировок нет.
+          </p>
+        </template>
+      </Card>
     </div>
     <div class="grid-2">
       <Card>
-        <template #title>Распределение предварительных оценок</template>
+        <template #title>Распределение оценок</template>
         <template #content>
+          <SelectButton v-model="distKind" :options="distKinds" option-label="label"
+                        option-value="value" size="small" style="margin-bottom:10px" />
           <div class="dist">
             <div v-for="L in ['A','B','C','D','E']" :key="L" class="dist-row">
               <b>{{ L }}</b>
               <div class="dist-bar"><div :style="{ width: pct(L) + '%', background: colors[L] }" /></div>
-              <span class="muted">{{ dist[L] || 0 }}</span>
+              <span class="muted">{{ currentDist[L] || 0 }}</span>
             </div>
           </div>
+          <p class="muted small" style="margin:8px 0 0">{{ distHint }}</p>
         </template>
       </Card>
       <Card>
@@ -70,22 +91,6 @@
         </template>
       </Card>
     </div>
-    <Card style="margin-top:16px">
-      <template #title>Кого пушить</template>
-      <template #content>
-        <DataTable :value="data?.problems || []" size="small" scrollable scroll-height="300px"
-                   paginator :rows="15">
-          <Column field="employee" header="Сотрудник" />
-          <Column field="team" header="Команда" />
-          <Column field="issue" header="Проблема">
-            <template #body="{ data: p }">
-              <Tag :value="p.issue" :severity="p.issue.includes('не отправлено') ? 'danger' : 'warn'" />
-            </template>
-          </Column>
-        </DataTable>
-      </template>
-    </Card>
-
     <!-- создание цикла -->
     <Dialog v-model:visible="createVisible" modal header="Новый цикл перф-ревью" style="width: 420px">
       <div class="create-form">
@@ -110,9 +115,10 @@ import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
+import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import { reviewsApi } from '../api/endpoints'
-import type { Cycle, CycleTransition } from '../api/endpoints'
+import type { Cycle, CycleAction, CycleTransition } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
@@ -123,6 +129,8 @@ const data = ref<any>(null)
 const cycles = ref<(Cycle & { label?: string })[]>([])
 const cycleId = ref<number | null>(null)
 const transitions = ref<CycleTransition[]>([])
+const actions = ref<CycleAction[]>([])
+const busyAction = ref('')
 const busy = ref(false)
 const busyTransition = ref('')
 const createVisible = ref(false)
@@ -130,7 +138,22 @@ const newCycle = ref({ name: '' })
 
 const cycle = computed(() => cycles.value.find((c) => c.id === cycleId.value) || null)
 const t = computed(() => data.value?.totals || {})
-const dist = computed(() => data.value?.letter_distribution || {})
+const distKinds = [
+  { label: 'Пиры (по ачивкам)', value: 'peers' },
+  { label: 'Лин. рукль', value: 'line' },
+  { label: 'Функц. рукль', value: 'functional' },
+  { label: 'После калибровки', value: 'calibrated' },
+]
+const distKind = ref('peers')
+const currentDist = computed(() =>
+  (data.value?.distribution_variants || {})[distKind.value] || {})
+const distHint = computed(() => ({
+  peers: 'Усреднение пайр-оценок по достижениям (как в мастер-файле)',
+  line: 'Предварительные оценки линейных руководителей',
+  functional: 'Предварительные оценки функциональных руководителей',
+  calibrated: 'Подтверждённые буквы калибровочных сессий',
+}[distKind.value] || ''))
+const canBroadcast = computed(() => auth.can('ROLE_C_CYCLE_BROADCAST'))
 const stageNames: Record<string, string> = {
   'self-review': 'Сбор ачивок', 'peer-review': 'Оценки пиров', 'leader-assessment': 'Предоценки',
   calibration: 'Калибровки', decision: 'Решения', closed: 'Закрыт', preparation: 'Подготовка',
@@ -149,8 +172,8 @@ function cycleLabel(c: Cycle): string {
 }
 
 function pct(L: string) {
-  const total = Object.values(dist.value).reduce((a: number, b: any) => a + (b as number), 0) || 1
-  return Math.round(((dist.value[L] || 0) / total) * 100)
+  const total = Object.values(currentDist.value).reduce((a: number, b: any) => a + (b as number), 0) || 1
+  return Math.round(((currentDist.value[L] || 0) / total) * 100)
 }
 
 onMounted(async () => {
@@ -175,6 +198,7 @@ async function load() {
   ])
   data.value = dash
   transitions.value = tr.transitions
+  actions.value = (dash as any).actions || []
 }
 
 async function applyTransition(trItem: CycleTransition) {
@@ -191,6 +215,19 @@ async function applyTransition(trItem: CycleTransition) {
     toast.add({ severity: 'error', summary: 'Переход не выполнен', detail: errMsg(e), life: 10000 })
     await load()
   } finally { busy.value = false; busyTransition.value = '' }
+}
+
+async function runAction(a: CycleAction) {
+  if (!cycleId.value || !a.template || !a.employee_ids?.length) return
+  busyAction.value = a.code
+  try {
+    const r = await reviewsApi.broadcast(cycleId.value, {
+      employee_ids: a.employee_ids, template: a.template,
+    })
+    toast.add({ severity: 'success', summary: `Напоминание отправлено (${r.sent})`, life: 4000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
+  } finally { busyAction.value = '' }
 }
 
 async function createCycle() {
@@ -213,6 +250,10 @@ async function createCycle() {
 .head-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .head-actions { display: flex; gap: 10px; align-items: center; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.actions-card { border-color: #fcd34d; }
+.actions-card big.zero { color: #16a34a; }
+.action-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.action-title { font-size: 0.84rem; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; margin-top: 16px; }
 .dist-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
 .dist-row b { width: 16px; }

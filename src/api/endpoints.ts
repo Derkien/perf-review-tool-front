@@ -10,6 +10,10 @@ export type Employee = components['schemas']['EmployeeOut']
 export type EmployeeCard = components['schemas']['EmployeeCardOut']
 export type Me = components['schemas']['MeOut']
 export type Cycle = { id: number; name: string; stage: string; stage_deadlines: Record<string, string>; is_locked?: boolean; period_start?: string | null; period_end?: string | null }
+export type CycleAction = {
+  code: string; title: string; count: number
+  template?: string; employee_ids?: number[]; href?: string
+}
 export type CycleTransition = {
   name: string; to: string; to_label: string; label: string
   permission: string; allowed: boolean; reasons: string[]
@@ -229,6 +233,44 @@ export const reviewsApi = {
       params: { path: { cycle_id: cycleId } },
     })
     if (error) raise(error, '/reviews/cycles/{cycle_id}/cancel')
+    return data as never
+  },
+  async participants(cycleId: number): Promise<{
+    cycle_id: number; included_count: number
+    excluded: { employee_id: number; full_name: string; note: string; at: string | null }[]
+  }> {
+    const { data, error } = await client.GET('/reviews/cycles/{cycle_id}/participants', {
+      params: { path: { cycle_id: cycleId } },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/participants')
+    return data as never
+  },
+  async excludeParticipants(cycleId: number, employeeIds: number[], note = ''): Promise<{ cycle_id: number; excluded: number }> {
+    const { data, error } = await client.POST('/reviews/cycles/{cycle_id}/participants/exclude', {
+      params: { path: { cycle_id: cycleId } }, body: { employee_ids: employeeIds, note },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/participants/exclude')
+    return data as never
+  },
+  async includeParticipants(cycleId: number, employeeIds: number[]): Promise<{ cycle_id: number; included: number }> {
+    const { data, error } = await client.POST('/reviews/cycles/{cycle_id}/participants/include', {
+      params: { path: { cycle_id: cycleId } }, body: { employee_ids: employeeIds, note: '' },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/participants/include')
+    return data as never
+  },
+  async broadcast(cycleId: number, body: { employee_ids: number[]; template: string; text?: string }): Promise<{ sent: number; template: string }> {
+    const { data, error } = await client.POST('/reviews/cycles/{cycle_id}/notify', {
+      params: { path: { cycle_id: cycleId } }, body: { text: '', ...body },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/notify')
+    return data as never
+  },
+  async cycleActions(cycleId: number): Promise<CycleAction[]> {
+    const { data, error } = await client.GET('/reviews/cycles/{cycle_id}/actions', {
+      params: { path: { cycle_id: cycleId } },
+    })
+    if (error) raise(error, '/reviews/cycles/{cycle_id}/actions')
     return data as never
   },
   async mySelf(cycleId: number): Promise<{ id?: number; achievements: { text: string; self_rating?: string | null }[]; status: string }> {

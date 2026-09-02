@@ -565,6 +565,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reviews/cycles/{cycle_id}/participants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cycle Participants */
+        get: operations["cycle_participants_api_v1_reviews_cycles__cycle_id__participants_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/cycles/{cycle_id}/participants/exclude": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Participants Exclude */
+        post: operations["participants_exclude_api_v1_reviews_cycles__cycle_id__participants_exclude_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/cycles/{cycle_id}/participants/include": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Participants Include */
+        post: operations["participants_include_api_v1_reviews_cycles__cycle_id__participants_include_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/cycles/{cycle_id}/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cycle Notify
+         * @description Масс-уведомление участникам цикла: пресет по стадии или свой текст.
+         */
+        post: operations["cycle_notify_api_v1_reviews_cycles__cycle_id__notify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/cycles/{cycle_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cycle Actions Ep
+         * @description Умные действия: что можно сделать, чтобы продвинуть цикл.
+         */
+        get: operations["cycle_actions_ep_api_v1_reviews_cycles__cycle_id__actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reviews/cycles/{cycle_id}/cancel": {
         parameters: {
             query?: never;
@@ -1627,6 +1718,21 @@ export interface components {
             /** File */
             file: string;
         };
+        /** BroadcastIn */
+        BroadcastIn: {
+            /**
+             * Employee Ids
+             * @default []
+             */
+            employee_ids: number[];
+            /** Template */
+            template: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+        };
         /** CycleIn */
         CycleIn: {
             /** Name */
@@ -2001,6 +2107,16 @@ export interface components {
             kind: string;
             /** Path */
             path: string;
+        };
+        /** ParticipantsIn */
+        ParticipantsIn: {
+            /** Employee Ids */
+            employee_ids: number[];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** PeerReviewIn */
         PeerReviewIn: {
@@ -3072,6 +3188,173 @@ export interface operations {
             path: {
                 cycle_id: number;
                 name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cycle_participants_api_v1_reviews_cycles__cycle_id__participants_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    participants_exclude_api_v1_reviews_cycles__cycle_id__participants_exclude_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ParticipantsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    participants_include_api_v1_reviews_cycles__cycle_id__participants_include_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ParticipantsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cycle_notify_api_v1_reviews_cycles__cycle_id__notify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BroadcastIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cycle_actions_ep_api_v1_reviews_cycles__cycle_id__actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
             };
             cookie?: never;
         };
