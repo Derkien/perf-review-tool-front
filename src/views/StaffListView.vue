@@ -8,7 +8,11 @@
         </label>
         <Button v-if="selected.length && auth.can('ROLE_C_PEER_ASSIGNMENT')"
                 label="Отправить задания на оценку" size="small" severity="secondary"
-                :loading="busy" @click="sendAssignments" />
+                :disabled="!sendWindow" :loading="busy"
+                v-tooltip.top="sendWindow
+                  ? 'По итоговому набору пиров: новые задания + повторные уведомления несдавшим; отправленные оценки не затрагиваются'
+                  : `Отправка возможна только на стадиях сбора ачивок / оценок пиров / предоценок (сейчас: ${activeStageLabel})`"
+                @click="confirmSend" />
         <span v-if="selected.length" class="muted small">выбрано: {{ selected.length }}</span>
       </div>
     </div>
@@ -36,13 +40,15 @@
       <Column field="grade" header="Грейд" sortable />
       <Column field="org_unit" header="Команда" />
       <Column field="manager" header="Рукль" />
-      <Column header="Действия" style="width: 90px">
+      <Column header="Действия" style="width: 116px">
         <template #body="{ data: e }">
-          <span class="acts">
-            <i class="pi pi-user act" v-tooltip.top="'Профиль'" @click.stop="openCard(e)" />
-            <i v-if="canEditPeers" class="pi pi-users act" v-tooltip.top="'Пиры сотрудника'"
-               @click.stop="peersFor = e" />
-          </span>
+          <div class="acts">
+            <Button icon="pi pi-user" size="small" text outlined rounded
+                    v-tooltip.top="'Профиль сотрудника'" @click.stop="openCard(e)" />
+            <Button v-if="canEditPeers" icon="pi pi-users" size="small" text outlined rounded
+                    severity="success" v-tooltip.top="'Пиры сотрудника'"
+                    @click.stop="peersFor = e" />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -86,6 +92,31 @@ const grades = ['Стажёр', 'Младший', 'Основной 1', 'Осн�
 const canEditPeers = computed(() =>
   auth.can('ROLE_U_PEER_SELECTION') || auth.role === 'admin' || auth.role === 'cto')
 
+// окно отправки заданий: только стадии оценок действующего цикла (стейт-машина)
+const stageNames: Record<string, string> = {
+  'self-review': 'сбор ачивок', 'peer-review': 'оценки пиров', 'leader-assessment': 'предоценки',
+  calibration: 'калибровки', decision: 'решения', closed: 'закрыт', preparation: 'подготовка',
+  cancelled: 'отменён', imported: 'импорт',
+}
+const sendStages = ['self-review', 'peer-review', 'leader-assessment']
+const activeStage = ref('')
+const activeStageLabel = computed(() => stageNames[activeStage.value] || activeStage.value || '—')
+const sendWindow = computed(() => sendStages.includes(activeStage.value))
+
+async function refreshActiveStage() {
+  const cycles = await reviewsApi.cycles()
+  const c = cycles.find((x) => !['closed', 'imported', 'cancelled'].includes(x.stage))
+  activeStage.value = c?.stage || ''
+}
+
+function confirmSend() {
+  const ok = window.confirm(
+    `Отправить задания на оценку для ${selected.value.length} сотр.?\n` +
+    'По итоговому набору пиров каждого: новые пиры получат задания, ' +
+    'несдавшим придёт повторное уведомление; уже отправленные оценки не затрагиваются.')
+  if (ok) sendAssignments()
+}
+
 const groupLabels: Record<string, string> = {
   backend: 'бэкенд', frontend: 'фронтенд', qa: 'QA', ios: 'iOS', android: 'Android',
   devops: 'DevOps', management: 'менеджмент', other: 'другое',
@@ -95,7 +126,7 @@ function groupLabel(g: string): string { return groupLabels[g] || g }
 let timer: number | undefined
 function debounced() { clearTimeout(timer); timer = window.setTimeout(load, 300) }
 
-onMounted(load)
+onMounted(() => { refreshActiveStage(); load() })
 async function load() {
   const params: any = {}
   if (q.value) params.q = q.value
@@ -115,6 +146,14 @@ async function sendAssignments() {
   const cycle = cycles.find((c) => !['closed', 'imported', 'cancelled'].includes(c.stage))
   if (!cycle) {
     toast.add({ severity: 'warn', summary: 'Нет активного цикла', life: 6000 })
+    return
+  }
+  if (!sendStages.includes(cycle.stage)) {
+    toast.add({
+      severity: 'warn', life: 8000,
+      summary: `Отправка закрыта стадией «${stageNames[cycle.stage] || cycle.stage}»`,
+      detail: 'Задания рассылаются только на стадиях сбора ачивок / оценок пиров / предоценок',
+    })
     return
   }
   busy.value = true
@@ -140,7 +179,5 @@ async function sendAssignments() {
 .filters { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
 .name-link { color: #2563eb; cursor: pointer; }
 .name-link:hover { text-decoration: underline; }
-.acts { display: flex; gap: 10px; }
-.act { cursor: pointer; color: #2563eb; }
-.act:hover { color: #1d4ed8; }
+.acts { display: flex; gap: 8px; align-items: center; }
 </style>

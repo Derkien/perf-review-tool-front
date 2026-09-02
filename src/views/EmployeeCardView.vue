@@ -323,13 +323,31 @@
                 </template>
               </Card>
 
-              <!-- 3. Достижения -->
+              <!-- 3. Достижения: текст + оценки (своя/пиры/рукль) -->
               <Card style="margin-top: 12px">
                 <template #title>Достижения</template>
                 <template #content>
-                  <ul v-if="result.achievements_table?.length" class="ach-list">
-                    <li v-for="(a, i) in result.achievements_table" :key="i">{{ a.text }}</li>
-                  </ul>
+                  <DataTable v-if="result.achievements_table?.length"
+                             :value="result.achievements_table" size="small">
+                    <Column header="Достижение">
+                      <template #body="{ data: a }"><span class="ach-text">{{ a.text }}</span></template>
+                    </Column>
+                    <Column header="Своя" style="width: 64px">
+                      <template #body="{ data: a }"><b>{{ a.self_rating || '—' }}</b></template>
+                    </Column>
+                    <Column header="Пиры" style="width: 96px">
+                      <template #body="{ data: a }">
+                        <b v-if="a.peer_avg">{{ a.peer_letter }} ({{ a.peer_avg }})</b>
+                        <span v-else class="muted">—</span>
+                      </template>
+                    </Column>
+                    <Column header="Рукль" style="width: 96px">
+                      <template #body="{ data: a }">
+                        <b v-if="a.manager_avg">{{ a.manager_letter }} ({{ a.manager_avg }})</b>
+                        <span v-else class="muted">—</span>
+                      </template>
+                    </Column>
+                  </DataTable>
                   <p v-else class="muted">селф-ревью не отправлялось</p>
                   <div v-if="result.self_review?.can_edit || result.self_review?.can_request_edit" class="edit-line">
                     <Button v-if="result.self_review.can_edit" label="Поправить селф-ревью" size="small" text
@@ -785,8 +803,7 @@ async function saveSelfEdit() {
 .review-blocks > * { max-width: 100%; }
 .radar-link { color: #2563eb; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
 .radar-link:hover { text-decoration: underline; color: #1d4ed8; }
-.ach-list { margin: 0; padding-left: 18px; }
-.ach-list li { margin: 4px 0; }
+.ach-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 /* форма разметки (fixes6 п.3): фиксированная ширина, названия в одну строку */
 .mark-table { max-width: 620px; }
 .mark-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; }

@@ -600,11 +600,21 @@ export const adminApi = {
   },
 }
 
+export type NotificationsPage = {
+  items: Record<string, unknown>[]
+  total: number
+  unread_total: number
+  limit: number
+  offset: number
+}
+
 export const notificationsApi = {
-  async mine(): Promise<Record<string, unknown>[]> {
-    const { data, error } = await client.GET('/notifications/mine')
+  async mine(limit = 30, offset = 0): Promise<NotificationsPage> {
+    const { data, error } = await client.GET('/notifications/mine', {
+      params: { query: { limit, offset } as never },
+    })
     if (error) raise(error, '/notifications/mine')
-    return data as Record<string, unknown>[]
+    return data as NotificationsPage
   },
   async unreadCount(): Promise<{ count: number }> {
     const { data, error } = await client.GET('/notifications/unread-count')

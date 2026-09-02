@@ -3,7 +3,9 @@
     <div class="head">
       <h1 style="margin:0">Уведомления</h1>
       <div class="head-actions">
-        <span v-if="unreadCount" class="muted">{{ unreadCount }} непрочитанных</span>
+        <span v-if="total" class="muted">
+          {{ shown }} из {{ total }}{{ unreadCount ? ` · непрочитанных: ${unreadCount}` : '' }}
+        </span>
         <Button v-if="items.some((i) => !i.is_read)" label="Прочитать все" text size="small"
                 @click="readAll" />
       </div>
@@ -24,6 +26,10 @@
       </div>
     </div>
     <p v-else class="muted">Уведомлений нет.</p>
+    <div v-if="shown < total" class="more-row">
+      <Button :label="`Показать ещё (${total - shown})`" size="small" text
+              :loading="loading" @click="loadMore" />
+    </div>
   </div>
 </template>
 
@@ -33,6 +39,10 @@ import Button from 'primevue/button'
 import { notificationsApi } from '../api/endpoints'
 
 const items = ref<any[]>([])
+const total = ref(0)
+const loading = ref(false)
+const PAGE = 30
+const shown = computed(() => items.value.length)
 const icons: Record<string, string> = {
   'stage-started': 'pi pi-flag', 'peer-assignment': 'pi pi-star',
   'deadline-reminder': 'pi pi-clock', 'calibration-started': 'pi pi-balance',
@@ -52,7 +62,22 @@ function shortDate(iso: string): string {
   return sameDay ? time : `${d.toLocaleDateString('ru')} ${time}`
 }
 
-onMounted(async () => { items.value = await notificationsApi.mine() })
+onMounted(load)
+
+async function load() {
+  const page = await notificationsApi.mine(PAGE, 0)
+  items.value = page.items
+  total.value = page.total
+}
+
+async function loadMore() {
+  loading.value = true
+  try {
+    const page = await notificationsApi.mine(PAGE, items.value.length)
+    items.value = [...items.value, ...page.items]
+    total.value = page.total
+  } finally { loading.value = false }
+}
 
 async function read(n: any) {
   if (n.is_read) return
@@ -63,6 +88,7 @@ async function readAll() {
   await notificationsApi.readAll()
   items.value = items.value.map((i) => ({ ...i, is_read: true }))
 }
+
 </script>
 
 <style scoped>
@@ -86,4 +112,5 @@ async function readAll() {
 .item-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; display: inline-block; }
 .small { font-size: 0.78rem; }
+.more-row { margin-top: 10px; display: flex; justify-content: center; }
 </style>
