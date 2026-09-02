@@ -48,6 +48,14 @@
           </DataTable>
         </TabPanel>
         <TabPanel value="settings">
+          <h2 style="margin:0 0 6px">Схема цикла перф-ревью</h2>
+          <p class="muted" style="font-size:.82rem; margin:0 0 8px">
+            Стадии и переходы стейт-машины. Значок <b>i</b> у стадии — что на ней
+            происходит и условия перехода дальше; гейты включаются блоком
+            «Валидаторы переходов» ниже.
+          </p>
+          <WorkflowSchema />
+          <h2 style="margin:18px 0 8px">Параметры форм</h2>
           <div class="settings">
             <label>Мин. достижений <InputNumber v-model="s.self_min_ach" @update:model-value="save(s)" /></label>
             <label>Макс. достижений <InputNumber v-model="s.self_max_ach" @update:model-value="save(s)" /></label>
@@ -217,6 +225,7 @@ import Tabs from 'primevue/tabs'
 import Tag from 'primevue/tag'
 import MultiSelect from 'primevue/multiselect'
 import ToggleSwitch from 'primevue/toggleswitch'
+import WorkflowSchema from '../components/WorkflowSchema.vue'
 import { adminApi } from '../api/endpoints'
 import type { PermissionsCatalog } from '../api/endpoints'
 import { errMsg } from '../api/errors'

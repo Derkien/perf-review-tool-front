@@ -198,6 +198,18 @@ export const reviewsApi = {
     if (error) raise(error, 'POST /reviews/cycles')
     return data as never
   },
+  async workflowSchema(): Promise<{
+    places: { name: string; label: string; description: string }[]
+    transitions: {
+      name: string; from: string[]; to: string; label: string; permission: string
+      description: string; gate: string | null; gate_label: string | null
+      gate_enabled: boolean | null
+    }[]
+  }> {
+    const { data, error } = await client.GET('/reviews/workflow-schema')
+    if (error) raise(error, '/reviews/workflow-schema')
+    return data as never
+  },
   async transitions(cycleId: number): Promise<{ stage: string; stage_label: string; transitions: CycleTransition[] }> {
     const { data, error } = await client.GET('/reviews/cycles/{cycle_id}/transitions', {
       params: { path: { cycle_id: cycleId } },
