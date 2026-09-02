@@ -23,11 +23,10 @@
                 :x="e.vertical ? e.lx + 8 : e.lx" :y="e.ly + i * 12"
                 :text-anchor="e.vertical ? 'start' : 'middle'"
                 class="wf-edge-label wf-halo">{{ line }}</text>
-          <!-- info о переходе: описание и гейт — в попапе, схему не перегружаем -->
+          <!-- текст над стрелкой, значок i — под ней; у вертикальной: текст справа, значок слева -->
           <g class="wf-info" @click.stop="openTransition($event, e)">
-            <circle :cx="e.infoX" :cy="e.ly + (e.lines.length - 1) * 12 - 3" r="7" />
-            <text :x="e.infoX" :y="e.ly + (e.lines.length - 1) * 12"
-                  text-anchor="middle" class="wf-info-i">i</text>
+            <circle :cx="e.infoX" :cy="e.infoY" r="6" />
+            <text :x="e.infoX" :y="e.infoY + 3" text-anchor="middle" class="wf-info-i">i</text>
           </g>
         </g>
       </g>
@@ -55,8 +54,8 @@
               class="wf-node-label">{{ line }}</text>
         <!-- info о стадии -->
         <g class="wf-info" @click.stop="openInfo($event, n)">
-          <circle :cx="n.x + NODE_W / 2 - 13" :cy="n.y - NODE_H / 2 + 13" r="9" />
-          <text :x="n.x + NODE_W / 2 - 13" :y="n.y - NODE_H / 2 + 16.5" text-anchor="middle"
+          <circle :cx="n.x + NODE_W / 2 - 11" :cy="n.y - NODE_H / 2 + 11" r="6" />
+          <text :x="n.x + NODE_W / 2 - 11" :y="n.y - NODE_H / 2 + 14" text-anchor="middle"
                 class="wf-info-i">i</text>
         </g>
       </g>
@@ -178,7 +177,8 @@ const nodes = computed(() => LAYOUT.map((l) => ({
 const edges = computed(() => {
   const out: {
     key: string; path: string; label?: string; lines: string[]
-    lx: number; ly: number; infoX: number; vertical?: boolean; dim?: boolean
+    lx: number; ly: number; infoX: number; infoY: number
+    vertical?: boolean; dim?: boolean
   }[] = []
   const chain: [string, string][] = [
     ['preparation', 'self-review'], ['self-review', 'peer-review'],
@@ -202,10 +202,12 @@ const edges = computed(() => {
     const lx = vertical ? a.x : (a.x + b.x) / 2
     const ly = vertical ? (a.y + b.y) / 2 - ((lines.length - 1) * 12) / 2
       : a.y - 10 - (lines.length - 1) * 12
-    // info-значок — под последней строкой подписи, по центру
+    // горизонтально: текст над стрелкой → значок под линией;
+    // вертикально: текст справа от линии → значок слева
+    const infoX = vertical ? a.x - 11 : lx
+    const infoY = vertical ? (a.y + b.y) / 2 : a.y + 16
     out.push({
-      key: `${from}-${to}`, path, label: tr?.label, lines, lx, ly,
-      infoX: lx + (vertical ? 60 : 0),
+      key: `${from}-${to}`, path, label: tr?.label, lines, lx, ly, infoX, infoY,
       vertical, dim: tr?.gate_enabled === false,
     })
   }
@@ -248,20 +250,19 @@ function placePop(ev: Event, svgX: number, svgY: number, body: Omit<PopState, 's
 function openInfo(ev: Event, n: { name: string; x: number; y: number }) {
   const place = places.value.find((p) => p.name === n.name)
   if (!place) return
-  placePop(ev, n.x + NODE_W / 2 - 13, n.y - NODE_H / 2 + 13,
+  placePop(ev, n.x + NODE_W / 2 - 11, n.y - NODE_H / 2 + 11,
            { kind: 'place', place })
 }
 
 function openTransition(
   ev: Event,
-  e: { key: string; lx: number; ly: number; lines: string[]; vertical?: boolean },
+  e: { key: string; infoX: number; infoY: number },
 ) {
   const [from, to] = e.key.split('-')
   const tr = transitions.value.find((t) => t.from.includes(from) && t.to === to
     && !['cancel', 'reopen'].includes(t.name))
   if (!tr) return
-  placePop(ev, e.lx + (e.vertical ? 60 : 0), e.ly + (e.lines.length - 1) * 12 - 3,
-           { kind: 'transition', transition: tr })
+  placePop(ev, e.infoX, e.infoY, { kind: 'transition', transition: tr })
 }
 
 onMounted(() => window.addEventListener('click', closeOnOutside))
@@ -284,7 +285,7 @@ reviewsApi.workflowSchema().then((s) => {
 .wf-info { cursor: pointer; }
 .wf-info circle { fill: #e2e8f0; stroke: #94a3b8; stroke-width: 1; }
 .wf-info:hover circle { fill: #cbd5e1; }
-.wf-info-i { font-size: 10px; font-weight: 700; fill: #334155; font-family: Georgia, serif; font-style: italic; }
+.wf-info-i { font-size: 9px; font-weight: 700; fill: #334155; font-family: Georgia, serif; font-style: italic; }
 .wf-edge-label { font-size: 10.5px; fill: #475569; }
 .wf-cancel-label { fill: #b45309; }
 /* белая обводка текста: читается поверх линий и узлов */
