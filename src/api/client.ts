@@ -1,12 +1,13 @@
 /** Контрактный HTTP-клиент: пути и типы строго из сгенерированной схемы.
  *  Ручных URL в прикладном коде быть не должно (docs/standards).
- *  Базовый URL настраивается VITE_API_BASE — при переносе админки за гейтвей
- *  достаточно env, код не меняется. */
+ *  Базовый URL: по умолчанию /api/v1 (префикс снимается из схемы codegen-скриптом;
+ *  nginx/vite проксируют /api → бэкенд). При переносе за гейтвей достаточно
+ *  VITE_API_BASE, код не меняется. */
 import createClient from 'openapi-fetch'
 import type { Middleware } from 'openapi-fetch'
 import type { paths } from './types'
 
-export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) ?? ''
+export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api/v1'
 
 export const client = createClient<paths>({ baseUrl: API_BASE })
 
