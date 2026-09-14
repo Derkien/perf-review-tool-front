@@ -67,7 +67,7 @@
                    :can-send="auth.can('ROLE_C_PEER_ASSIGNMENT')"
                    :send-window="sendWindow" :stage-label="activeStageLabel"
                    :disabled-include="participantFilter !== 'excluded'"
-                   @exclude="excludeFrom(excludedSelection)"
+                   @exclude="excludeFrom(selected.map((e: any) => e.id))"
                    @include="includeBack(excludedSelection)"
                    @notify="notifyTargets = [...selected]"
                    @send="sendTo(selected.map((e: any) => e.id))"

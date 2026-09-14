@@ -42,6 +42,12 @@ import StaffListView from '../src/views/StaffListView.vue'
 import { reviewsApi, staffApi } from '../src/api/endpoints'
 import { useAuth } from '../src/stores/auth'
 
+function mountPage() {
+  return mount(StaffListView, {
+    global: { stubs: { teleport: true } },
+  })
+}
+
 const ALL = {
   canToggleCycle: true, canBroadcast: true, canSend: true, sendWindow: true,
 }
@@ -131,12 +137,6 @@ describe('StaffListView (fixes8: вёрстка и поведение)', () => {
     } as any
   })
 
-  function mountPage() {
-    return mount(StaffListView, {
-      global: { stubs: { teleport: true } },
-    })
-  }
-
   it('фильтры — лаконичная шапка над таблицей (поиск/специализация/грейд/мои/участие)', async () => {
     const w = mountPage()
     await new Promise((r) => setTimeout(r, 20))
@@ -174,3 +174,72 @@ describe('StaffListView (fixes8: вёрстка и поведение)', () => {
 })
 
 
+
+
+describe('StaffListView: масс-действия из плавающей панели (клик → запрос)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setActivePinia(createPinia())
+    const auth = useAuth()
+    auth.me = {
+      id: 1, email: 'a@itgri.ru', full_name: 'A', role: 'admin', roles: ['admin'],
+      permissions: ['ROLE_R_STAFF', 'ROLE_U_CYCLE_PARTICIPANTS', 'ROLE_C_CYCLE_BROADCAST',
+                    'ROLE_C_PEER_ASSIGNMENT'],
+      has_subordinates: true,
+    } as any
+  })
+
+  async function mountAndSelect(w: any) {
+    await new Promise((r) => setTimeout(r, 20))
+    const vm: any = w.vm
+    vm.selected = vm.baseRows
+    await nextTick()
+    return vm
+  }
+
+  it('«Исключить из цикла»: клик в панели шлёт запрос с id выбранных', async () => {
+    const w = mountPage()
+    await mountAndSelect(w)
+    const btn = w.findAll('button').find((b) => b.text().includes('Исключить из цикла'))!
+    expect(btn, 'кнопка исключения в плавающей панели').toBeTruthy()
+    await btn.trigger('click')
+    await new Promise((r) => setTimeout(r, 10))
+    expect(reviewsApi.excludeParticipants).toHaveBeenCalledWith(
+      7, [1, 2], expect.any(String))
+  })
+
+  it('«Вернуть в цикл»: клик шлёт запрос только по реально исключённым из выбранных', async () => {
+    const w = mountPage()
+    const vm = await mountAndSelect(w)
+    // первый сотрудник исключён на сервере; кнопка активна в режиме «Исключены»
+    vm.participantFilter = 'excluded'
+    vm.excludedIds = new Set([1])
+    await nextTick()
+    const btn = w.findAll('button').find((b) => b.text().includes('Вернуть в цикл'))!
+    await btn.trigger('click')
+    await new Promise((r) => setTimeout(r, 10))
+    expect(reviewsApi.includeParticipants).toHaveBeenCalledWith(7, [1])
+  })
+
+  it('«Уведомить»: клик открывает диалог с ФИО выбранных', async () => {
+    const w = mountPage()
+    await mountAndSelect(w)
+    const btn = w.findAll('button').find((b) => b.text() === 'Уведомить')!
+    await btn.trigger('click')
+    await nextTick()
+    const vm: any = w.vm
+    expect(vm.notifyTargets?.length).toBe(2)
+    expect(vm.notifyNames).toContain('Алёшин')
+  })
+
+  it('«Отправить задания»: клик шлёт рассылку с id выбранных', async () => {
+    const w = mountPage()
+    const vm = await mountAndSelect(w)
+
+    const btn = w.findAll('button').find((b) => b.text().includes('Отправить задания'))!
+    await btn.trigger('click')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(reviewsApi.sendAssignments).toHaveBeenCalledWith(
+      { cycle_id: 7, employee_ids: [1, 2] })
+  })
+})
