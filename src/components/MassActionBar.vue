@@ -21,6 +21,8 @@
 </template>
 
 <script setup lang="ts">
+import Button from 'primevue/button'
+
 defineProps<{
   count: number
   busy: boolean

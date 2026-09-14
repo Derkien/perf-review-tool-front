@@ -97,18 +97,18 @@ describe('MassActionBar (fixes8)', () => {
     })
     expect(w.find('.mass-bar').exists()).toBe(true)
     expect(w.find('.mass-count').text()).toContain('3')
-    // кнопки идентифицируем по label (fallback-рендер PrimeVue в jsdom)
-    expect(w.find('button[label="Исключить из цикла"]').exists()).toBe(true)
-    expect(w.find('button[label="Уведомить"]').exists()).toBe(true)
-    expect(w.find('button[label="Отправить задания на оценку"]').exists()).toBe(true)
-    expect(w.find('button[label="Снять выбор"]').exists()).toBe(true)
+    expect(w.text()).toContain('Исключить из цикла')
+    expect(w.text()).toContain('Уведомить')
+    expect(w.text()).toContain('Отправить задания на оценку')
+    expect(w.text()).toContain('Снять выбор')
   })
 
   it('эмитит действия и очистку', async () => {
     const w = mount(MassActionBar, {
       props: { count: 1, busy: false, ...ALL, disabledInclude: false },
     })
-    await w.find('button[label="Исключить из цикла"]').trigger('click')
+    const excludeBtn = w.findAll('button').find((b) => b.text().includes('Исключить'))!
+    await excludeBtn.trigger('click')
     expect(w.emitted('exclude')).toBeTruthy()
     await w.findAll('button').at(-1)!.trigger('click') // снять выбор
     expect(w.emitted('clear')).toBeTruthy()

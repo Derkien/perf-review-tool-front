@@ -27,12 +27,12 @@
     </div>
 
     <DataTable v-model:selection="selected" :value="rows" size="small" paginator :rows="25"
-               scrollable stripedRows data-key="id" selection-mode="multiple"
-               style="cursor: pointer"
-               @row-click="(e: any) => openCard(e.data)">
+               scrollable stripedRows data-key="id" selection-mode="multiple">
       <Column selection-mode="multiple" style="width: 34px" />
       <Column field="full_name" header="ФИО" sortable>
         <template #body="{ data: e }">
+          <!-- переход в профиль — по ссылке ФИО и иконке; клик по строке не навигирует,
+               чтобы выделение чекбоксом не «съедалось» переходом (fixes8-баг) -->
           <span class="name-link" @click.stop="openCard(e)">{{ e.full_name }}</span>
         </template>
       </Column>
