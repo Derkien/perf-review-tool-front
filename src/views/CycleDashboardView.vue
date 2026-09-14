@@ -121,10 +121,12 @@ import { reviewsApi } from '../api/endpoints'
 import type { Cycle, CycleAction, CycleTransition } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
+import { useAppConfirm } from '../composables/useAppConfirm'
 import { useToast } from 'primevue/usetoast'
 
 const auth = useAuth()
 const toast = useToast()
+const confirmDialog = useAppConfirm()
 const data = ref<any>(null)
 const cycles = ref<(Cycle & { label?: string })[]>([])
 const cycleId = ref<number | null>(null)
@@ -203,7 +205,16 @@ async function load() {
 
 async function applyTransition(trItem: CycleTransition) {
   if (!cycleId.value) return
-  if (trItem.name === 'cancel' && !window.confirm(`Отменить цикл «${cycle.value?.name}»?`)) return
+  if (trItem.name === 'cancel') {
+    const okCancel = await confirmDialog.ask({
+      header: 'Отменить цикл',
+      message: `Отменить цикл «${cycle.value?.name}»? Всем придёт уведомление; ` +
+        'ошибку можно откатить переходом «Вернуть в подготовку».',
+      okLabel: 'Отменить цикл',
+      danger: true,
+    })
+    if (okCancel === null) return
+  }
   busy.value = true
   busyTransition.value = trItem.name
   try {

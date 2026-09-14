@@ -28,6 +28,9 @@ vi.mock('../src/api/endpoints', () => ({
 }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
+vi.mock('../src/composables/useAppConfirm', () => ({
+  useAppConfirm: () => ({ state: { value: null }, ask: vi.fn(async () => 'причина') }),
+}))
 
 // v-tooltip не регистрируем — глушим предупреждения о директивах/компонентах
 config.global.config.warnHandler = () => undefined
@@ -169,3 +172,5 @@ describe('StaffListView (fixes8: вёрстка и поведение)', () => {
     expect(staffApi.listEmployees).toHaveBeenCalled()
   })
 })
+
+

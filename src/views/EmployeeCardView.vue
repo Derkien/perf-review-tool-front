@@ -452,10 +452,12 @@ import SparkLine from '../components/SparkLine.vue'
 import { competenciesApi, reviewsApi, staffApi } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
+import { useAppConfirm } from '../composables/useAppConfirm'
 import { useToast } from 'primevue/usetoast'
 
 const route = useRoute()
 const toast = useToast()
+const confirmDialog = useAppConfirm()
 const auth = useAuth()
 const emp = ref<any>(null)
 const perms = ref<any>({})
@@ -701,9 +703,19 @@ async function saveSessionEdit() {
 const canHardDelete = computed(() => auth.can('ROLE_D_COMPETENCY_SESSION'))
 
 async function deleteSession(s: any) {
-  const hard = canHardDelete.value && window.confirm(
-    `OK — soft delete (скрыть).\nОтмена — окончательное удаление (hard).\n${s.kind} ${s.date}`)
-  const useHard = hard ? window.confirm('Точно удалить НАВСЕГДА?') : false
+  // fixes9: подтверждение в модалке с явным выбором режима (soft/hard), ОК/Отмена работают
+  const mode = await confirmDialog.ask({
+    header: `Удалить разметку ${s.kind} от ${s.date}?`,
+    message: 'Скрытая сессия исчезает из истории и сравнений; восстановить может админ.',
+    choices: [
+      { label: 'Скрыть (soft)', value: 'soft' },
+      ...(canHardDelete.value ? [{ label: 'Удалить навсегда', value: 'hard' }] : []),
+    ],
+    okLabel: 'Удалить',
+    danger: true,
+  })
+  if (mode === null) return
+  const useHard = mode === 'hard'
   try {
     await competenciesApi.deleteSession(String(route.params.id), s.kind, s.date, useHard)
     toast.add({  severity: 'success', summary: useHard ? 'Удалено навсегда' : 'Скрыто (soft delete)', life: 4000 })

@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page" :class="{ 'has-mass-bar': selected.length > 0 }">
     <div class="head-row">
       <h1 style="margin:0">Сотрудники</h1>
       <Dropdown v-if="canManageCycle" v-model="cycleId" :options="cycleOptions"
@@ -31,9 +31,8 @@
       <Column selection-mode="multiple" style="width: 34px" />
       <Column field="full_name" header="ФИО" sortable>
         <template #body="{ data: e }">
-          <!-- переход в профиль — по ссылке ФИО и иконке; клик по строке не навигирует,
-               чтобы выделение чекбоксом не «съедалось» переходом (fixes8-баг) -->
-          <span class="name-link" @click.stop="openCard(e)">{{ e.full_name }}</span>
+          <!-- fixes9: ФИО — текст без ссылки; переход в профиль только иконкой в «Действиях» -->
+          <span>{{ e.full_name }}</span>
         </template>
       </Column>
       <Column field="functional_group" header="Специализация">
@@ -119,11 +118,13 @@ import StaffRowActions from '../components/StaffRowActions.vue'
 import { reviewsApi, staffApi } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
+import { useAppConfirm } from '../composables/useAppConfirm'
 import { useToast } from 'primevue/usetoast'
 
 const auth = useAuth()
 const router = useRouter()
 const toast = useToast()
+const confirmDialog = useAppConfirm()
 const rows = ref<any[]>([])
 const baseRows = ref<any[]>([])
 const selected = ref<any[]>([])
@@ -258,9 +259,17 @@ async function toggleCycleFor(e: any) {
 
 async function excludeFrom(ids: number[]) {
   if (!cycleId.value || !ids.length) return
-  const note = window.prompt(
-    `Исключить ${ids.length} сотр. из цикла «${cycleLabelOf(cycleId.value)}»?` +
-    '\nПричина (необязательно):', '') ?? ''
+  // подтверждение в модалке: ОК — причина (можно пустую), Отмена — ничего не делаем
+  const note = await confirmDialog.ask({
+    header: `Исключить из цикла «${cycleLabelOf(cycleId.value)}»`,
+    message: `Исключить выбранных сотрудников (${ids.length}) из цикла? ` +
+      'Они не будут участвовать в ревью, пока их не вернут.',
+    inputLabel: 'Причина (необязательно)',
+    inputPlaceholder: 'Например: новичок, вне цикла',
+    okLabel: 'Исключить',
+    danger: true,
+  })
+  if (note === null) return
   await reviewsApi.excludeParticipants(cycleId.value, ids, note)
   toast.add({ severity: 'success', summary: `Исключено: ${ids.length}`, life: 4000 })
   selected.value = []
@@ -276,6 +285,14 @@ async function includeBack(ids: number[]) {
 }
 
 async function sendTo(ids: number[]) {
+  const ok = await confirmDialog.ask({
+    header: 'Отправить задания на оценку',
+    message: `Сотрудников: ${ids.length}.\n` +
+      'По итоговому набору пиров каждого: новые пиры получат задания, ' +
+      'несдавшим придёт повторное уведомление; уже отправленные оценки не затрагиваются.',
+    okLabel: 'Отправить',
+  })
+  if (ok === null) return
   const cs = await reviewsApi.cycles()
   const cycle = cs.find((c) => !['closed', 'imported', 'cancelled'].includes(c.stage))
   if (!cycle) {
@@ -339,8 +356,8 @@ async function sendNotify() {
 }
 .filter-field.grow .pi { color: #94a3b8; }
 .mine-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; cursor: pointer; white-space: nowrap; }
-.name-link { color: #2563eb; cursor: pointer; }
-.name-link:hover { text-decoration: underline; }
+/* fixes9: панель масс-действий не перекрывает пагинацию */
+.has-mass-bar { padding-bottom: 120px; }
 .notify-form { display: flex; flex-direction: column; gap: 10px; }
 .notify-form label { display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; }
 .w100 { width: 100%; box-sizing: border-box; }

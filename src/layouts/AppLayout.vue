@@ -32,6 +32,9 @@
       </header>
       <router-view />
     </main>
+    <!-- глобальная модалка подтверждений действий (fixes9) -->
+    <AppConfirmDialog />
+
     <Dialog v-model:visible="errorLogVisible" modal header="Журнал ошибок (сессия)" style="width: 780px">
       <p class="muted" style="font-size:.85rem">
         Последние {{ errorLog.length }} ошибок с контекстом. Скопируйте и отправьте в поддержку —
@@ -62,6 +65,7 @@ import Badge from 'primevue/badge'
 import { useAuth } from '../stores/auth'
 import { getErrorLog } from '../api/errors'
 import { notificationsApi } from '../api/endpoints'
+import AppConfirmDialog from '../components/AppConfirmDialog.vue'
 
 const auth = useAuth()
 const router = useRouter()
