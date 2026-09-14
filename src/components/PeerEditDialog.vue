@@ -70,6 +70,7 @@ import Tag from 'primevue/tag'
 import { reviewsApi, staffApi } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
+import { CYCLE_STAGE_NAMES, isActiveCycle, isSendWindow } from '../domain/cycle'
 import { useToast } from 'primevue/usetoast'
 
 const props = defineProps<{ employeeId: number; employeeName: string; team?: string | null }>()
@@ -111,16 +112,10 @@ const addable = computed(() =>
     .filter((p) => p.id !== props.employeeId && !current.value.includes(p.id))
     .sort((a, b) => a.name.localeCompare(b.name, 'ru')))
 
-const stageNames: Record<string, string> = {
-  'self-review': 'сбор ачивок', 'peer-review': 'оценки пиров',
-  'leader-assessment': 'предоценки', calibration: 'калибровки', decision: 'решения',
-  closed: 'закрыт', preparation: 'подготовка', cancelled: 'отменён',
-}
-const stageLabel = computed(() => stageNames[cycle.value?.stage || ''] || cycle.value?.stage)
+const stageLabel = computed(() => CYCLE_STAGE_NAMES[cycle.value?.stage || ''] || cycle.value?.stage)
 // отправлять можно только в окне стадий оценок; позже — «кто не успел, тот опоздал»
-const sendStages = ['self-review', 'peer-review', 'leader-assessment']
 const canSend = computed(() =>
-  auth.can('ROLE_C_PEER_ASSIGNMENT') && sendStages.includes(cycle.value?.stage || ''))
+  auth.can('ROLE_C_PEER_ASSIGNMENT') && isSendWindow(cycle.value?.stage))
 const sendTooltip = computed(() => {
   if (dirty.value) return 'Сначала сохраните список'
   if (!auth.can('ROLE_C_PEER_ASSIGNMENT')) return 'Доступно руклям'
@@ -141,7 +136,7 @@ function removeLocal(id: number) {
 
 onMounted(async () => {
   const cycles = await reviewsApi.cycles()
-  cycle.value = cycles.find((c) => !['closed', 'imported', 'cancelled'].includes(c.stage))
+  cycle.value = cycles.find((c) => isActiveCycle(c.stage))
     || cycles[0] || null
   const all = await staffApi.listEmployees({ scope: 'all' })
   people.value = new Map(all.map((e: any) =>

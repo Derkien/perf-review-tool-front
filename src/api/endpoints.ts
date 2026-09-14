@@ -714,9 +714,14 @@ export const importsApi = {
   },
 }
 
-/** Тихая отправка активности (навигация) — не мешает и не ломает переходы. */
+/** Тихая отправка активности (навигация/действия) — не мешает и не ломает переходы. */
 export async function postActivity(body: { type: string; section: string; detail: Record<string, unknown> }): Promise<void> {
   await client.POST('/admin/activity', { body: body as never }).catch(() => undefined)
+}
+
+/** Трейкинг действия для админ-аналитики (type: 'action'): что и над кем. */
+export function trackAction(section: string, detail: Record<string, unknown>): void {
+  postActivity({ type: 'action', section, detail }).catch(() => undefined)
 }
 
 export { qs }

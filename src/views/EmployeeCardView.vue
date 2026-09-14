@@ -265,117 +265,11 @@
 
         <!-- РЕВЬЮ -->
         <TabPanel value="review">
-          <div class="review-wrap">
-            <div class="review-selector">
-              <Dropdown :model-value="selectedCycle" :options="cycleOptions"
-                        option-label="label" option-value="id"
-                        placeholder="Цикл ревью" class="w100" @update:model-value="openResult" />
-            </div>
-
-            <div v-if="result" class="review-blocks">
-              <!-- 1. Итоговая оценка и решение -->
-              <Card>
-                <template #title>Итоговая оценка и решение</template>
-                <template #content>
-                  <template v-if="result.decision">
-                    <div class="kv"><span>Итоговая оценка</span>
-                      <b :style="{ color: letterColor(result.decision.final_rating) }">
-                        {{ result.decision.final_rating || '—' }}</b></div>
-                    <div class="kv"><span>Решение</span>
-                      <b>{{ decisionLabels[result.decision.decision] || result.decision.decision }}</b></div>
-                    <div v-if="result.decision.target_grade" class="kv"><span>Целевой грейд</span>
-                      <b>{{ result.decision.target_grade }}</b></div>
-                    <div v-if="result.decision.raise_pct" class="kv"><span>Повышение</span>
-                      <b>{{ result.decision.raise_pct }}%</b></div>
-                    <div v-if="result.decision.target_salary" class="kv"><span>Целевая ЗП</span>
-                      <b>{{ result.decision.target_salary.toLocaleString('ru') }} ₽</b></div>
-                    <div v-if="result.decision.final_comment" class="kv final-comment">
-                      <span>Комментарий по итогу</span>
-                      <b>{{ result.decision.final_comment }}</b></div>
-                  </template>
-                  <p v-else class="muted">решение ещё не принято</p>
-                </template>
-              </Card>
-
-              <!-- 2. Оценки и грейд -->
-              <Card style="margin-top: 12px">
-                <template #title>Оценки и грейд</template>
-                <template #content>
-                  <div class="kv"><span>Грейд на момент ревью</span>
-                    <b>{{ result.grade_at_review || '—' }}</b></div>
-                  <div class="kv"><span>Харды (средний вес 1–10)</span>
-                    <b class="radar-link" @click="openReviewRadar('hard')">
-                      {{ result.comp_summary?.hard ?? '—' }} <i class="pi pi-chart-radar" /></b></div>
-                  <div class="kv"><span>Софты (средний вес 1–10)</span>
-                    <b class="radar-link" @click="openReviewRadar('soft')">
-                      {{ result.comp_summary?.soft ?? '—' }} <i class="pi pi-chart-radar" /></b></div>
-                  <div v-if="result.peer_stats" class="kv"><span>Средняя пиров</span>
-                    <b>{{ result.peer_stats.avg_rating || '—' }}
-                      {{ result.peer_stats.avg_rating_num ? `(${result.peer_stats.avg_rating_num})` : '' }}</b></div>
-                  <template v-if="result.leader_assessments?.length">
-                    <div v-for="la in result.leader_assessments" :key="la.kind" class="kv">
-                      <span>Оценка руководителя ({{ la.kind === 'line' ? 'линейный' : 'функц.' }})</span>
-                      <b>{{ la.rating || '—' }}
-                        <span v-if="la.grade_soft || la.grade_soft" class="muted small">
-                          софт {{ la.grade_soft || '—' }} / хард {{ la.grade_hard || '—' }}</span></b>
-                    </div>
-                  </template>
-                </template>
-              </Card>
-
-              <!-- 3. Достижения: текст + оценки (своя/пиры/рукль) -->
-              <Card style="margin-top: 12px">
-                <template #title>Достижения</template>
-                <template #content>
-                  <DataTable v-if="result.achievements_table?.length"
-                             :value="result.achievements_table" size="small">
-                    <Column header="Достижение">
-                      <template #body="{ data: a }"><span class="ach-text">{{ a.text }}</span></template>
-                    </Column>
-                    <Column header="Своя" style="width: 64px">
-                      <template #body="{ data: a }"><b>{{ a.self_rating || '—' }}</b></template>
-                    </Column>
-                    <Column header="Пиры" style="width: 96px">
-                      <template #body="{ data: a }">
-                        <b v-if="a.peer_avg">{{ a.peer_letter }} ({{ a.peer_avg }})</b>
-                        <span v-else class="muted">—</span>
-                      </template>
-                    </Column>
-                    <Column header="Рукль" style="width: 96px">
-                      <template #body="{ data: a }">
-                        <b v-if="a.manager_avg">{{ a.manager_letter }} ({{ a.manager_avg }})</b>
-                        <span v-else class="muted">—</span>
-                      </template>
-                    </Column>
-                  </DataTable>
-                  <p v-else class="muted">селф-ревью не отправлялось</p>
-                  <div v-if="result.self_review?.can_edit || result.self_review?.can_request_edit" class="edit-line">
-                    <Button v-if="result.self_review.can_edit" label="Поправить селф-ревью" size="small" text
-                            @click="startSelfEdit" />
-                    <template v-else-if="result.self_review.can_request_edit">
-                      <InputText v-model="editRequestComment" placeholder="Что поправить и почему" size="small" />
-                      <Button label="Запросить редактирование" size="small" severity="warn"
-                              :disabled="!editRequestComment.trim()" :loading="busy" @click="requestEdit" />
-                    </template>
-                  </div>
-                  <Message v-if="result.self_review?.status === 'edit-requested'" severity="info">
-                    Запрос на редактирование отправлен — ждём руководителя.
-                  </Message>
-                </template>
-              </Card>
-
-              <Card v-if="selfEditing" style="margin-top: 12px">
-                <template #title>Правка селф-ревью</template>
-                <template #content>
-                  <AchievementEditor v-model="draftAchievements" :limits="limits" />
-                  <Button label="Сохранить и отправить" size="small" :loading="busy" @click="saveSelfEdit" />
-                </template>
-              </Card>
-            </div>
-          </div>
+          <ReviewTab :key="reviewKey" :employee-id="String(route.params.id)" :limits="limits"
+                     @save-self-edit="saveSelfEdit" />
         </TabPanel>
 
-              </TabPanels>
+      </TabPanels>
     </Tabs>
 
     <!-- большая паутинка -->
@@ -384,17 +278,6 @@
       <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                   :manager="radar.manager" :norm="radar.norm"
                   :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="84vh" />
-    </Dialog>
-
-    <!-- паутинка из блока «Оценки и грейд» -->
-    <Dialog v-model:visible="reviewRadar.visible" modal
-            :header="`Паутинка: ${reviewRadar.kind === 'hard' ? 'харды' : 'софты'}`"
-            :style="{ width: '720px' }" :content-style="{ height: '560px' }">
-      <RadarChart v-if="reviewRadar.data?.axis?.length"
-                  :axis="reviewRadar.data.axis" :self="reviewRadar.data.self"
-                  :manager="reviewRadar.data.manager" :norm="reviewRadar.data.norm"
-                  height="520px" />
-      <p v-else class="muted">разметки этого типа нет</p>
     </Dialog>
 
     <!-- редактирование сессии -->
@@ -448,8 +331,10 @@ import AchievementEditor from '../components/AchievementEditor.vue'
 import AppBreadcrumbs from '../components/AppBreadcrumbs.vue'
 import BandBar from '../components/BandBar.vue'
 import RadarChart from '../components/RadarChart.vue'
+import ReviewTab from '../components/ReviewTab.vue'
 import SparkLine from '../components/SparkLine.vue'
 import { competenciesApi, reviewsApi, staffApi } from '../api/endpoints'
+import { isActiveCycle } from '../domain/cycle'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useAppConfirm } from '../composables/useAppConfirm'
@@ -463,12 +348,7 @@ const emp = ref<any>(null)
 const perms = ref<any>({})
 const cycles = ref<any[]>([])
 const salaryHistory = ref<any[]>([])
-const selectedCycle = ref<number | null>(null)
-const result = ref<any>(null)
 const busy = ref(false)
-const editRequestComment = ref('')
-const selfEditing = ref(false)
-const draftAchievements = ref<any[]>([])
 const limits = ref<any>({ self_min_ach: 2, self_max_ach: 4, self_max_chars: 300 })
 
 // компетенции
@@ -587,8 +467,6 @@ onMounted(async () => {
   emp.value = await staffApi.card(id)
   perms.value = emp.value.permissions || {}
   cycles.value = await reviewsApi.cycles()
-  const def = defaultReviewCycle()
-  if (def) await openResult(def)
   if (perms.value.pay) {
     try { salaryHistory.value = await staffApi.salaryHistory(id) } catch { /* нет */ }
   }
@@ -742,68 +620,27 @@ async function saveTraffic() {
   } finally { busy.value = false }
 }
 
-async function openResult(cycleId: number) {
-  selectedCycle.value = cycleId
-  result.value = null
-  selfEditing.value = false
-  if (selectedCycle.value == null) return
-  try {
-    result.value = await reviewsApi.result(cycleId, String(route.params.id))
-    if (result.value?.self_review) draftAchievements.value = result.value.self_review.achievements || []
-  } catch (e) {
-    toast.add({  severity: 'error', summary: 'Не удалось открыть результат', detail: errMsg(e), life: 8000 })
-  }
-}
 
-// селектор циклов (fixes6 п.4): название · дата · статус; дефолт — последний завершённый
-const cycleOptions = computed(() => cycles.value.map((c: any) => ({
-  id: c.id,
-  label: `${c.name}${c.period_end ? ' · ' + c.period_end.slice(0, 10) : ''} · ${stageLabel(c.stage)}`,
-})))
 
-function defaultReviewCycle(): number | null {
-  const finished = cycles.value.filter((c: any) => ['closed', 'imported'].includes(c.stage))
-  return (finished[0] || cycles.value[0])?.id || null
-}
 
-// паутинка из блока «Оценки и грейд»
-const reviewRadar = ref<{ visible: boolean; kind: 'hard' | 'soft'; data: any }>(
-  { visible: false, kind: 'hard', data: null })
 
-async function openReviewRadar(kind: 'hard' | 'soft') {
-  reviewRadar.value = { visible: true, kind, data: null }
-  try {
-    reviewRadar.value.data = await competenciesApi.radar(String(route.params.id), kind)
-  } catch {
-    reviewRadar.value.data = null
-  }
-}
+/** Сигналы из ReviewTab: сам цикл запросов уйдёт в сервис позже, здесь — перезагрузка
+ *  таба через ключ (простой и надёжный ремоунт без дублирования состояния). */
+const reviewKey = ref(0)
 
-function startSelfEdit() { selfEditing.value = true }
 
-async function requestEdit() {
-  busy.value = true
-  try {
-    await reviewsApi.requestSelfEdit(result.value.self_review.id, editRequestComment.value)
-    toast.add({  severity: 'success', summary: 'Запрос отправлен руководителю', life: 4000 })
-    editRequestComment.value = ''
-    await openResult(selectedCycle.value!)
-  } catch (e) {
-    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
-  } finally { busy.value = false }
-}
-
-async function saveSelfEdit() {
+async function saveSelfEdit(draft: { text: string; self_rating?: string | null }[]) {
+  const active = cycles.value.find((c: any) => isActiveCycle(c.stage))
+  if (!active) return
   busy.value = true
   try {
     await reviewsApi.saveSelf({
-      cycle_id: selectedCycle.value as number, achievements: draftAchievements.value, submit: true,
+      cycle_id: active.id, achievements: draft, submit: true,
     })
-    toast.add({  severity: 'success', summary: 'Селф-ревью обновлено', life: 4000 })
-    selfEditing.value = false
-    await openResult(selectedCycle.value!)
+    toast.add({ severity: 'success', summary: 'Селф-ревью обновлено', life: 4000 })
+    reviewKey.value++
   } catch (e) {
-    toast.add({  severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 </script>

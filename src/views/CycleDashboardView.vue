@@ -16,7 +16,7 @@
         <template #content>
           <Tag :value="stageLabel" :severity="cycle.stage === 'cancelled' ? 'danger' : cycle.stage === 'closed' ? 'success' : 'info'" />
           <div v-for="(d, s) in cycle.stage_deadlines" :key="s" class="muted" style="margin-top:4px">
-            {{ stageNames[s] || s }}: до {{ String(d).slice(0, 10) }}
+            {{ CYCLE_STAGE_NAMES[s] || s }}: до {{ String(d).slice(0, 10) }}
           </div>
           <div v-if="cycle.period_start || cycle.period_end" class="muted" style="margin-top:4px">
             период: {{ cycle.period_start || '…' }} — {{ cycle.period_end || '…' }}
@@ -121,6 +121,7 @@ import { reviewsApi } from '../api/endpoints'
 import type { Cycle, CycleAction, CycleTransition } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
+import { CYCLE_STAGE_NAMES, isActiveCycle, isSendWindow } from '../domain/cycle'
 import { useAppConfirm } from '../composables/useAppConfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -156,19 +157,14 @@ const distHint = computed(() => ({
   calibrated: 'Подтверждённые буквы калибровочных сессий',
 }[distKind.value] || ''))
 const canBroadcast = computed(() => auth.can('ROLE_C_CYCLE_BROADCAST'))
-const stageNames: Record<string, string> = {
-  'self-review': 'Сбор ачивок', 'peer-review': 'Оценки пиров', 'leader-assessment': 'Предоценки',
-  calibration: 'Калибровки', decision: 'Решения', closed: 'Закрыт', preparation: 'Подготовка',
-  cancelled: 'Отменён',
-}
-const stageLabel = computed(() => stageNames[cycle.value?.stage || ''] || cycle.value?.stage)
+const stageLabel = computed(() => CYCLE_STAGE_NAMES[cycle.value?.stage || ''] || cycle.value?.stage)
 const colors: Record<string, string> = { A: '#16a34a', B: '#65a30d', C: '#3b82f6', D: '#f59e0b', E: '#dc2626' }
 
 const deptRows = computed(() =>
   Object.entries(data.value?.by_department || {}).map(([dept, v]: [string, any]) => ({ dept, ...v })))
 
 function cycleLabel(c: Cycle): string {
-  const stage = stageNames[c.stage] || c.stage
+  const stage = CYCLE_STAGE_NAMES[c.stage] || c.stage
   const period = c.period_end ? ` · до ${c.period_end.slice(0, 10)}` : ''
   return `${c.name}${period} · ${stage}`
 }
@@ -180,7 +176,7 @@ function pct(L: string) {
 
 onMounted(async () => {
   await refreshCycles()
-  cycleId.value = (cycles.value.find((c) => !['closed', 'imported', 'cancelled'].includes(c.stage))
+  cycleId.value = (cycles.value.find((c) => isActiveCycle(c.stage))
     || cycles.value[0])?.id || null
   await load()
 })
@@ -219,7 +215,7 @@ async function applyTransition(trItem: CycleTransition) {
   busyTransition.value = trItem.name
   try {
     await reviewsApi.applyTransition(cycleId.value, trItem.name)
-    toast.add({ severity: 'success', summary: `Стадия: ${stageNames[trItem.to] || trItem.to}`, life: 4000 })
+    toast.add({ severity: 'success', summary: `Стадия: ${CYCLE_STAGE_NAMES[trItem.to] || trItem.to}`, life: 4000 })
     await refreshCycles()
     await load()
   } catch (e) {

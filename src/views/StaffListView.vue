@@ -120,9 +120,10 @@ import Textarea from 'primevue/textarea'
 import MassActionBar from '../components/MassActionBar.vue'
 import PeerEditDialog from '../components/PeerEditDialog.vue'
 import StaffRowActions from '../components/StaffRowActions.vue'
-import { reviewsApi, staffApi } from '../api/endpoints'
+import { reviewsApi, staffApi, trackAction } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
+import { CYCLE_STAGE_NAMES, isActiveCycle, isSendWindow } from '../domain/cycle'
 import { useAppConfirm } from '../composables/useAppConfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -152,11 +153,6 @@ const groupLabels: Record<string, string> = {
 function groupLabel(g: string): string { return groupLabels[g] || g }
 
 // --- контекст цикла ---
-const stageNames: Record<string, string> = {
-  'self-review': 'сбор ачивок', 'peer-review': 'оценки пиров', 'leader-assessment': 'предоценки',
-  calibration: 'калибровки', decision: 'решения', closed: 'закрыт', preparation: 'подготовка',
-  cancelled: 'отменён', imported: 'импорт',
-}
 const canManageCycle = computed(() =>
   auth.can('ROLE_U_CYCLE_PARTICIPANTS') || auth.can('ROLE_C_CYCLE'))
 const cycles = ref<any[]>([])
@@ -169,7 +165,7 @@ const pfOptions = [
   { label: 'Все', value: 'all' },
 ]
 const cycleOptions = computed(() =>
-  cycles.value.map((c) => ({ id: c.id, label: `${c.name} · ${stageNames[c.stage] || c.stage}` })))
+  cycles.value.map((c) => ({ id: c.id, label: `${c.name} · ${CYCLE_STAGE_NAMES[c.stage] || c.stage}` })))
 const cycleLabelOf = (id: number | null) =>
   cycles.value.find((c) => c.id === id)?.name || ''
 const notifyNames = computed(() =>
@@ -186,15 +182,14 @@ const templateOptions = computed(() => {
   }
   const preset = byStage[stage || '']
   return [
-    ...(preset ? [{ label: `Умный пресет стадии (${stageNames[stage || ''] || stage})`, value: preset }] : []),
+    ...(preset ? [{ label: `Умный пресет стадии (${CYCLE_STAGE_NAMES[stage || ''] || stage})`, value: preset }] : []),
     { label: 'Свой текст', value: 'custom' },
   ]
 })
 
-const sendStages = ['self-review', 'peer-review', 'leader-assessment']
 const activeStage = ref('')
-const activeStageLabel = computed(() => stageNames[activeStage.value] || activeStage.value || '—')
-const sendWindow = computed(() => sendStages.includes(activeStage.value))
+const activeStageLabel = computed(() => CYCLE_STAGE_NAMES[activeStage.value] || activeStage.value || '—')
+const sendWindow = computed(() => isSendWindow(activeStage.value))
 
 /** Имена сотрудников для модалок подтверждения: кого именно затронет действие. */
 function namesOf(ids: number[]): string {
@@ -224,14 +219,14 @@ onMounted(() => { refreshActiveStage(); loadCycles(); load() })
 
 async function refreshActiveStage() {
   const cs = await reviewsApi.cycles()
-  const c = cs.find((x) => !['closed', 'imported', 'cancelled'].includes(x.stage))
+  const c = cs.find((x) => isActiveCycle(x.stage))
   activeStage.value = c?.stage || ''
 }
 
 async function loadCycles() {
   cycles.value = await reviewsApi.cycles()
   cycleId.value = cycles.value.find(
-    (c) => !['closed', 'imported', 'cancelled'].includes(c.stage))?.id || null
+    (c) => isActiveCycle(c.stage))?.id || null
   if (cycleId.value) await reloadParticipants()
 }
 
@@ -299,6 +294,7 @@ async function excludeFrom(ids: number[]) {
   })
   if (note === null) return
   await reviewsApi.excludeParticipants(cycleId.value, ids, note)
+  trackAction('/staff', { action: 'cycle-exclude', cycle_id: cycleId.value, count: ids.length })
   toast.add({ severity: 'success', summary: `Исключено: ${ids.length}`, life: 4000 })
   selected.value = []
   await reloadParticipants()
@@ -307,6 +303,7 @@ async function excludeFrom(ids: number[]) {
 async function includeBack(ids: number[]) {
   if (!cycleId.value || !ids.length) return
   const r = await reviewsApi.includeParticipants(cycleId.value, ids)
+  trackAction('/staff', { action: 'cycle-include', cycle_id: cycleId.value, count: ids.length })
   toast.add({ severity: 'success', summary: `Возвращено: ${r.included}`, life: 4000 })
   selected.value = []
   await reloadParticipants()
@@ -315,15 +312,15 @@ async function includeBack(ids: number[]) {
 async function sendTo(ids: number[]) {
   // окно стадий проверяем ДО подтверждения: не предлагаем невозможное
   const cycle = cycles.value.find(
-    (c) => !['closed', 'imported', 'cancelled'].includes(c.stage))
+    (c) => isActiveCycle(c.stage))
   if (!cycle) {
     toast.add({ severity: 'warn', summary: 'Нет активного цикла', life: 6000 })
     return
   }
-  if (!sendStages.includes(cycle.stage)) {
+  if (!isSendWindow(cycle.stage)) {
     toast.add({
       severity: 'warn', life: 8000,
-      summary: `Отправка закрыта стадией «${stageNames[cycle.stage] || cycle.stage}»`,
+      summary: `Отправка закрыта стадией «${CYCLE_STAGE_NAMES[cycle.stage] || cycle.stage}»`,
       detail: 'Задания рассылаются на стадиях сбора ачивок / оценок пиров / предоценок',
     })
     return
@@ -341,6 +338,7 @@ async function sendTo(ids: number[]) {
     const r = await reviewsApi.sendAssignments({
       cycle_id: cycle.id, employee_ids: ids,
     })
+    trackAction('/staff', { action: 'send-assignments', cycle_id: cycle.id, count: ids.length })
     toast.add({
       severity: 'success', life: 6000,
       summary: `Заданий создано: ${r.created}, уведомлено: ${r.notified} (цикл «${cycle.name}»)`,
@@ -360,6 +358,8 @@ async function sendNotify() {
       template: notifyTemplate.value,
       text: notifyText.value,
     })
+    trackAction('/staff', { action: 'broadcast', cycle_id: cycleId.value,
+      template: notifyTemplate.value, sent: r.sent })
     toast.add({ severity: 'success', summary: `Уведомление отправлено (${r.sent})`, life: 4000 })
     notifyTargets.value = null
     notifyText.value = ''

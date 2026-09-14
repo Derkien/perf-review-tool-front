@@ -17,6 +17,7 @@ vi.mock('../src/api/endpoints', () => ({
     broadcast: vi.fn(async () => ({ sent: 1, template: 'custom' })),
     sendAssignments: vi.fn(async () => ({ created: 2, notified: 2 })),
   },
+  trackAction: vi.fn(),
   staffApi: {
     listEmployees: vi.fn(async () => [
       { id: 1, full_name: 'Алёшин Алёша', functional_group: 'backend', grade: 'Основной 1',
@@ -39,7 +40,7 @@ config.global.plugins = [[PrimeVue, { theme: { preset: Aura } }]]
 import StaffRowActions from '../src/components/StaffRowActions.vue'
 import MassActionBar from '../src/components/MassActionBar.vue'
 import StaffListView from '../src/views/StaffListView.vue'
-import { reviewsApi, staffApi } from '../src/api/endpoints'
+import { reviewsApi, staffApi, trackAction } from '../src/api/endpoints'
 import { useAuth } from '../src/stores/auth'
 
 function mountPage() {
@@ -209,6 +210,8 @@ describe('StaffListView: масс-действия из плавающей па�
     await new Promise((r) => setTimeout(r, 10))
     expect(reviewsApi.excludeParticipants).toHaveBeenCalledWith(
       7, [1, 2], expect.any(String))
+    expect(trackAction).toHaveBeenCalledWith('/staff',
+      { action: 'cycle-exclude', cycle_id: 7, count: 2 })
   })
 
   it('«Вернуть в цикл»: клик шлёт запрос только по реально исключённым из выбранных', async () => {

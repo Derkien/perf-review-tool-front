@@ -37,7 +37,7 @@ import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import SelectButton from 'primevue/selectbutton'
-import { useAppConfirm } from '../composables/useAppConfirm'
+import { useAppConfirm, _release } from '../composables/useAppConfirm'
 
 const { state } = useAppConfirm()
 const draft = ref('')
@@ -50,13 +50,13 @@ function onOk() {
   if (!state.value) return
   if (state.value.choices && draft.value === '') return
   state.value.resolve(draft.value)
-  state.value = null
+  _release()
 }
 
 /** отмена: крестик, Esc, кнопка «Отмена» — действие не выполняется */
 function onCancel() {
   state.value?.resolve(null)
-  state.value = null
+  _release()
 }
 </script>
 

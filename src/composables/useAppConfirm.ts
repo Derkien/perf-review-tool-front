@@ -20,13 +20,26 @@ export type ConfirmOptions = {
 export type ConfirmState = ConfirmOptions & { resolve: (v: string | null) => void }
 
 const state = ref<ConfirmState | null>(null)
+/** Очередь: второй ask() ждёт закрытия первого (синглтон не перезаписывается). */
+const queue: Array<() => void> = []
 
 /** Открыть модалку подтверждения. null = отмена, иначе — значение инпута/выбора. */
 function ask(options: ConfirmOptions): Promise<string | null> {
   return new Promise((resolve) => {
+    if (state.value !== null) {
+      queue.push(() => { state.value = { ...options, resolve } })
+      return
+    }
     state.value = { ...options, resolve }
   })
 }
+
+/** Освободить слот и показать следующего в очереди (если есть). */
+function _release(): void {
+  state.value = null
+  queue.shift()?.()
+}
+export { _release }
 
 export function useAppConfirm() {
   return { state, ask }
