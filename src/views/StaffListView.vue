@@ -76,8 +76,12 @@
     <!-- масс-уведомление: пресет по стадии или свой текст -->
     <Dialog :visible="notifyTargets !== null" modal
             :header="`Уведомить (${notifyTargets?.length || 0}) — цикл «${cycleLabelOf(cycleId)}»`"
-            style="width: 520px" @update:visible="notifyTargets = null">
+            style="width: 560px" @update:visible="notifyTargets = null">
       <div class="notify-form">
+        <div class="notify-who">
+          <span class="muted small">Кому:</span>
+          <div class="notify-names">{{ notifyNames }}</div>
+        </div>
         <label>Пресет (по стадии цикла)
           <Dropdown v-model="notifyTemplate" :options="templateOptions"
                     option-label="label" option-value="value" class="w100"
@@ -167,6 +171,9 @@ const cycleOptions = computed(() =>
   cycles.value.map((c) => ({ id: c.id, label: `${c.name} · ${stageNames[c.stage] || c.stage}` })))
 const cycleLabelOf = (id: number | null) =>
   cycles.value.find((c) => c.id === id)?.name || ''
+const notifyNames = computed(() =>
+  notifyTargets.value ? namesOf(notifyTargets.value.map((e: any) => e.id)) : '')
+
 const templateOptions = computed(() => {
   const stage = cycles.value.find((c) => c.id === cycleId.value)?.stage
   const byStage: Record<string, string> = {
@@ -187,6 +194,17 @@ const sendStages = ['self-review', 'peer-review', 'leader-assessment']
 const activeStage = ref('')
 const activeStageLabel = computed(() => stageNames[activeStage.value] || activeStage.value || '—')
 const sendWindow = computed(() => sendStages.includes(activeStage.value))
+
+/** Имена сотрудников для модалок подтверждения: кого именно затронет действие. */
+function namesOf(ids: number[]): string {
+  const names = ids
+    .map((id) => baseRows.value.find((e: any) => e.id === id)?.full_name)
+    .filter(Boolean) as string[]
+  if (!names.length) return ''
+  if (names.length === 1) return names[0]
+  if (names.length <= 5) return names.join(', ')
+  return `${names.length}: ${names.slice(0, 5).join(', ')} и ещё ${names.length - 5}`
+}
 
 // для масс-возврата берём только реально исключённых из выбранных
 const excludedSelection = computed(() =>
@@ -262,8 +280,8 @@ async function excludeFrom(ids: number[]) {
   // подтверждение в модалке: ОК — причина (можно пустую), Отмена — ничего не делаем
   const note = await confirmDialog.ask({
     header: `Исключить из цикла «${cycleLabelOf(cycleId.value)}»`,
-    message: `Исключить выбранных сотрудников (${ids.length}) из цикла? ` +
-      'Они не будут участвовать в ревью, пока их не вернут.',
+    message: `Кого: ${namesOf(ids)}\n\nИсключённые не будут участвовать в ревью, ` +
+      'пока их не вернут.',
     inputLabel: 'Причина (необязательно)',
     inputPlaceholder: 'Например: новичок, вне цикла',
     okLabel: 'Исключить',
@@ -287,7 +305,7 @@ async function includeBack(ids: number[]) {
 async function sendTo(ids: number[]) {
   const ok = await confirmDialog.ask({
     header: 'Отправить задания на оценку',
-    message: `Сотрудников: ${ids.length}.\n` +
+    message: `Кому (оцениваемые): ${namesOf(ids)}\n\n` +
       'По итоговому набору пиров каждого: новые пиры получат задания, ' +
       'несдавшим придёт повторное уведомление; уже отправленные оценки не затрагиваются.',
     okLabel: 'Отправить',
@@ -359,6 +377,8 @@ async function sendNotify() {
 /* fixes9: панель масс-действий не перекрывает пагинацию */
 .has-mass-bar { padding-bottom: 120px; }
 .notify-form { display: flex; flex-direction: column; gap: 10px; }
+.notify-who { display: flex; flex-direction: column; gap: 2px; }
+.notify-names { font-size: 0.88rem; font-weight: 600; overflow-wrap: anywhere; }
 .notify-form label { display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; }
 .w100 { width: 100%; box-sizing: border-box; }
 </style>
