@@ -60,13 +60,14 @@
       </Column>
     </DataTable>
 
-    <!-- плавающая панель масс-действий: фильтры не двигаются -->
+    <!-- плавающая панель: кнопки по составу выбранных (исключённым не предлагают
+         исключиться, участникам — вернуться) — меню непротиворечиво -->
     <MassActionBar :count="selected.length" :busy="busy"
-                   :can-toggle-cycle="!!cycleId && auth.can('ROLE_U_CYCLE_PARTICIPANTS')"
-                   :can-broadcast="!!cycleId && auth.can('ROLE_C_CYCLE_BROADCAST')"
-                   :can-send="auth.can('ROLE_C_PEER_ASSIGNMENT')"
+                   :can-exclude="auth.can('ROLE_U_CYCLE_PARTICIPANTS') && hasIncludedInSelection"
+                   :can-include="auth.can('ROLE_U_CYCLE_PARTICIPANTS') && hasExcludedInSelection"
+                   :can-broadcast="auth.can('ROLE_C_CYCLE_BROADCAST') && hasIncludedInSelection"
+                   :can-send="auth.can('ROLE_C_PEER_ASSIGNMENT') && hasIncludedInSelection"
                    :send-window="sendWindow" :stage-label="activeStageLabel"
-                   :disabled-include="participantFilter !== 'excluded'"
                    @exclude="excludeFrom(selected.map((e: any) => e.id))"
                    @include="includeBack(excludedSelection)"
                    @notify="notifyTargets = [...selected]"
@@ -210,6 +211,12 @@ function namesOf(ids: number[]): string {
 const excludedSelection = computed(() =>
   selected.value.filter((e: any) => excludedIds.value.has(e.id)).map((e: any) => e.id))
 
+// контекст панели: состав выбора (факт) развязан с правами (каждое действие — своё право)
+const hasIncludedInSelection = computed(() =>
+  !!cycleId.value && selected.value.some((e: any) => !excludedIds.value.has(e.id)))
+const hasExcludedInSelection = computed(() =>
+  !!cycleId.value && selected.value.some((e: any) => excludedIds.value.has(e.id)))
+
 let timer: number | undefined
 function debounced() { clearTimeout(timer); timer = window.setTimeout(load, 300) }
 
@@ -228,8 +235,11 @@ async function loadCycles() {
   if (cycleId.value) await reloadParticipants()
 }
 
+const canSeeParticipants = computed(() =>
+  auth.can('ROLE_U_CYCLE_PARTICIPANTS') || auth.can('ROLE_C_CYCLE_BROADCAST'))
+
 async function reloadParticipants() {
-  if (!cycleId.value || !auth.can('ROLE_U_CYCLE_PARTICIPANTS')) return
+  if (!cycleId.value || !canSeeParticipants.value) return
   const info = await reviewsApi.participants(cycleId.value)
   excludedIds.value = new Set(info.excluded.map((x) => x.employee_id))
   applyParticipantFilter()
@@ -303,16 +313,9 @@ async function includeBack(ids: number[]) {
 }
 
 async function sendTo(ids: number[]) {
-  const ok = await confirmDialog.ask({
-    header: 'Отправить задания на оценку',
-    message: `Кому (оцениваемые): ${namesOf(ids)}\n\n` +
-      'По итоговому набору пиров каждого: новые пиры получат задания, ' +
-      'несдавшим придёт повторное уведомление; уже отправленные оценки не затрагиваются.',
-    okLabel: 'Отправить',
-  })
-  if (ok === null) return
-  const cs = await reviewsApi.cycles()
-  const cycle = cs.find((c) => !['closed', 'imported', 'cancelled'].includes(c.stage))
+  // окно стадий проверяем ДО подтверждения: не предлагаем невозможное
+  const cycle = cycles.value.find(
+    (c) => !['closed', 'imported', 'cancelled'].includes(c.stage))
   if (!cycle) {
     toast.add({ severity: 'warn', summary: 'Нет активного цикла', life: 6000 })
     return
@@ -325,6 +328,14 @@ async function sendTo(ids: number[]) {
     })
     return
   }
+  const ok = await confirmDialog.ask({
+    header: 'Отправить задания на оценку',
+    message: `Кому (оцениваемые): ${namesOf(ids)}\n\n` +
+      'По итоговому набору пиров каждого: новые пиры получат задания, ' +
+      'несдавшим придёт повторное уведомление; уже отправленные оценки не затрагиваются.',
+    okLabel: 'Отправить',
+  })
+  if (ok === null) return
   busy.value = true
   try {
     const r = await reviewsApi.sendAssignments({

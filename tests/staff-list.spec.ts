@@ -49,11 +49,14 @@ function mountPage() {
 }
 
 const ALL = {
-  canToggleCycle: true, canBroadcast: true, canSend: true, sendWindow: true,
+  canExclude: true, canInclude: true, canBroadcast: true, canSend: true, sendWindow: true,
 }
 
+// StaffRowActions и MassActionBar имеют разные наборы прав — отдельные пресеты
+const ROW_ALL = { canToggleCycle: true, canBroadcast: true, canSend: true, sendWindow: true }
+
 function rowProps(over = {}) {
-  return { excluded: false, ...ALL, stageLabel: 'сбор ачивок', ...over }
+  return { excluded: false, ...ROW_ALL, stageLabel: 'сбор ачивок', ...over }
 }
 
 describe('StaffRowActions (fixes8)', () => {
@@ -102,7 +105,7 @@ describe('MassActionBar (fixes8)', () => {
 
   it('показывает счётчик и действия при выборе', () => {
     const w = mount(MassActionBar, {
-      props: { count: 3, busy: false, ...ALL, disabledInclude: false },
+      props: { count: 3, busy: false, ...ALL },
     })
     expect(w.find('.mass-bar').exists()).toBe(true)
     expect(w.find('.mass-count').text()).toContain('3')
@@ -114,7 +117,7 @@ describe('MassActionBar (fixes8)', () => {
 
   it('эмитит действия и очистку', async () => {
     const w = mount(MassActionBar, {
-      props: { count: 1, busy: false, ...ALL, disabledInclude: false },
+      props: { count: 1, busy: false, ...ALL },
     })
     const excludeBtn = w.findAll('button').find((b) => b.text().includes('Исключить'))!
     await excludeBtn.trigger('click')
@@ -241,5 +244,69 @@ describe('StaffListView: масс-действия из плавающей па�
     await new Promise((r) => setTimeout(r, 50))
     expect(reviewsApi.sendAssignments).toHaveBeenCalledWith(
       { cycle_id: 7, employee_ids: [1, 2] })
+  })
+})
+
+
+describe('MassActionBar: контекстная непротиворечивость (fixes9+)', () => {
+  it('все выбранные исключены: нет «Исключить»/«Уведомить»/«Отправить», есть «Вернуть»', () => {
+    const w = mount(MassActionBar, {
+      props: { count: 2, busy: false, canExclude: false, canInclude: true,
+               canBroadcast: false, canSend: false, sendWindow: true },
+    })
+    expect(w.text()).not.toContain('Исключить из цикла')
+    expect(w.text()).not.toContain('Уведомить')
+    expect(w.text()).not.toContain('Отправить задания')
+    expect(w.text()).toContain('Вернуть в цикл')
+  })
+
+  it('все выбранные участники: нет «Вернуть», есть «Исключить»', () => {
+    const w = mount(MassActionBar, {
+      props: { count: 2, busy: false, canExclude: true, canInclude: false,
+               canBroadcast: true, canSend: true, sendWindow: true },
+    })
+    expect(w.text()).toContain('Исключить из цикла')
+    expect(w.text()).not.toContain('Вернуть в цикл')
+  })
+})
+
+describe('StaffListView: панель в фильтре «Исключены»', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setActivePinia(createPinia())
+    const auth = useAuth()
+    auth.me = {
+      id: 1, email: 'a@itgri.ru', full_name: 'A', role: 'admin', roles: ['admin'],
+      permissions: ['ROLE_R_STAFF', 'ROLE_U_CYCLE_PARTICIPANTS', 'ROLE_C_CYCLE_BROADCAST',
+                    'ROLE_C_PEER_ASSIGNMENT'],
+      has_subordinates: true,
+    } as any
+  })
+
+  it('все выбранные исключены → панель без «Исключить из цикла», с «Вернуть»', async () => {
+    const w = mountPage()
+    await new Promise((r) => setTimeout(r, 20))
+    const vm: any = w.vm
+    vm.participantFilter = 'excluded'
+    vm.excludedIds = new Set(vm.baseRows.map((e: any) => e.id)) // все исключены
+    vm.selected = [...vm.baseRows]
+    await nextTick()
+    const bar = w.find('.mass-bar')
+    expect(bar.exists()).toBe(true)
+    expect(bar.text()).not.toContain('Исключить из цикла')
+    expect(bar.text()).toContain('Вернуть в цикл')
+    expect(bar.text()).not.toContain('Уведомить')
+  })
+
+  it('смешанный выбор: доступны и «Исключить», и «Вернуть»', async () => {
+    const w = mountPage()
+    await new Promise((r) => setTimeout(r, 20))
+    const vm: any = w.vm
+    vm.excludedIds = new Set([vm.baseRows[0].id]) // первый исключён, второй нет
+    vm.selected = [...vm.baseRows]
+    await nextTick()
+    const bar = w.find('.mass-bar')
+    expect(bar.text()).toContain('Исключить из цикла')
+    expect(bar.text()).toContain('Вернуть в цикл')
   })
 })

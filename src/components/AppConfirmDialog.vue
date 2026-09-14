@@ -43,7 +43,7 @@ const { state } = useAppConfirm()
 const draft = ref('')
 
 function resetDraft() {
-  draft.value = state.value?.choices ? '' : ''
+  draft.value = ''
 }
 
 function onOk() {
