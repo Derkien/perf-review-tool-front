@@ -65,7 +65,7 @@
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import Dropdown from 'primevue/select'
+import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { reviewsApi, staffApi } from '../api/endpoints'
 import { errMsg } from '../api/errors'

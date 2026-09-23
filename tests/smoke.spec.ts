@@ -31,6 +31,15 @@ describe('SPA smoke (прод-сценарий: реальный main.ts в jsdo
     const html = appEl!.innerHTML
     expect(html).toContain('Perf Review Tool')
     expect(html).toContain('Роль')
+    // выбор роли — реальный PrimeVue Select (регрессия миграции v5: тег заменили,
+    // импорт нет — селект молча рендерился голым HTML). Ловим именно поломку:
+    // зарезолвленный Select имеет p-select/p-dropdown класс и показывает выбранную роль
+    const select = appEl!.querySelector('.p-select, .p-dropdown')
+    expect(select, 'Select на логине должен быть PrimeVue-компонентом').toBeTruthy()
+    expect(select!.textContent, 'должна отображаться выбранная роль (admin)').toContain('admin')
+    // голый незарезолвленный <select> без класса — признак сломанного импорта
+    expect(appEl!.querySelector('select:not(.p-select):not(.p-dropdown)'),
+      'незарегистрированный Select рендерится голым тегом — проверь import').toBeNull()
   })
 
   it('с сохранённой сессией открывается приложение (не пустой #app)', async () => {

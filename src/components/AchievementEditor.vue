@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button'
-import Dropdown from 'primevue/select'
+import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 
 const model = defineModel<any[]>({ required: true })
