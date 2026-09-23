@@ -102,7 +102,7 @@
               <div class="mark-table">
                 <div v-for="row in matrixRows" :key="row.item_id" class="mark-row">
                   <span class="mark-name" v-tooltip.top="rowLevel(row)">{{ row.item }}</span>
-                  <Dropdown v-model="markDraft[row.item_id]" :options="gradeOptions"
+                  <Select v-model="markDraft[row.item_id]" :options="gradeOptions"
                             option-label="label" option-value="value" filter placeholder="—"
                             size="small" class="mark-select" />
                 </div>
@@ -285,7 +285,7 @@
       <div class="mark-table" style="max-height: 420px">
         <div v-for="row in sessionEditRows" :key="row.item_id" class="mark-row">
           <span class="mark-name">{{ row.item }}</span>
-          <Dropdown v-model="sessionEditDraft[row.item_id]" :options="gradeOptions"
+          <Select v-model="sessionEditDraft[row.item_id]" :options="gradeOptions"
                     option-label="label" option-value="value" filter size="small" />
         </div>
       </div>
@@ -315,7 +315,7 @@ import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'

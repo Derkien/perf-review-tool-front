@@ -10,7 +10,7 @@
           </label>
           <label class="flex-col">
             <span>Роль (локальный режим)</span>
-            <Dropdown v-model="role" :options="roles" @change="onRoleChange" />
+            <Select v-model="role" :options="roles" @change="onRoleChange" />
           </label>
           <Button label="Войти" :loading="busy" @click="login" />
           <small class="muted">Роль применяется к вашему пользователю в локальной БД.</small>
@@ -30,7 +30,7 @@ import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import { homeForAuth } from '../router'
 import { useAuth } from '../stores/auth'
 import { errMsg } from '../api/errors'

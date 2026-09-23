@@ -95,7 +95,7 @@ const allItems = [
   { to: '/staff', label: 'Сотрудники', icon: 'pi pi-users', perm: 'ROLE_R_STAFF' },
   { to: '/my-review', label: 'Моё ревью', icon: 'pi pi-pencil' },
   { to: '/peer-review', label: 'Оценить коллег', icon: 'pi pi-star' },
-  { to: '/calibration', label: 'Калибровки', icon: 'pi pi-balance', perm: 'ROLE_V_REVIEW_RESULT' },
+  { to: '/calibration', label: 'Калибровки', icon: 'pi pi-sliders-h', perm: 'ROLE_V_REVIEW_RESULT' },
   { to: '/decisions', label: 'Решения и бюджет', icon: 'pi pi-wallet', perm: 'ROLE_R_DECISION_ANY' },
   { to: '/nominations', label: 'Номинации', icon: 'pi pi-arrow-circle-up', perm: 'ROLE_R_NOMINATION' },
   { to: '/imports', label: 'Импорт', icon: 'pi pi-download', perm: 'ROLE_C_IMPORT' },

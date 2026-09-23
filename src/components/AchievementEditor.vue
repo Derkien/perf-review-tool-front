@@ -13,7 +13,7 @@
       </div>
       <div class="self-rating">
         <span class="muted">Самооценка:</span>
-        <Dropdown :model-value="a.self_rating" :options="ratingOptions" option-label="label"
+        <Select :model-value="a.self_rating" :options="ratingOptions" option-label="label"
                   option-value="value" filter placeholder="выберите оценку" class="rating-select"
                   :disabled="locked" @update:model-value="a.self_rating = $event" />
       </div>
@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import Textarea from 'primevue/textarea'
 
 const model = defineModel<any[]>({ required: true })

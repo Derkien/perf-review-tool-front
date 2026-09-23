@@ -1,7 +1,7 @@
 <template>
   <div class="review-wrap">
     <div class="review-selector">
-      <Dropdown :model-value="selectedCycle" :options="cycleOptions"
+      <Select :model-value="selectedCycle" :options="cycleOptions"
                 option-label="label" option-value="id"
                 placeholder="Цикл ревью" class="w100" @update:model-value="openResult" />
     </div>
@@ -39,10 +39,10 @@
             <b>{{ result.grade_at_review || '—' }}</b></div>
           <div class="kv"><span>Харды (средний вес 1–10)</span>
             <b class="radar-link" @click="openRadar('hard')">
-              {{ result.comp_summary?.hard ?? '—' }} <i class="pi pi-chart-radar" /></b></div>
+              {{ result.comp_summary?.hard ?? '—' }} <i class="pi pi-gauge" /></b></div>
           <div class="kv"><span>Софты (средний вес 1–10)</span>
             <b class="radar-link" @click="openRadar('soft')">
-              {{ result.comp_summary?.soft ?? '—' }} <i class="pi pi-chart-radar" /></b></div>
+              {{ result.comp_summary?.soft ?? '—' }} <i class="pi pi-gauge" /></b></div>
           <div v-if="result.peer_stats" class="kv"><span>Средняя пиров</span>
             <b>{{ result.peer_stats.avg_rating || '—' }}
               {{ result.peer_stats.avg_rating_num ? `(${result.peer_stats.avg_rating_num})` : '' }}</b></div>
@@ -128,7 +128,7 @@ import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import AchievementEditor from './AchievementEditor.vue'

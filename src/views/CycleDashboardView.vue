@@ -3,7 +3,7 @@
     <div class="head-row">
       <h1 style="margin:0">Дашборд цикла</h1>
       <div class="head-actions">
-        <Dropdown v-model="cycleId" :options="cycles" option-label="label" option-value="id"
+        <Select v-model="cycleId" :options="cycles" option-label="label" option-value="id"
                   placeholder="Цикл" style="min-width: 260px" />
         <Button v-if="auth.can('ROLE_C_CYCLE')" label="Новый цикл" size="small"
                 @click="createVisible = true" />
@@ -113,7 +113,7 @@ import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'

@@ -39,11 +39,11 @@
 
     <Dialog v-model:visible="dialog" modal header="Новая номинация">
       <div class="form">
-        <Dropdown v-model="form.employee_id" :options="employees" option-label="full_name"
+        <Select v-model="form.employee_id" :options="employees" option-label="full_name"
                   option-value="id" filter placeholder="Сотрудник" />
         <InputText v-model.number="form.proposed_pct" placeholder="Предлагаемый % повышения" />
         <InputText v-model.number="form.proposed_salary" placeholder="Или целевая ЗП (₽)" />
-        <Dropdown v-model="form.target_grade" :options="grades" placeholder="Целевой грейд (опционально)" showClear filter />
+        <Select v-model="form.target_grade" :options="grades" placeholder="Целевой грейд (опционально)" showClear filter />
         <Textarea v-model="form.rationale" rows="4" placeholder="Обоснование: за что конкретно" class="w100" />
         <Button label="Подать" :loading="busy" @click="submit" />
       </div>
@@ -57,7 +57,7 @@ import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'

@@ -2,7 +2,7 @@
   <div class="page">
     <h1>Решения и бюджет</h1>
     <div class="head">
-      <Dropdown v-model="cycleId" :options="cycles" option-label="name" option-value="id" placeholder="Цикл" />
+      <Select v-model="cycleId" :options="cycles" option-label="name" option-value="id" placeholder="Цикл" />
       <Button label="Экспорт XLSX" severity="secondary" :disabled="!cycleId" @click="exportXlsx" />
       <Button label="Создать решение по…" text :disabled="!cycleId" @click="createDialog = true" />
     </div>
@@ -36,13 +36,13 @@
       </Column>
       <Column field="decision" header="Решение">
         <template #editor="{ data: d }">
-          <Dropdown v-model="d.decision" :options="decisionKinds" @change="patch(d)" />
+          <Select v-model="d.decision" :options="decisionKinds" @change="patch(d)" />
         </template>
         <template #body="{ data: d }">{{ decisionLabels[d.decision] || d.decision }}</template>
       </Column>
       <Column field="target_grade" header="Целевой грейд">
         <template #editor="{ data: d }">
-          <Dropdown v-model="d.target_grade" :options="grades" @change="patch(d)" />
+          <Select v-model="d.target_grade" :options="grades" @change="patch(d)" />
         </template>
       </Column>
       <Column field="target_salary" header="Целевая ЗП">
@@ -66,9 +66,9 @@
 
     <Dialog v-model:visible="createDialog" modal header="Новое решение">
       <div class="create-form">
-        <Dropdown v-model="newDecision.employee_id" :options="employees" option-label="full_name"
+        <Select v-model="newDecision.employee_id" :options="employees" option-label="full_name"
                   option-value="id" filter placeholder="Сотрудник" />
-        <Dropdown v-model="newDecision.decision" :options="decisionKinds" placeholder="Решение" />
+        <Select v-model="newDecision.decision" :options="decisionKinds" placeholder="Решение" />
         <InputText v-model.number="newDecision.raise_pct" placeholder="Рейз %" />
         <InputText v-model.number="newDecision.target_salary" placeholder="Целевая ЗП" />
         <Button label="Создать (оценка подтянется из калибровки)" :loading="busy" @click="create" />
@@ -84,7 +84,7 @@ import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import ProgressBar from 'primevue/progressbar'
 import { decisionsApi, reviewsApi, staffApi } from '../api/endpoints'

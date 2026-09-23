@@ -4,7 +4,7 @@
     <Card>
       <template #content>
         <div class="upload-row">
-          <Dropdown v-model="type" :options="types" option-label="label" option-value="value" placeholder="Тип импорта" />
+          <Select v-model="type" :options="types" option-label="label" option-value="value" placeholder="Тип импорта" />
           <FileUpload mode="basic" custom-upload :choose-label="'Выбрать файл'" @select="onSelect" />
           <Button label="Предпросмотр" :disabled="!file || !type" :loading="busy" @click="preview" />
           <InputText v-if="type === 'traffic' || type === 'efficiency'" v-model="month"
@@ -45,7 +45,7 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import FileUpload from 'primevue/fileupload'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'

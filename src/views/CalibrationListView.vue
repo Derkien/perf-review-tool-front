@@ -2,9 +2,9 @@
   <div class="page">
     <h1>Калибровочные сессии</h1>
     <div v-if="auth.can('ROLE_C_CALIBRATION')" class="head">
-      <Dropdown v-model="cycleId" :options="cycles" option-label="name" option-value="id" placeholder="Цикл" />
-      <Dropdown v-model="group" :options="groups" placeholder="Функц. группа" />
-      <Dropdown v-model="hostId" :options="users" option-label="full_name" option-value="id" placeholder="Ведущий" filter />
+      <Select v-model="cycleId" :options="cycles" option-label="name" option-value="id" placeholder="Цикл" />
+      <Select v-model="group" :options="groups" placeholder="Функц. группа" />
+      <Select v-model="hostId" :options="users" option-label="full_name" option-value="id" placeholder="Ведущий" filter />
       <Button label="Создать сессию" :loading="busy" @click="create" />
       <Button label="AI-пакет (xlsx)" severity="secondary" :disabled="!cycleId" @click="exportAi" />
       <FileUpload mode="basic" custom-upload choose-label="Импорт AI-ответов" @select="importAi" />
@@ -32,7 +32,7 @@ import { onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import FileUpload from 'primevue/fileupload'
 import Tag from 'primevue/tag'
 import { adminApi, calibrationApi, reviewsApi } from '../api/endpoints'

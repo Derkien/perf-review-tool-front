@@ -36,7 +36,7 @@
 
       <div class="peer-col">
         <b class="section-title">Добавить сотрудника</b>
-        <Dropdown v-model="addId" :options="addable" option-label="name" option-value="id"
+        <Select v-model="addId" :options="addable" option-label="name" option-value="id"
                   placeholder="Поиск по ФИО" filter size="small" class="w100" append-to="body"
                   :filter-fields="['name']" />
         <Button label="Добавить в список" size="small" text :disabled="!addId"
@@ -65,7 +65,7 @@
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import Tag from 'primevue/tag'
 import { reviewsApi, staffApi } from '../api/endpoints'
 import { errMsg } from '../api/errors'

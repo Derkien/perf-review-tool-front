@@ -70,7 +70,7 @@ import { useToast } from 'primevue/usetoast'
 const toast = useToast()
 const assignments = ref<any[]>([])
 const current = ref<any>(null)
-const ratings = ref<Record<number, string>>({})
+const ratings = ref<Record<string, string>>({})
 const freeText = ref('')
 const busy = ref(false)
 const letterWords: Record<string, string> = {

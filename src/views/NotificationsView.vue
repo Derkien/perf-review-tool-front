@@ -45,7 +45,7 @@ const PAGE = 30
 const shown = computed(() => items.value.length)
 const icons: Record<string, string> = {
   'stage-started': 'pi pi-flag', 'peer-assignment': 'pi pi-star',
-  'deadline-reminder': 'pi pi-clock', 'calibration-started': 'pi pi-balance',
+  'deadline-reminder': 'pi pi-clock', 'calibration-started': 'pi pi-sliders-h',
   'host-assigned': 'pi pi-crown', 'nomination-decision': 'pi pi-arrow-circle-up',
   'leader-assessment-started': 'pi pi-pencil', 'cycle-broadcast': 'pi pi-megaphone', 'cycle-cancelled': 'pi pi-ban',
   'cycle-closed': 'pi pi-check-circle', 'self-edit-request': 'pi pi-file-edit',

@@ -13,7 +13,7 @@
         <TabPanel value="users">
           <div class="assign-row">
             <InputText v-model="assignEmail" placeholder="email сотрудника" size="small" />
-            <Dropdown v-model="assignRole" :options="roles" size="small" />
+            <Select v-model="assignRole" :options="roles" size="small" />
             <Button label="Назначить роль" size="small" @click="assignByEmail" />
             <span class="muted">Пользователь создаётся заранее — при первом входе по SSO/email роль уже ждёт его.</span>
           </div>
@@ -36,7 +36,7 @@
             </Column>
             <Column field="role" header="Роль">
               <template #editor="{ data: u }">
-                <Dropdown v-model="u.role" :options="roles" @change="patchUser(u)" />
+                <Select v-model="u.role" :options="roles" @change="patchUser(u)" />
               </template>
               <template #body="{ data: u }"><Tag :value="u.role" severity="secondary" /></template>
             </Column>
@@ -215,7 +215,7 @@ import { computed, onMounted, ref } from 'vue'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Tab from 'primevue/tab'
 import TabList from 'primevue/tablist'

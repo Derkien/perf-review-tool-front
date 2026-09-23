@@ -1,7 +1,9 @@
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+# vite 8 (rolldown) требует честной установки опциональных нативных биндингов:
+# копируем lock-файл и ставим ci-стилем, без копирования мусора
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
 

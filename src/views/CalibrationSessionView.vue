@@ -5,7 +5,7 @@
       <h1 style="margin:0">{{ session.title }}</h1>
       <Tag :value="({ voting: 'голосование', finalizing: 'финализация', closed: 'закрыта' } as Record<string,string>)[session.status] || session.status" />
       <div style="flex:1"></div>
-      <Dropdown v-if="isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')" v-model="newHost" :options="participants" option-label="full_name"
+      <Select v-if="isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')" v-model="newHost" :options="participants" option-label="full_name"
                 option-value="id" placeholder="Передать ведущему" size="small" @change="transferHost" />
       <Button v-if="(isHost || auth.can('ROLE_U_CALIBRATION_HOST_ANY')) && session.status === 'voting'" label="Аналитика голосований"
               severity="secondary" size="small" @click="loadAnalytics" />
@@ -120,7 +120,7 @@
             </div>
             <h2>Достижения</h2>
             <div v-for="(a, i) in pack.achievements" :key="i" class="ach">
-              <b class="muted">#{{ i + 1 }}</b>
+              <b class="muted">#{{ Number(i) + 1 }}</b>
               <p>{{ a.text }}</p>
             </div>
             <h2>Радар компетенций</h2>
@@ -178,7 +178,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import Dropdown from 'primevue/dropdown'
+import Dropdown from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import SelectButton from 'primevue/selectbutton'
