@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "check": "vue-tsc --noEmit && vitest run"
+    "check": "./scripts/check.sh",
+    "api:types": "./scripts/gen-api-types.sh"
   },
   "dependencies": {
     "@primevue/themes": "^4.5.0",
