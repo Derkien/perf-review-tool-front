@@ -1,7 +1,11 @@
 <template>
   <div>
     <div class="comp-head">
-      <SelectButton v-model="kind" :options="kinds" option-label="label" option-value="value" />
+      <div class="kind-row">
+        <SelectButton v-model="kind" :options="kinds" option-label="label" option-value="value" />
+        <Tag v-if="radarVersions" :value="`схема v${radarVersions}`" severity="secondary"
+             data-testid="schema-version-badge" />
+      </div>
       <div class="comp-actions">
         <Button v-if="perms.edit_marks || perms.is_self"
                 :label="markMode ? 'Закрыть разметку' : 'Внести разметку'"
@@ -11,7 +15,7 @@
     <div class="comp-grid">
       <div class="comp-radar">
         <div class="radar-toolbar">
-          <span class="muted small">веса 1–10 · норма грейда — серая</span>
+          <span class="muted small">веса 1–10 · норма грейда — серая{{ radarVersions ? ` · схема v${radarVersions}` : '' }}</span>
           <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
                   v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
         </div>
@@ -56,7 +60,15 @@
     </Card>
 
     <!-- история разметок -->
-    <h2>История разметок</h2>
+    <h2 style="display:inline-block">История разметок</h2>
+    <i class="pi pi-info-circle muted info-ico" data-testid="compare-info"
+       v-tooltip.top="'Почему сравниваются не все сессии'"
+       @click="compareInfoVisible = !compareInfoVisible" />
+    <Message v-if="compareInfoVisible" severity="info" :sticky="true" style="margin-top:8px"
+             data-testid="compare-info-text">
+      Сравнение возможно только в рамках одной версии схемы: на паутинку добавляются сессии
+      текущей активной версии. Сессии архивных версий смотрите по их собственным пунктам.
+    </Message>
     <p class="muted" style="margin-top:0">
       Клик по строке — добавить/убрать сессию на паутинку (до двух сравнений).
     </p>
@@ -76,6 +88,14 @@
           <Tag :value="s.kind" :severity="s.kind === 'hard' ? 'warn' : 'info'" />
         </template>
       </Column>
+      <Column header="Версия">
+        <template #body="{ data: s }">
+          <template v-if="s.version">
+            <Tag :value="`v${s.version}`" severity="secondary" />
+            <span v-if="s.is_current === false" class="muted small"> архив</span>
+          </template>
+        </template>
+      </Column>
       <Column field="assessor_kind" header="Чья">
         <template #body="{ data: s }">{{ s.assessor_kind === 'self' ? 'самооценка' : 'руководитель' }}</template>
       </Column>
@@ -86,9 +106,14 @@
           <span class="acts">
             <i class="pi pi-download act" v-tooltip.top="'Скачать XLSX'"
                @click.stop="downloadSession(s)" />
-            <i v-if="perms.edit_marks" class="pi pi-pencil act" v-tooltip.top="'Редактировать'"
+            <!-- закрытая сессия архивной версии — только просмотр по своим пунктам -->
+            <i v-if="isClosedSession(s)" class="pi pi-eye act" data-testid="session-view"
+               v-tooltip.top="'Просмотр (закрытая сессия архивной версии)'"
                @click.stop="openSessionEdit(s)" />
-            <i v-if="perms.edit_marks || canHardDelete" class="pi pi-trash act danger"
+            <i v-else-if="perms.edit_marks" class="pi pi-pencil act" v-tooltip.top="'Редактировать'"
+               @click.stop="openSessionEdit(s)" />
+            <i v-if="!isClosedSession(s) && (perms.edit_marks || canHardDelete)"
+               class="pi pi-trash act danger"
                v-tooltip.top="canHardDelete ? 'Удалить (soft/hard)' : 'Удалить (soft)'"
                @click.stop="deleteSession(s)" />
           </span>
@@ -104,16 +129,25 @@
                   :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="84vh" />
     </Dialog>
 
-    <!-- редактирование сессии -->
-    <Dialog v-model:visible="sessionEditVisible" modal header="Редактирование разметки" style="width: 640px">
+    <!-- редактирование/просмотр сессии (по пунктам её версии схемы) -->
+    <Dialog v-model:visible="sessionEditVisible" modal :header="sessionEditReadonly
+      ? `Просмотр разметки (${sessionEditSession?.version ? `v${sessionEditSession.version}, архив` : 'историческая'})`
+      : 'Редактирование разметки'" style="width: 640px">
       <div class="mark-table" style="max-height: 420px">
         <div v-for="row in sessionEditRows" :key="row.item_id" class="mark-row">
-          <span class="mark-name">{{ row.item }}</span>
-          <Select v-model="sessionEditDraft[row.item_id]" :options="gradeOptions"
-                  option-label="label" option-value="value" filter size="small" />
+          <span class="mark-name" v-tooltip.top="sessionRowTip(row)">{{ row.item }}</span>
+          <Select v-if="!sessionEditReadonly" v-model="sessionEditDraft[row.item_id]"
+                  :options="gradeOptions" option-label="label" option-value="value" filter size="small" />
+          <span v-else class="muted small">
+            {{ row.level }} (вес {{ row.weight }})
+          </span>
         </div>
       </div>
-      <Button label="Сохранить изменения" size="small" :loading="busy" @click="saveSessionEdit" />
+      <Message v-if="sessionEditReadonly" severity="info" :sticky="true" style="margin-top:8px">
+        Закрытая сессия архивной версии схемы — только просмотр по пунктам своей версии.
+      </Message>
+      <Button v-if="!sessionEditReadonly" label="Сохранить изменения" size="small"
+              :loading="busy" @click="saveSessionEdit" />
     </Dialog>
   </div>
 </template>
@@ -151,6 +185,7 @@ const kinds = [{ label: 'Харды', value: 'hard' }, { label: 'Софты', va
 const radar = ref<RadarData | null>(null)
 const matrixRows = ref<MatrixRow[]>([])
 const sessions = ref<any[]>([])
+const compareInfoVisible = ref(false)
 const markMode = ref(false)
 const markDate = ref(new Date().toISOString().slice(0, 10))
 const markDraft = ref<Record<number, string>>({})
@@ -158,11 +193,28 @@ const radarBig = ref(false)
 const compareKeys = ref<string[]>([])
 const sessionSeries = ref<any[]>([null, null])
 const sessionEditVisible = ref(false)
-const sessionEditRows = ref<MatrixRow[]>([])
+const sessionEditRows = ref<SessionDetailRow[]>([])
 const sessionEditDraft = ref<Record<number, string>>({})
+const sessionEditReadonly = ref(false)
+const sessionEditSession = ref<any>(null)
+/** число пунктов версий схем — для признака «закрыта» у сессий архивных версий */
+const versionItemsCount = ref<Record<number, number>>({})
 const busy = ref(false)
 
 const canHardDelete = computed(() => auth.can('ROLE_D_COMPETENCY_SESSION'))
+
+/** версии активных схем текущего типа — бейдж у переключателя и в подписи радара */
+const radarVersions = computed(() => {
+  const vs = (radar.value?.matrices || []).filter((m) => m.kind === kind.value).map((m) => m.version)
+  return vs.length ? [...new Set(vs)].join(', ') : ''
+})
+
+/** закрытая сессия архивной версии: все пункты версии покрыты — read-only (реш. 6) */
+function isClosedSession(s: any): boolean {
+  if (s.is_current !== false || !s.matrix_id) return false
+  const total = versionItemsCount.value[s.matrix_id]
+  return total !== undefined && s.marks >= total
+}
 
 onMounted(load)
 watch(kind, load)
@@ -180,6 +232,15 @@ async function load() {
   try {
     sessions.value = await competenciesApi.sessions(props.employeeId, kind.value)
   } catch { sessions.value = [] }
+  // пункты версий архивных сессий — признак «закрыта» (read-only просмотр)
+  const counts: Record<number, number> = {}
+  for (const mid of [...new Set(sessions.value
+    .filter((s: any) => s.is_current === false && s.matrix_id)
+    .map((s: any) => s.matrix_id as number))]) {
+    try { counts[mid] = (await competenciesApi.matrixItems(mid)).length
+    } catch { /* нет доступа — считаем сессию незакрытой */ }
+  }
+  versionItemsCount.value = counts
   compareKeys.value = []
   sessionSeries.value = [null, null]
 }
@@ -190,7 +251,8 @@ function seriesColor(s: any): string {
   return idx === 0 ? '#9333ea' : idx === 1 ? '#0d9488' : '#94a3b8'
 }
 function sessionRowClass(data: any) {
-  if (data.assessor_kind !== 'manager') return 'row-disabled'
+  // сравнение — только manager-сессии активной версии схемы (реш. 6)
+  if (data.assessor_kind !== 'manager' || data.is_current === false) return 'row-disabled'
   return compareKeys.value.includes(sessionKey(data)) ? 'row-selected' : ''
 }
 function rowLevel(row: any): string {
@@ -199,7 +261,8 @@ function rowLevel(row: any): string {
 }
 
 async function toggleCompare(s: any) {
-  if (s.assessor_kind !== 'manager') return
+  // сессии других версий схемы на паутинку не добавляются (одна версия — одно сравнение)
+  if (s.assessor_kind !== 'manager' || s.is_current === false) return
   const key = sessionKey(s)
   if (compareKeys.value.includes(key)) {
     compareKeys.value = compareKeys.value.filter((k) => k !== key)
@@ -255,13 +318,26 @@ async function downloadSession(s: any) {
   }
 }
 
+/** строка просмотра сессии: пункты версии сессии + выставленные уровни */
+type SessionDetailRow = {
+  item_id: number; item: string; category: string
+  descriptions: Record<string, string>
+  assessor_kind: 'self' | 'manager'; level: string; weight: number
+}
+
+function sessionRowTip(row: SessionDetailRow): string {
+  return row.descriptions?.[row.level] || 'описания нет'
+}
+
 async function openSessionEdit(s: any) {
+  sessionEditSession.value = s
+  sessionEditReadonly.value = isClosedSession(s)
   sessionEditDraft.value = {}
-  const rows = await competenciesApi.matrix(props.employeeId, s.kind as 'hard' | 'soft')
-  sessionEditRows.value = rows
-  rows.forEach((r: any) => {
-    const lvl = s.assessor_kind === 'self' ? r.self?.level : r.manager?.level
-    if (lvl && r.self?.date === s.date || r.manager?.date === s.date) sessionEditDraft.value[r.item_id] = lvl
+  // сессия показывается по пунктам своей версии схемы (у архивной — свои пункты)
+  const rows = await competenciesApi.sessionDetail(props.employeeId, s.kind, s.date)
+  sessionEditRows.value = rows.filter((r: SessionDetailRow) => r.assessor_kind === s.assessor_kind)
+  rows.forEach((r: SessionDetailRow) => {
+    if (r.assessor_kind === s.assessor_kind) sessionEditDraft.value[r.item_id] = r.level
   })
   sessionEditVisible.value = true
 }
@@ -304,6 +380,8 @@ async function deleteSession(s: any) {
 
 <style scoped>
 .comp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+.kind-row { display: flex; align-items: center; gap: 10px; }
+.info-ico { cursor: help; margin-left: 8px; font-size: 0.9rem; }
 .comp-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; }
 .comp-radar { position: relative; }
 .radar-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }

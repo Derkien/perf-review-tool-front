@@ -53,3 +53,30 @@ describe('router guards (permissions)', () => {
     expect(router.currentRoute.value.path).toBe('/admin')
   })
 })
+
+describe('router guards: массив пермишенов /admin (competency-matrix)', () => {
+  it('владелец только ROLE_U_COMPETENCY_MATRIX попадает в /admin', async () => {
+    setActivePinia(createPinia())
+    const auth = useAuth()
+    auth.me = {
+      id: 3, email: 'm@x.ru', full_name: 'M', role: 'admin', roles: ['admin'],
+      permissions: ['ROLE_U_COMPETENCY_MATRIX', 'ROLE_R_DASHBOARD'], has_subordinates: false,
+    }
+    await router.push('/admin')
+    await router.isReady()
+    expect(router.currentRoute.value.path).toBe('/admin')
+  })
+
+  it('есть права, но ни одного из массива /admin — редирект', async () => {
+    setActivePinia(createPinia())
+    const auth = useAuth()
+    auth.me = {
+      id: 4, email: 'l@x.ru', full_name: 'L', role: 'line-manager', roles: ['line-manager'],
+      permissions: ['ROLE_R_DASHBOARD'], has_subordinates: true,
+    }
+    await router.push('/my-review')  // уходим с /admin, иначе guard не сработает
+    await router.push('/admin')
+    await router.isReady()
+    expect(router.currentRoute.value.path).toBe('/dashboard')
+  })
+})

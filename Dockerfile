@@ -3,7 +3,8 @@ WORKDIR /app
 # vite 8 (rolldown) требует честной установки опциональных нативных биндингов:
 # копируем lock-файл и ставим ci-стилем, без копирования мусора
 COPY package.json package-lock.json ./
-RUN npm ci
+# @playwright/test не нужен в образе: браузеры в образ не тянем
+RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci
 COPY . .
 RUN npm run build
 

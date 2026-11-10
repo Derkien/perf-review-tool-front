@@ -24,6 +24,9 @@ export type MarkSession = {
   assessor_kind: 'self' | 'manager'
   assessor: string
   marks: number
+  matrix_id?: number
+  version?: number
+  is_current?: boolean
 }
 export type RadarData = {
   axis: string[]
@@ -33,7 +36,27 @@ export type RadarData = {
   session_1?: (number | null)[] | null
   session_2?: (number | null)[] | null
   gaps?: { item: string; self: number; manager: number; gap: number }[]
+  matrices?: { id: number; kind: string; specialty: string; version: number }[]
   summary?: { overestimated: string[]; growth_zones: string[]; avg_self: number; avg_manager: number }
+}
+export type SchemaVersion = {
+  id: number; version: number; status: 'draft' | 'active' | 'archived'
+  items_count: number; created_at: string | null
+}
+export type SchemaGroup = {
+  kind: 'hard' | 'soft'; specialty: string
+  versions: SchemaVersion[]; has_draft: boolean
+}
+export type SchemasOverview = {
+  groups: SchemaGroup[]
+  roles_without_schemas: { kind: string; specialty: string }[]
+}
+export type SchemaPreview = {
+  batch_id: number; type: string; rows_total: number
+  conflicts: { row?: number; error?: string }[]
+  month: string | null
+  preview: Record<string, unknown>[]
+  warnings: { kind: string; specialty: string; warning: string }[]
 }
 export type MatrixRow = {
   kind: string; specialty: string; item_id: number; item: string; category: string
@@ -401,6 +424,18 @@ export const competenciesApi = {
     if (error) raise(error, '/competencies/marks')
     return data as never
   },
+  /** Сессия по пунктам своей версии схемы (исторические версии — read-only просмотр). */
+  async sessionDetail(employeeId: number | string, kind: string, date: string): Promise<{
+    item_id: number; item: string; category: string
+    descriptions: Record<string, string>
+    assessor_kind: 'self' | 'manager'; level: string; weight: number
+  }[]> {
+    const { data, error } = await client.GET('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}', {
+      params: { path: { employee_id: Number(employeeId), kind, date_str: date } },
+    })
+    if (error) raise(error, 'GET /competencies/employees/{employee_id}/sessions/{kind}/{date_str}')
+    return data as never
+  },
   async editSession(employeeId: number | string, kind: string, date: string, levels: Record<number, string>): Promise<{ ok: boolean; changed: Record<string, { before: string; after: string }> }> {
     const { data, error } = await client.PATCH('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}', {
       params: { path: { employee_id: Number(employeeId), kind, date_str: date } },
@@ -431,6 +466,57 @@ export const competenciesApi = {
     })
     if (error) raise(error, '/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/xlsx')
     return data as Blob
+  },
+
+  // --- Схемы матриц как конфигурация: версии draft → active → archived ---
+
+  /** Пункты конкретной версии схемы (read-only просмотр, включая исторические). */
+  async matrixItems(matrixId: number): Promise<{ id: number; matrix_id: number; name: string; category: string; description: string; order_no: number; level_descriptions: Record<string, string> }[]> {
+    const { data, error } = await client.GET('/competencies/matrices/{matrix_id}/items', {
+      params: { path: { matrix_id: matrixId } },
+    })
+    if (error) raise(error, '/competencies/matrices/{matrix_id}/items')
+    return data as never
+  },
+  async schemas(): Promise<SchemasOverview> {
+    const { data, error } = await client.GET('/competencies/schemas')
+    if (error) raise(error, '/competencies/schemas')
+    return data as never
+  },
+  /** XLSX-шаблон схемы (лист «Матрица» + инструкция). */
+  async schemaTemplate(): Promise<Blob> {
+    const { data, error } = await client.GET('/competencies/schemas/template', { parseAs: 'blob' })
+    if (error) raise(error, '/competencies/schemas/template')
+    return data as Blob
+  },
+  async activateSchema(matrixId: number): Promise<{ id: number; status: string; version: number; former_active_archived: boolean }> {
+    const { data, error } = await client.POST('/competencies/schemas/{matrix_id}/activate', {
+      params: { path: { matrix_id: matrixId } },
+    })
+    if (error) raise(error, '/competencies/schemas/{matrix_id}/activate')
+    return data as never
+  },
+  async deleteSchemaDraft(matrixId: number): Promise<{ ok: boolean }> {
+    const { data, error } = await client.DELETE('/competencies/schemas/{matrix_id}', {
+      params: { path: { matrix_id: matrixId } },
+    })
+    if (error) raise(error, 'DELETE /competencies/schemas/{matrix_id}')
+    return data as never
+  },
+  /** Демо-разметка черновика (форма radar_data), детерминированная, не сохраняется. */
+  async schemaDemo(matrixId: number): Promise<RadarData & { demo_grade: string }> {
+    const { data, error } = await client.GET('/competencies/schemas/{matrix_id}/demo', {
+      params: { path: { matrix_id: matrixId } },
+    })
+    if (error) raise(error, '/competencies/schemas/{matrix_id}/demo')
+    return data as never
+  },
+  /** Предпросмотр импорта схемы: предупреждения о неизвестных ролях — не блокирующие. */
+  async previewSchemaImport(file: File): Promise<SchemaPreview> {
+    return importsApi.preview('competency-schema', file, {}) as Promise<SchemaPreview>
+  },
+  async applySchemaImport(batchId: number): Promise<Record<string, unknown>> {
+    return importsApi.apply(batchId, {})
   },
 }
 

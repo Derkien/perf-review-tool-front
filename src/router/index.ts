@@ -31,7 +31,8 @@ const routes = [
       { path: 'imports', component: () => import('../views/ImportsView.vue'),
         meta: { perm: 'ROLE_C_IMPORT' } },
       { path: 'admin', component: () => import('../views/AdminView.vue'),
-        meta: { perm: 'ROLE_U_SETTINGS' } },
+        // вкладки админки имеют собственные права: вход — по любому из списка
+        meta: { perm: ['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX'] } },
       { path: 'notifications', component: () => import('../views/NotificationsView.vue') },
     ],
   },
@@ -60,9 +61,11 @@ router.beforeEach(async (to) => {
   // старая сессия без пермишенов — обновляем me (там теперь список прав)
   if (auth.isAuthed && !Array.isArray(auth.me?.permissions)) await auth.ensurePermissions()
   if (to.path === '/login' && auth.isAuthed) return homeForAuth(auth.can)
-  // раздел закрыт без пермишена → домашняя страница (никаких красных экранов)
-  const perm = to.meta?.perm as string | undefined
-  if (perm && !auth.can(perm)) return homeForAuth(auth.can)
+  // раздел закрыт без пермишена → домашняя страница (никаких красных экранов);
+  // perm может быть массивом — доступ при любом из списка (вкладки /admin)
+  const perm = to.meta?.perm as string | string[] | undefined
+  const required = Array.isArray(perm) ? perm : perm ? [perm] : []
+  if (required.length && !required.some((p) => auth.can(p))) return homeForAuth(auth.can)
 })
 
 export default router

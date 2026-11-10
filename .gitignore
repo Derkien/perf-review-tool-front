@@ -1,2 +1,7 @@
 node_modules/
 dist/
+
+# артефакты прогонов (playwright)
+test-results/
+playwright-report/
+.DS_Store

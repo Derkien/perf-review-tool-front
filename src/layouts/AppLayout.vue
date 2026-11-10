@@ -89,8 +89,9 @@ const roleLabel = computed(
   () => ({ admin: 'админ', cto: 'СТО', 'line-manager': 'лин. рукль', 'functional-manager': 'функц. рукль', employee: 'сотрудник' }[auth.role] || auth.role),
 )
 
-// меню динамически зависит от пермишенов (fixes5): пункты без perm — всем аутентифицированным
-const allItems = [
+// меню динамически зависит от пермишенов (fixes5): пункты без perm — всем аутентифицированным;
+// perm может быть массивом — пункт виден с любым из списка (гейт /admin синхронен роутеру)
+const allItems: { to: string; label: string; icon: string; perm?: string | string[] }[] = [
   { to: '/dashboard', label: 'Дашборд цикла', icon: 'pi pi-chart-bar', perm: 'ROLE_R_DASHBOARD' },
   { to: '/staff', label: 'Сотрудники', icon: 'pi pi-users', perm: 'ROLE_R_STAFF' },
   { to: '/my-review', label: 'Моё ревью', icon: 'pi pi-pencil' },
@@ -99,9 +100,10 @@ const allItems = [
   { to: '/decisions', label: 'Решения и бюджет', icon: 'pi pi-wallet', perm: 'ROLE_R_DECISION_ANY' },
   { to: '/nominations', label: 'Номинации', icon: 'pi pi-arrow-circle-up', perm: 'ROLE_R_NOMINATION' },
   { to: '/imports', label: 'Импорт', icon: 'pi pi-download', perm: 'ROLE_C_IMPORT' },
-  { to: '/admin', label: 'Админ', icon: 'pi pi-cog', perm: 'ROLE_U_SETTINGS' },
+  { to: '/admin', label: 'Админ', icon: 'pi pi-cog', perm: ['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX'] },
 ]
-const items = computed(() => allItems.filter((i) => !i.perm || auth.can(i.perm)))
+const items = computed(() => allItems.filter((i) =>
+  !i.perm || (Array.isArray(i.perm) ? i.perm.some((p) => auth.can(p)) : auth.can(i.perm))))
 
 async function refreshUnread() {
   if (!auth.isAuthed) return

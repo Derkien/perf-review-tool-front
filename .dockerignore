@@ -1,0 +1,6 @@
+# контекст сборки только с исходниками: зависимости ставит npm ci внутри образа
+node_modules
+dist
+test-results
+playwright-report
+.DS_Store

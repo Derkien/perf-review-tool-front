@@ -5,6 +5,7 @@
       <TabList>
         <Tab value="users">Пользователи и роли</Tab>
         <Tab value="settings">Настройки цикла</Tab>
+        <Tab v-if="auth.can('ROLE_U_COMPETENCY_MATRIX')" value="schemas">Матрицы компетенций</Tab>
         <Tab value="rules">Правила повышений</Tab>
         <Tab value="activity">Активность и аудит</Tab>
         <Tab value="rights">Права доступа</Tab>
@@ -119,6 +120,9 @@
             руководителей. Роли при этом не меняются.
           </p>
         </TabPanel>
+        <TabPanel value="schemas">
+          <CompetencySchemasTab />
+        </TabPanel>
         <TabPanel value="activity">
           <div class="head-row">
             <h2 style="margin:0">Действия пользователей (навигация)</h2>
@@ -226,12 +230,15 @@ import Tag from 'primevue/tag'
 import MultiSelect from 'primevue/multiselect'
 import ToggleSwitch from 'primevue/toggleswitch'
 import WorkflowSchema from '../components/WorkflowSchema.vue'
+import CompetencySchemasTab from '../components/CompetencySchemasTab.vue'
 import { adminApi } from '../api/endpoints'
 import type { PermissionsCatalog } from '../api/endpoints'
 import { errMsg } from '../api/errors'
+import { useAuth } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
+const auth = useAuth()
 const users = ref<any[]>([])
 const assignEmail = ref('')
 const assignRole = ref('employee')

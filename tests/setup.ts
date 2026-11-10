@@ -25,3 +25,13 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     }),
   })
 }
+
+// jsdom не даёт ResizeObserver (TabList/Select PrimeVue) — минимальный стаб
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+  globalThis.ResizeObserver = class {
+    observe() { /* noop */ }
+    unobserve() { /* noop */ }
+    disconnect() { /* noop */ }
+  } as unknown as typeof ResizeObserver
+}

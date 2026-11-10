@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['tests/setup.ts'],
+    // e2e/ — Playwright-спеки против живого стенда, не юнит-уровень
+    exclude: ['**/node_modules/**', 'e2e/**'],
   },
 })

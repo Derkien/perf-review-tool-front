@@ -205,8 +205,7 @@ export interface paths {
         put?: never;
         /**
          * Set Traffic Mark
-         * @description Ручная простановка светофора руководителем. Жёлтый → план коррекции,
-         *     красный → предполагаемая дата расставания. Всё хранится для выгрузки.
+         * @description Ручная простановка светофора: жёлтый — план коррекции, красный — дата расставания.
          */
         post: operations["set_traffic_mark_api_v1_staff_employees__employee_id__traffic_post"];
         delete?: never;
@@ -295,6 +294,94 @@ export interface paths {
         };
         /** List Matrices */
         get: operations["list_matrices_api_v1_competencies_matrices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Schemas */
+        get: operations["list_schemas_api_v1_competencies_schemas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Schema Template
+         * @description XLSX-шаблон схемы: пустая форма + лист-инструкция с примером.
+         */
+        get: operations["schema_template_api_v1_competencies_schemas_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/{matrix_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate Schema */
+        post: operations["activate_schema_api_v1_competencies_schemas__matrix_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/{matrix_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Schema */
+        delete: operations["delete_schema_api_v1_competencies_schemas__matrix_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/{matrix_id}/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Schema Demo */
+        get: operations["schema_demo_api_v1_competencies_schemas__matrix_id__demo_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -402,12 +489,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Session Detail
+         * @description Сессия по пунктам своей версии схемы (исторические версии — read-only на фронте).
+         */
+        get: operations["session_detail_api_v1_competencies_employees__employee_id__sessions__kind___date_str__get"];
         put?: never;
         post?: never;
         /**
          * Session Delete
-         * @description Soft delete сессии (скрыть). hard=True — окончательное удаление (admin).
+         * @description Soft delete сессии (скрыть). hard=True — окончательное удаление (по праву).
          */
         delete: operations["session_delete_api_v1_competencies_employees__employee_id__sessions__kind___date_str__delete"];
         options?: never;
@@ -443,8 +534,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Employee Dynamics */
-        get: operations["employee_dynamics_api_v1_competencies_employees__employee_id__dynamics_get"];
+        /**
+         * Employee Competency Dynamics
+         * @description Динамика навыков: средний вес по датам разметок (менеджерская разметка)
+         *     — только по пунктам активных версий схем (разметки старых версий не смешиваем).
+         */
+        get: operations["employee_competency_dynamics_api_v1_competencies_employees__employee_id__dynamics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2713,6 +2808,139 @@ export interface operations {
             };
         };
     };
+    list_schemas_api_v1_competencies_schemas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    schema_template_api_v1_competencies_schemas_template_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    activate_schema_api_v1_competencies_schemas__matrix_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matrix_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_schema_api_v1_competencies_schemas__matrix_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matrix_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schema_demo_api_v1_competencies_schemas__matrix_id__demo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matrix_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_items_api_v1_competencies_matrices__matrix_id__items_get: {
         parameters: {
             query?: never;
@@ -2877,6 +3105,39 @@ export interface operations {
             };
         };
     };
+    session_detail_api_v1_competencies_employees__employee_id__sessions__kind___date_str__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: number;
+                kind: string;
+                date_str: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     session_delete_api_v1_competencies_employees__employee_id__sessions__kind___date_str__delete: {
         parameters: {
             query?: {
@@ -2982,9 +3243,11 @@ export interface operations {
             };
         };
     };
-    employee_dynamics_api_v1_competencies_employees__employee_id__dynamics_get: {
+    employee_competency_dynamics_api_v1_competencies_employees__employee_id__dynamics_get: {
         parameters: {
-            query?: never;
+            query?: {
+                kind?: string | null;
+            };
             header?: never;
             path: {
                 employee_id: number;
