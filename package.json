@@ -9,7 +9,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "check": "vue-tsc --noEmit && vitest run"
   },
   "dependencies": {
     "@primevue/themes": "^4.5.0",
