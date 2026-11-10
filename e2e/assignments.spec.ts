@@ -6,6 +6,7 @@ import { login, USERS } from './helpers'
  * Команда: Дзюба (id 33, android, user employee), Косарев (id 61, qa, user employee),
  * Шваркунов (line-manager Косарева, ROLE_U_COMPETENCY_MARKS), admin.
  * Данные стенда: активные схемы soft (2×8 п.) + hard android v19 (3 E2E-пункта) + hard qa (28 п.).
+ * Попутно снимаем сценарий заказчика в e2e/screenshots/reassessment/ (tasks.md 15.2).
  */
 
 const DZIUBA = 33
@@ -113,9 +114,11 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     // счётчик ожидающих в меню
     const menuBadge = page.locator('a[href="#/assessments"] .p-badge')
     await expect(menuBadge.first()).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/01-hub-queue.png' })
     // гайд «Как это работает» сворачивается (14.1 e2e-часть 10.10)
     await page.locator('.guide-head').click()
     await expect(page.getByText('Типы заданий:')).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/02-hub-guide.png', fullPage: true })
   })
 
   test('10.3: клик по уведомлению ведёт в хаб; разметка закрывает задание, счётчик падает', async ({ page, request }) => {
@@ -123,6 +126,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     await login(page, USERS.employee)
     await page.goto('/#/notifications')
     await expect(page.getByText('переоценк', { exact: false }).first()).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/03-notification.png' })
     await page.locator('.item', { hasText: 'переоценк' }).first().click()
     await expect(page).toHaveURL(/#\/assessments/)
 
@@ -151,9 +155,11 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     // одна карточка на вид с прогрессбаром «заполнено X из Y сотрудников»
     // (X/Y зависит от истории прогонов — done-задания остаются в группе)
     await expect(page.getByText(/заполнено \d+ из \d+ сотрудников/).first()).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/04-manager-groups.png' })
     // «Анкеты подчинённых»: очередь Косарева
     await page.getByRole('tab', { name: 'Анкеты подчинённых' }).click()
     await expect(page.getByText('Косарев', { exact: false }).first()).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/05-subordinates-queue.png' })
 
     // полная manager-разметка soft — открытое задание закрывается, счётчик уходит
     await fillMarks(request, manager, KOSAREV, 'manager', 0)
@@ -184,6 +190,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
       const modal = page.locator('.p-dialog')
       await expect(modal).toContainText('Непокрыто: 2 из')
       await expect(modal).toContainText('Будет проставлен грейд')
+      await page.screenshot({ path: 'e2e/screenshots/reassessment/06-force-close-modal.png' })
       await modal.getByRole('button', { name: 'Закрыть принудительно' }).click()
       await expect(page.getByText('Проставлено системных отметок').first()).toBeVisible()
       remaining -= 1
@@ -197,6 +204,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     // .act — экшн-иконка в таблице сессий (голый .pi-pencil ловит пункт меню «Моё ревью»)
     await page.locator('[data-testid="session-view"], .pi-pencil.act').first().click()
     await expect(page.getByTestId('default-mark-badge').first()).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/07-default-marks.png', fullPage: true })
   })
 
   test('10.5: конвейер админки — фильтры → предпросмотр → модалка → сводка → список запусков; отмена', async ({ page, request }) => {
@@ -224,16 +232,19 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     await page.getByRole('option', { name: 'android' }).click()
     await page.getByTestId('btn-preview').click()
     await expect(page.getByTestId('preview-block')).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/08-pipeline-preview.png' })
 
     // запуск через модалку с объектом действия
     await page.getByTestId('btn-launch').click()
     const modal = page.locator('.p-dialog')
     await expect(modal).toContainText('Окно свежести:')
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/09-launch-modal.png' })
     await modal.getByRole('button', { name: 'Запустить' }).click()
     await expect(page.getByTestId('launch-summary')).toBeVisible()
 
     // запуск появился в списке с прогрессом; массовая отмена незаполненных
     await expect(page.getByText('выполнено', { exact: false }).first()).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/10-launch-summary.png' })
     await page.locator('.launch-head').first().click()
     await page.getByTestId('btn-cancel-launch').first().click()
     await expect(page.locator('.p-dialog')).toContainText('открытых заданий запуска')
@@ -249,9 +260,11 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     await page.getByTestId('filter-channel').click()
     await page.getByRole('option', { name: 'log' }).click()
     await expect(outbox.locator('tbody tr').first()).toContainText('log')
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/11-outbox.png' })
     // настройки группы reassessment присутствуют и сохраняются
     await page.getByRole('tab', { name: 'Настройки цикла' }).click()
     await expect(page.getByTestId('reassessment-settings')).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/12-settings-reassessment.png', fullPage: true })
   })
 
   test('10.8: реестр заданий — фильтры сужают, отмена через модалку, без права вкладка скрыта', async ({ page, request }) => {
@@ -266,6 +279,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     await status.click()
     await page.getByRole('option', { name: 'отменено' }).click()
     await expect(page.getByText('отменено').first()).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/13-registry.png' })
 
     // сброс и отмена открытого задания из строки через модалку
     await status.click()
@@ -287,6 +301,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     await expect(page.getByTestId('wf-assignment-badge').first()).toBeVisible()
     await page.getByTestId('wf-assignment-badge').first().click()
     await expect(page.getByTestId('wf-assignment-line')).toContainText('Создаёт задания:')
+    await page.screenshot({ path: 'e2e/screenshots/reassessment/14-workflow-badges.png' })
     // вкладка «Задания» — тот же гайд сверху (14.1)
     await page.getByRole('tab', { name: 'Задания' }).click()
     await expect(page.getByTestId('assignment-guide')).toBeVisible()

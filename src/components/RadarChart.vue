@@ -67,7 +67,7 @@ function render() {
       indicator: props.axis.map((a) => ({
         name: a.length > 24 ? a.slice(0, 22) + '…' : a, max: 10,
       })),
-      radius: '78%',
+      radius: '66%',  // запас под подписи осей у края холста (28 осей qa резались при 78%)
     },
     series,
   } as never, true)

@@ -155,7 +155,7 @@ describe('AssessmentsView: хаб «Оценки» (8.2–8.5)', () => {
     expect(text).toContain('Карточка селф-ревью')
     expect(text).toContain('Самооценка компетенций')
     expect(text).toContain('просрочено')            // бейдж из флага overdue
-    expect(text).toContain('soft — осталось 4 п.')  // прогресс покрытия из API
+    expect(text).toContain('soft: backend — осталось 4 п.')  // прогресс покрытия из API
     expect(text).toContain('Оценка коллег')
     expect(w.find('[data-testid="empty-queue"]').exists()).toBe(false)
   })
