@@ -6,6 +6,8 @@
         <li v-for="item in items" :key="item.to">
           <router-link :to="item.to" :class="{ active: $route.path === item.to }">
             <i :class="item.icon" /> {{ item.label }}
+            <Badge v-if="item.counter && item.counter() > 0" :value="item.counter()"
+                   severity="warn" class="menu-badge" />
           </router-link>
         </li>
       </ul>
@@ -58,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
@@ -71,6 +73,8 @@ const auth = useAuth()
 const router = useRouter()
 const route = useRoute()
 const unread = ref(0)
+const assignmentsOpen = ref(0)
+let pollTimer: number | undefined
 const errCount = ref(0)
 const errorLogVisible = ref(false)
 const errorLog = ref<any[]>([])
@@ -91,16 +95,19 @@ const roleLabel = computed(
 
 // меню динамически зависит от пермишенов (fixes5): пункты без perm — всем аутентифицированным;
 // perm может быть массивом — пункт виден с любым из списка (гейт /admin синхронен роутеру)
-const allItems: { to: string; label: string; icon: string; perm?: string | string[] }[] = [
+const allItems: { to: string; label: string; icon: string; perm?: string | string[]; counter?: () => number }[] = [
   { to: '/dashboard', label: 'Дашборд цикла', icon: 'pi pi-chart-bar', perm: 'ROLE_R_DASHBOARD' },
   { to: '/staff', label: 'Сотрудники', icon: 'pi pi-users', perm: 'ROLE_R_STAFF' },
   { to: '/my-review', label: 'Моё ревью', icon: 'pi pi-pencil' },
-  { to: '/peer-review', label: 'Оценить коллег', icon: 'pi pi-star' },
+  { to: '/assessments', label: 'Оценки', icon: 'pi pi-star',
+    counter: () => assignmentsOpen.value },
   { to: '/calibration', label: 'Калибровки', icon: 'pi pi-sliders-h', perm: 'ROLE_V_REVIEW_RESULT' },
   { to: '/decisions', label: 'Решения и бюджет', icon: 'pi pi-wallet', perm: 'ROLE_R_DECISION_ANY' },
   { to: '/nominations', label: 'Номинации', icon: 'pi pi-arrow-circle-up', perm: 'ROLE_R_NOMINATION' },
   { to: '/imports', label: 'Импорт', icon: 'pi pi-download', perm: 'ROLE_C_IMPORT' },
-  { to: '/admin', label: 'Админ', icon: 'pi pi-cog', perm: ['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX'] },
+  { to: '/admin', label: 'Админ', icon: 'pi pi-cog',
+    perm: ['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX', 'ROLE_U_COMPETENCY_REASSESSMENT',
+           'ROLE_U_ASSIGNMENTS', 'ROLE_R_DELIVERY_LOG'] },
 ]
 const items = computed(() => allItems.filter((i) =>
   !i.perm || (Array.isArray(i.perm) ? i.perm.some((p) => auth.can(p)) : auth.can(i.perm))))
@@ -108,13 +115,27 @@ const items = computed(() => allItems.filter((i) =>
 async function refreshUnread() {
   if (!auth.isAuthed) return
   try {
-    unread.value = (await notificationsApi.unreadCount()).count
+    // один агрегирующий запрос на тик: непрочитанные + открытые задания (реш. 8)
+    const counters = await notificationsApi.unreadCount()
+    unread.value = counters.count
+    assignmentsOpen.value = counters.open_assignments || 0
   } catch { /* тихо */ }
 }
 watch(() => route.path, refreshUnread)
 watch(() => errorLogVisible.value, refreshErrors)
 onMounted(() => window.addEventListener('prtool:error-logged', refreshErrors))
 onMounted(refreshUnread)
+// поллинг счётчиков раз в 60 с: пауза при скрытой вкладке, очистка на unmount (8.6)
+onMounted(() => {
+  pollTimer = window.setInterval(() => {
+    if (document.visibilityState === 'visible') refreshUnread()
+  }, 60_000)
+  document.addEventListener('visibilitychange', refreshUnread)
+})
+onBeforeUnmount(() => {
+  if (pollTimer) window.clearInterval(pollTimer)
+  document.removeEventListener('visibilitychange', refreshUnread)
+})
 
 function logout() {
   auth.logout()

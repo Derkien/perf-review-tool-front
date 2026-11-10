@@ -13,6 +13,9 @@ const props = withDefaults(defineProps<{
   norm?: number
   session1?: (number | null)[] | null
   session2?: (number | null)[] | null
+  /** системные («по умолчанию») значения сравниваемых сессий — пустые точки */
+  session1Default?: boolean[] | null
+  session2Default?: boolean[] | null
   current?: number[]  // legacy
   prev?: (number | null)[] | null
   width?: string
@@ -30,17 +33,28 @@ function render() {
     chart = echarts.init(el.value)
   }
   const series: any[] = []
-  const push = (name: string, data: any, color: string, dashed = false, area = false) =>
+  const push = (name: string, data: any, color: string, dashed = false, area = false,
+                hollow = false) =>
     series.push({
       name, type: 'radar', data: [{ value: data, name }],
       lineStyle: dashed ? { type: 'dashed', color } : { color },
-      itemStyle: { color },
+      itemStyle: hollow ? { color: 'transparent', borderColor: color } : { color },
       areaStyle: area ? { color, opacity: 0.15 } : undefined,
     })
   if (props.manager?.length) push('Руководитель', props.manager, '#2563eb', false, true)
   if (props.self?.length) push('Самооценка', props.self, '#f59e0b')
-  if (props.session1?.length) push('Сессия 1', props.session1, '#9333ea', true)
-  if (props.session2?.length) push('Сессия 2', props.session2, '#0d9488', true)
+  // сравниваемая сессия: системные пункты — отдельной полой линией (бейдж «по умолчанию»)
+  const pushSession = (idx: number, data: (number | null)[] | null | undefined,
+                       defaults: boolean[] | null | undefined, color: string) => {
+    if (!data?.length) return
+    push(`Сессия ${idx}`, data.map((v, i) => (defaults?.[i] ? null : v)), color, true)
+    if (defaults?.some(Boolean)) {
+      push(`Сессия ${idx} (по умолчанию)`, data.map((v, i) => (defaults[i] ? v : null)),
+           color, true, false, true)
+    }
+  }
+  pushSession(1, props.session1, props.session1Default, '#9333ea')
+  pushSession(2, props.session2, props.session2Default, '#0d9488')
   if (props.current?.length) push('Текущий', props.current, '#2563eb', false, true)
   if (props.prev?.length) push('Прошлый', props.prev, '#94a3b8', true)
   if (props.norm != null && props.axis.length) {
@@ -70,7 +84,8 @@ onMounted(() => {
   })
   if (el.value) ro.observe(el.value)
 })
-watch(() => [props.axis, props.self, props.manager, props.norm, props.session1, props.session2], render)
+watch(() => [props.axis, props.self, props.manager, props.norm, props.session1, props.session2,
+  props.session1Default, props.session2Default], render)
 onBeforeUnmount(() => {
   ro?.disconnect()
   chart?.dispose()

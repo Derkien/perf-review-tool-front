@@ -21,7 +21,9 @@
         </div>
         <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                     :manager="radar.manager" :norm="radar.norm"
-                    :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="620px" />
+                    :session1="sessionSeries[0]" :session2="sessionSeries[1]"
+                    :session1-default="sessionDefaults[0]" :session2-default="sessionDefaults[1]"
+                    height="620px" />
         <p v-else class="muted">Разметок по этому типу пока нет{{
           markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
       </div>
@@ -46,7 +48,14 @@
       <template #content>
         <div class="mark-form-head">
           <label>Дата <InputText v-model="markDate" type="date" size="small" /></label>
+          <span class="muted small" data-testid="date-freshness-hint">
+            дата влияет на свежесть оценки — оставьте сегодняшнюю
+          </span>
         </div>
+        <Message v-if="staleDateWarning" severity="warn" data-testid="stale-date-warning"
+                 style="margin-bottom: 8px">
+          {{ staleDateWarning }}
+        </Message>
         <div class="mark-table">
           <div v-for="row in matrixRows" :key="row.item_id" class="mark-row">
             <span class="mark-name" v-tooltip.top="rowLevel(row)">{{ row.item }}</span>
@@ -100,7 +109,13 @@
         <template #body="{ data: s }">{{ s.assessor_kind === 'self' ? 'самооценка' : 'руководитель' }}</template>
       </Column>
       <Column field="assessor" header="Кто заполнял" />
-      <Column field="marks" header="Пунктов" />
+      <Column header="Пунктов">
+        <template #body="{ data: s }">
+          <span data-testid="session-completeness">{{ completenessText(s) }}</span>
+          <Tag v-if="s.system_marks" :value="`${s.system_marks} системой`" severity="warn"
+               style="margin-left: 6px" v-tooltip.top="'значения «по умолчанию» — принудительное закрытие'" />
+        </template>
+      </Column>
       <Column header="Действия">
         <template #body="{ data: s }">
           <span class="acts">
@@ -112,6 +127,11 @@
                @click.stop="openSessionEdit(s)" />
             <i v-else-if="perms.edit_marks" class="pi pi-pencil act" v-tooltip.top="'Редактировать'"
                @click.stop="openSessionEdit(s)" />
+            <!-- принудительное закрытие — только у незакрытой сессии, по праву оператора -->
+            <i v-if="canForceCloseSession(s)" class="pi pi-lock act danger"
+               data-testid="session-force-close"
+               v-tooltip.top="'Закрыть принудительно (пробелы — уровнем грейда)'"
+               @click.stop="forceCloseSession(s)" />
             <i v-if="!isClosedSession(s) && (perms.edit_marks || canHardDelete)"
                class="pi pi-trash act danger"
                v-tooltip.top="canHardDelete ? 'Удалить (soft/hard)' : 'Удалить (soft)'"
@@ -126,7 +146,9 @@
             :style="{ width: '96vw' }" :content-style="{ height: '88vh' }" :maximizable="true">
       <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                   :manager="radar.manager" :norm="radar.norm"
-                  :session1="sessionSeries[0]" :session2="sessionSeries[1]" height="84vh" />
+                  :session1="sessionSeries[0]" :session2="sessionSeries[1]"
+                  :session1-default="sessionDefaults[0]" :session2-default="sessionDefaults[1]"
+                  height="84vh" />
     </Dialog>
 
     <!-- редактирование/просмотр сессии (по пунктам её версии схемы) -->
@@ -138,9 +160,10 @@
           <span class="mark-name" v-tooltip.top="sessionRowTip(row)">{{ row.item }}</span>
           <Select v-if="!sessionEditReadonly" v-model="sessionEditDraft[row.item_id]"
                   :options="gradeOptions" option-label="label" option-value="value" filter size="small" />
-          <span v-else class="muted small">
-            {{ row.level }} (вес {{ row.weight }})
-          </span>
+          <span v-else class="muted small">{{ row.level }} (вес {{ row.weight }})</span>
+          <!-- системные значения видны и в редактировании — иначе их можно молча перезаписать -->
+          <Tag v-if="row.is_default" value="по умолчанию" severity="warn"
+               data-testid="default-mark-badge" />
         </div>
       </div>
       <Message v-if="sessionEditReadonly" severity="info" :sticky="true" style="margin-top:8px">
@@ -165,7 +188,7 @@ import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import RadarChart from './RadarChart.vue'
-import { competenciesApi } from '../api/endpoints'
+import { competenciesApi, assignmentsApi, reassessmentApi, staffApi } from '../api/endpoints'
 import type { MatrixRow, RadarData } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
@@ -192,6 +215,10 @@ const markDraft = ref<Record<number, string>>({})
 const radarBig = ref(false)
 const compareKeys = ref<string[]>([])
 const sessionSeries = ref<any[]>([null, null])
+/** системные значения сравниваемых сессий — полые точки на паутинке */
+const sessionDefaults = ref<(boolean[] | null)[]>([null, null])
+/** моё открытое задание переоценки по этому сотруднику (предупреждение о дате, 9.8) */
+const openAssignmentHere = ref<boolean>(false)
 const sessionEditVisible = ref(false)
 const sessionEditRows = ref<SessionDetailRow[]>([])
 const sessionEditDraft = ref<Record<number, string>>({})
@@ -202,6 +229,27 @@ const versionItemsCount = ref<Record<number, number>>({})
 const busy = ref(false)
 
 const canHardDelete = computed(() => auth.can('ROLE_D_COMPETENCY_SESSION'))
+const canReassess = computed(() => auth.can('ROLE_U_COMPETENCY_REASSESSMENT'))
+/** вид разметки, которым сохраняет этот пользователь (для предупреждения о дате) */
+const myAssessorKind = computed(() =>
+  props.perms.is_self && !props.perms.edit_marks ? 'self' : 'manager')
+
+/** предупреждение 9.8: открыто задание переоценки, а дата — уже существующей сессии */
+const staleDateWarning = computed(() => {
+  if (!openAssignmentHere.value) return ''
+  if (markDate.value === new Date().toISOString().slice(0, 10)) return ''
+  const clash = sessions.value.some((s: any) => s.date === markDate.value
+    && s.assessor_kind === myAssessorKind.value)
+  if (!clash) return ''
+  return 'Разметка этой датой не закроет задание: отметки на уже созданную дату обновляются, а не создаются'
+})
+
+/** счётчик полноты сессии: «15/20 пользователем» — если есть пробелы или системные отметки */
+function completenessText(s: any): string {
+  const total = versionItemsCount.value[s.matrix_id]
+  if (total === undefined || (total === s.marks && !s.system_marks)) return String(s.marks)
+  return `${s.user_marks}/${total} пользователем`
+}
 
 /** версии активных схем текущего типа — бейдж у переключателя и в подписи радара */
 const radarVersions = computed(() => {
@@ -232,10 +280,10 @@ async function load() {
   try {
     sessions.value = await competenciesApi.sessions(props.employeeId, kind.value)
   } catch { sessions.value = [] }
-  // пункты версий архивных сессий — признак «закрыта» (read-only просмотр)
+  // пункты версий сессий — признак «закрыта» (read-only) и счётчик полноты «X/Y»
   const counts: Record<number, number> = {}
   for (const mid of [...new Set(sessions.value
-    .filter((s: any) => s.is_current === false && s.matrix_id)
+    .filter((s: any) => s.matrix_id)
     .map((s: any) => s.matrix_id as number))]) {
     try { counts[mid] = (await competenciesApi.matrixItems(mid)).length
     } catch { /* нет доступа — считаем сессию незакрытой */ }
@@ -243,6 +291,15 @@ async function load() {
   versionItemsCount.value = counts
   compareKeys.value = []
   sessionSeries.value = [null, null]
+  sessionDefaults.value = [null, null]
+  // есть ли открытое задание переоценки по этому сотруднику у меня (9.8)
+  try {
+    const mine = await assignmentsApi.mine()
+    openAssignmentHere.value = mine.some((a) =>
+      ['pending', 'notified'].includes(a.status)
+      && a.kind.startsWith('competency-')
+      && a.subject?.id === Number(props.employeeId))
+  } catch { openAssignmentHere.value = false }
 }
 
 function sessionKey(s: any): string { return `${s.kind}|${s.date}` }
@@ -275,11 +332,13 @@ async function toggleCompare(s: any) {
 async function refreshCompareSeries() {
   if (!compareKeys.value.length) {
     sessionSeries.value = [null, null]
+    sessionDefaults.value = [null, null]
     return
   }
   const dates = compareKeys.value.map((k) => k.split('|')[1])
   const r = await competenciesApi.radar(props.employeeId, kind.value, dates)
   sessionSeries.value = [r.session_1 || null, r.session_2 || null]
+  sessionDefaults.value = [r.session_1_default || null, r.session_2_default || null]
 }
 
 async function saveMarks() {
@@ -323,6 +382,7 @@ type SessionDetailRow = {
   item_id: number; item: string; category: string
   descriptions: Record<string, string>
   assessor_kind: 'self' | 'manager'; level: string; weight: number
+  is_default?: boolean
 }
 
 function sessionRowTip(row: SessionDetailRow): string {
@@ -354,6 +414,46 @@ async function saveSessionEdit() {
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
+}
+
+/** принудительное закрытие доступно оператору у незакрытой сессии (для закрытых кнопки нет) */
+function canForceCloseSession(s: any): boolean {
+  if (!canReassess.value || !s.matrix_id) return false
+  const total = versionItemsCount.value[s.matrix_id]
+  return total !== undefined && s.marks < total
+}
+
+async function forceCloseSession(s: any) {
+  const total = versionItemsCount.value[s.matrix_id]
+  if (!total) return
+  let name = ''
+  let grade = ''
+  try {
+    const card = await staffApi.card(props.employeeId)
+    name = card.full_name
+    grade = card.grade || ''
+  } catch { /* имя/грейд в подтверждении не критичны */ }
+  const ok = await confirmDialog.ask({
+    header: 'Закрыть разметку принудительно?',
+    message: `Кого: ${name || `сотрудник #${props.employeeId}`}`
+      + `\nСхема: ${s.kind} (v${s.version || '—'}, #${s.matrix_id})`
+      + `\nВид: ${s.assessor_kind === 'self' ? 'самооценка' : 'руководительская'}`
+      + `\nНепокрыто: ${total - s.marks} из ${total}`
+      + (grade ? `\nБудет проставлен грейд: ${grade}` : ''),
+    okLabel: 'Закрыть принудительно', danger: true,
+  })
+  if (ok === null) return
+  try {
+    const res = await reassessmentApi.forceClose({
+      employee_id: Number(props.employeeId), matrix_id: s.matrix_id,
+      assessor_kind: s.assessor_kind,
+    })
+    toast.add({ severity: 'success',
+                summary: `Проставлено системных отметок: ${res.system_marks}`, life: 5000 })
+    await load()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
+  }
 }
 
 async function deleteSession(s: any) {

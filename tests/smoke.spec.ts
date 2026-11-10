@@ -11,6 +11,9 @@ vi.mock('../src/api/endpoints', () => ({
       permissions: ['ROLE_R_DASHBOARD'],
     })),
   },
+  // поллинг счётчиков AppLayout (8.6): бейджи уведомлений и заданий
+  notificationsApi: { unreadCount: vi.fn(async () => ({ count: 0, open_assignments: 0 })) },
+  assignmentsApi: { mine: vi.fn(async () => []) },
   postActivity: vi.fn(async () => undefined),
 }))
 
@@ -24,7 +27,10 @@ describe('SPA smoke (прод-сценарий: реальный main.ts в jsdo
   it('main.ts монтирует приложение, /login рендерит форму входа', async () => {
     location.hash = '#/login'
     await import('../src/main')
-    await new Promise((r) => setTimeout(r, 100))
+    // ждём готовности роутера, а не фиксированный таймаут: под нагрузкой 100 мс мало
+    const { default: router } = await import('../src/router')
+    await router.isReady()
+    await new Promise((r) => setTimeout(r, 20))
     const appEl = document.getElementById('app')
     expect(appEl).toBeTruthy()
     expect(appEl!.innerHTML.length, '#app не должен быть пуст (белый экран)').toBeGreaterThan(0)

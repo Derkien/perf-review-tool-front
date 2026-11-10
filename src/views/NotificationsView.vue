@@ -35,8 +35,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import { notificationsApi } from '../api/endpoints'
+
+const router = useRouter()
 
 const items = ref<any[]>([])
 const total = ref(0)
@@ -80,9 +83,13 @@ async function loadMore() {
 }
 
 async function read(n: any) {
-  if (n.is_read) return
-  await notificationsApi.markRead(n.id)
-  n.is_read = true
+  if (!n.is_read) {
+    await notificationsApi.markRead(n.id)
+    n.is_read = true
+  }
+  // диплинк: клик по уведомлению с url ведёт по адресу (9.1);
+  // старые записи хранят "/#/path" — роутеру нужен путь без hash-префикса
+  if (n.url) router.push(n.url.replace(/^\/#/, ''))
 }
 async function readAll() {
   await notificationsApi.readAll()

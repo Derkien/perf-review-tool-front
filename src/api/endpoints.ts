@@ -35,6 +35,8 @@ export type RadarData = {
   norm: number
   session_1?: (number | null)[] | null
   session_2?: (number | null)[] | null
+  session_1_default?: boolean[] | null
+  session_2_default?: boolean[] | null
   gaps?: { item: string; self: number; manager: number; gap: number }[]
   matrices?: { id: number; kind: string; specialty: string; version: number }[]
   summary?: { overestimated: string[]; growth_zones: string[]; avg_self: number; avg_manager: number }
@@ -176,6 +178,11 @@ export const staffApi = {
     if (error) raise(error, '/staff/employees')
     return data as never
   },
+  async orgUnits(): Promise<{ id: number; parent_id: number | null; name: string; kind: string; path: string }[]> {
+    const { data, error } = await client.GET('/staff/org-units')
+    if (error) raise(error, '/staff/org-units')
+    return data as never
+  },
   async card(id: number | string): Promise<EmployeeCard> {
     const { data, error } = await client.GET('/staff/employees/{employee_id}', {
       params: { path: { employee_id: Number(id) } },
@@ -230,7 +237,7 @@ export const reviewsApi = {
     transitions: {
       name: string; from: string[]; to: string; label: string; permission: string
       description: string; gate: string | null; gate_label: string | null
-      gate_enabled: boolean | null
+      gate_enabled: boolean | null; assignments: string | null
     }[]
   }> {
     const { data, error } = await client.GET('/reviews/workflow-schema')
@@ -332,13 +339,6 @@ export const reviewsApi = {
   async sendAssignments(body: { cycle_id: number; employee_ids: number[] }): Promise<{ created: number; notified: number }> {
     const { data, error } = await client.POST('/reviews/peer-assignments/send', { body })
     if (error) raise(error, '/reviews/peer-assignments/send')
-    return data as never
-  },
-  async myAssignments(cycleId: number): Promise<{ assignment_id: number; subject: string; subject_id: number; role: string; status: string; achievements: { text: string; self_rating?: string | null }[] | null }[]> {
-    const { data, error } = await client.GET('/reviews/peer-assignments/mine', {
-      params: { query: { cycle_id: cycleId } },
-    })
-    if (error) raise(error, '/reviews/peer-assignments/mine')
     return data as never
   },
   async submitPeerReview(assignmentId: number, body: { ratings: { ach_index: number; letter: string }[]; free_text: string }): Promise<{ id: number }> {
@@ -756,7 +756,7 @@ export const notificationsApi = {
     if (error) raise(error, '/notifications/mine')
     return data as NotificationsPage
   },
-  async unreadCount(): Promise<{ count: number }> {
+  async unreadCount(): Promise<{ count: number; open_assignments: number }> {
     const { data, error } = await client.GET('/notifications/unread-count')
     if (error) raise(error, '/notifications/unread-count')
     return data as never
@@ -811,3 +811,192 @@ export function trackAction(section: string, detail: Record<string, unknown>): v
 }
 
 export { qs }
+
+
+// ---- контур заданий (унифицированные активности ревью) -----------------------
+
+export type AssignmentProgressMatrix = {
+  kind: string; specialty: string; version: number; matrix_id: number
+  covered: number; total: number; complete: boolean
+}
+
+export type AssignmentDto = {
+  id: number
+  kind: string
+  kind_title: string
+  status: 'pending' | 'notified' | 'done' | 'cancelled'
+  due_date: string | null
+  overdue: boolean
+  assignee: { id: number; name: string | null }
+  subject: { id: number; name: string | null } | null
+  context: Record<string, unknown>
+  created_at: string | null
+  done_at: string | null
+  launch_id: number | null
+  progress: { matrices: AssignmentProgressMatrix[] }
+  // детали peer-задания (GET /assignments/{id})
+  role?: string
+  cycle_id?: number | null
+  achievements?: { text: string; self_rating?: string | null }[] | null
+  self_submitted?: boolean
+  review?: { ratings: { ach_index: number; letter: string }[]; free_text: string } | null
+}
+
+export type LaunchProgress = {
+  launch_id: number
+  kind: string
+  source: 'manual' | 'schema_activation' | 'cycle_start'
+  cycle_id: number | null
+  created_at: string | null
+  cancelled_at: string | null
+  counts: { done: number; open: number; cancelled: number }
+  unfinished: {
+    assignment_id: number; kind: string; matrix_kind: string | null
+    assignee: { id: number; name: string | null }
+    subject: { id: number; name: string | null } | null
+    grade: string | null
+    due_date: string | null; overdue: boolean
+    progress: { matrices: AssignmentProgressMatrix[] }
+  }[]
+}
+
+export type ReassessmentSummary = {
+  launch_id?: number
+  preexisting_open?: number
+  freshness_days?: number
+  selected: number
+  created: { 'competency-self': number; 'competency-manager-soft': number; 'competency-manager-hard': number }
+  skipped: Record<string, string[]>
+  previous_unfinished?: { launch_id: number; source: string; open_count: number }[]
+}
+
+export const assignmentsApi = {
+  async mine(cycleId?: number): Promise<AssignmentDto[]> {
+    const { data, error } = await client.GET('/assignments/mine', {
+      params: { query: { cycle_id: cycleId } as never },
+    })
+    if (error) raise(error, '/assignments/mine')
+    return data as never
+  },
+  async subordinates(): Promise<AssignmentDto[]> {
+    const { data, error } = await client.GET('/assignments/subordinates')
+    if (error) raise(error, '/assignments/subordinates')
+    return data as never
+  },
+  async detail(id: number): Promise<AssignmentDto> {
+    const { data, error } = await client.GET('/assignments/{assignment_id}', {
+      params: { path: { assignment_id: id } },
+    })
+    if (error) raise(error, '/assignments/{assignment_id}')
+    return data as never
+  },
+  async cancel(id: number): Promise<{ ok: boolean }> {
+    const { data, error } = await client.POST('/assignments/{assignment_id}/cancel', {
+      params: { path: { assignment_id: id } },
+    })
+    if (error) raise(error, '/assignments/{assignment_id}/cancel')
+    return data as never
+  },
+}
+
+export type RegistryFilters = {
+  kind?: string; status?: string; assignee_id?: number; launch_id?: number
+  overdue?: boolean; q?: string; page?: number; page_size?: number
+}
+
+export const adminAssignmentsApi = {
+  async list(filters: RegistryFilters = {}): Promise<{
+    total: number; items: AssignmentDto[]; kind_titles: Record<string, string>
+  }> {
+    const { data, error } = await client.GET('/admin/assignments', {
+      params: { query: filters as never },
+    })
+    if (error) raise(error, '/admin/assignments')
+    return data as never
+  },
+  async cancel(id: number): Promise<{ ok: boolean }> {
+    const { data, error } = await client.POST('/admin/assignments/{assignment_id}/admin-cancel', {
+      params: { path: { assignment_id: id } },
+    })
+    if (error) raise(error, '/admin/assignments/{assignment_id}/admin-cancel')
+    return data as never
+  },
+  async remind(id: number): Promise<{ ok: boolean; sent: number }> {
+    const { data, error } = await client.POST('/admin/assignments/{assignment_id}/remind', {
+      params: { path: { assignment_id: id } },
+    })
+    if (error) raise(error, '/admin/assignments/{assignment_id}/remind')
+    return data as never
+  },
+  async bulk(action: 'cancel' | 'remind', ids: number[]): Promise<{
+    ok: boolean; requested: number; applied: number
+  }> {
+    const { data, error } = await client.POST('/admin/assignments/bulk', {
+      body: { action, ids } as never,
+    })
+    if (error) raise(error, '/admin/assignments/bulk')
+    return data as never
+  },
+}
+
+export type ReassessmentSelection = {
+  functional_group?: string | null
+  org_unit_id?: number | null
+  employee_ids?: number[]
+  due_date?: string | null
+}
+
+export const reassessmentApi = {
+  async preview(body: ReassessmentSelection): Promise<ReassessmentSummary> {
+    const { data, error } = await client.POST('/admin/competency-reassessment/preview', {
+      body: body as never,
+    })
+    if (error) raise(error, '/admin/competency-reassessment/preview')
+    return data as never
+  },
+  async launch(body: ReassessmentSelection): Promise<ReassessmentSummary> {
+    const { data, error } = await client.POST('/admin/competency-reassessment/launch', {
+      body: body as never,
+    })
+    if (error) raise(error, '/admin/competency-reassessment/launch')
+    return data as never
+  },
+  async launches(): Promise<LaunchProgress[]> {
+    const { data, error } = await client.GET('/admin/competency-reassessment/launches')
+    if (error) raise(error, '/admin/competency-reassessment/launches')
+    return data as never
+  },
+  async cancelLaunch(id: number): Promise<{ ok: boolean; cancelled: number }> {
+    const { data, error } = await client.POST('/admin/launches/{launch_id}/cancel', {
+      params: { path: { launch_id: id } },
+    })
+    if (error) raise(error, '/admin/launches/{launch_id}/cancel')
+    return data as never
+  },
+  async forceClose(body: { employee_id: number; matrix_id: number; assessor_kind: string }): Promise<{
+    system_marks: number; assessed_on: string; closed_assignments: number[]
+  }> {
+    const { data, error } = await client.POST('/admin/competency-reassessment/force-close', {
+      body: body as never,
+    })
+    if (error) raise(error, '/admin/competency-reassessment/force-close')
+    return data as never
+  },
+}
+
+export const deliveryApi = {
+  async outbox(params: { channel?: string; status?: string; page?: number } = {}): Promise<{
+    total: number
+    items: {
+      id: number; channel: string; event: string; recipient: string; subject: string
+      status: string; attempts: number; last_error: string | null
+      created_at: string | null; sent_at: string | null
+    }[]
+  }> {
+    const { data, error } = await client.GET('/admin/notifications/outbox', {
+      params: { query: params as never },
+    })
+    if (error) raise(error, '/admin/notifications/outbox')
+    return data as never
+  },
+}

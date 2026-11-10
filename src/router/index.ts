@@ -19,7 +19,9 @@ const routes = [
         meta: { perm: 'ROLE_R_STAFF' } },
       { path: 'staff/:id', component: () => import('../views/EmployeeCardView.vue') },
       { path: 'my-review', component: () => import('../views/MyReviewView.vue') },
-      { path: 'peer-review', component: () => import('../views/PeerReviewView.vue') },
+      // хаб заданий (переоценка, селф-ревью, оценка коллег); старый адрес — редирект
+      { path: 'assessments', component: () => import('../views/AssessmentsView.vue') },
+      { path: 'peer-review', redirect: '/assessments' },
       { path: 'calibration', component: () => import('../views/CalibrationListView.vue'),
         meta: { perm: 'ROLE_V_REVIEW_RESULT' } },
       { path: 'calibration/:id', component: () => import('../views/CalibrationSessionView.vue'),
@@ -32,7 +34,9 @@ const routes = [
         meta: { perm: 'ROLE_C_IMPORT' } },
       { path: 'admin', component: () => import('../views/AdminView.vue'),
         // вкладки админки имеют собственные права: вход — по любому из списка
-        meta: { perm: ['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX'] } },
+        meta: { perm: ['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX',
+                       'ROLE_U_COMPETENCY_REASSESSMENT', 'ROLE_U_ASSIGNMENTS',
+                       'ROLE_R_DELIVERY_LOG'] } },
       { path: 'notifications', component: () => import('../views/NotificationsView.vue') },
     ],
   },

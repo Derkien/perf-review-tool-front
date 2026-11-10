@@ -28,6 +28,12 @@
             <circle :cx="e.infoX" :cy="e.infoY" r="6" />
             <text :x="e.infoX" :y="e.infoY + 3" text-anchor="middle" class="wf-info-i">i</text>
           </g>
+          <!-- переход создаёт задания — значок-бейдж рядом с i (описание — в попапе) -->
+          <g v-if="e.hasAssign" class="wf-info wf-task" data-testid="wf-assignment-badge"
+             @click.stop="openTransition($event, e)">
+            <circle :cx="e.taskX" :cy="e.taskY" r="6" />
+            <text :x="e.taskX" :y="e.taskY + 3" text-anchor="middle" class="wf-info-i">✓</text>
+          </g>
         </g>
       </g>
 
@@ -77,6 +83,9 @@
           <div>
             <b>{{ t.label }}</b> → {{ labelOf(t.to) }}
             <div class="muted small">{{ t.description }}</div>
+            <div v-if="t.assignments" class="small wf-task-line">
+              <i class="pi pi-check-square" /> создаёт задания: {{ t.assignments }}
+            </div>
             <div v-if="t.gate" class="small" :class="t.gate_enabled ? 'gate-on' : 'gate-off'">
               гейт «{{ t.gate_label }}»: {{ t.gate_enabled ? 'включён' : 'выключен' }}
               <span class="muted">(настраивается в «Валидаторах переходов»)</span>
@@ -96,6 +105,10 @@
           {{ labelOf(pop.transition.from[0]) }} → {{ labelOf(pop.transition.to) }}
         </p>
         <p class="wf-pop-desc">{{ pop.transition.description }}</p>
+        <div v-if="pop.transition.assignments" class="small wf-task-line"
+             data-testid="wf-assignment-line">
+          <i class="pi pi-check-square" /> Создаёт задания: {{ pop.transition.assignments }}
+        </div>
         <div v-if="pop.transition.gate" class="small"
              :class="pop.transition.gate_enabled ? 'gate-on' : 'gate-off'">
           Гейт «{{ pop.transition.gate_label }}»
@@ -121,6 +134,7 @@ type Transition = {
   name: string; from: string[]; to: string; label: string; permission: string
   description: string; gate: string | null; gate_label: string | null
   gate_enabled: boolean | null
+  assignments?: string | null
 }
 
 const places = ref<Place[]>([])
@@ -178,6 +192,7 @@ const edges = computed(() => {
   const out: {
     key: string; path: string; label?: string; lines: string[]
     lx: number; ly: number; infoX: number; infoY: number
+    taskX: number; taskY: number; hasAssign?: boolean
     vertical?: boolean; dim?: boolean
   }[] = []
   const chain: [string, string][] = [
@@ -206,8 +221,11 @@ const edges = computed(() => {
     // вертикально: текст справа от линии → значок слева
     const infoX = vertical ? a.x - 11 : lx
     const infoY = vertical ? (a.y + b.y) / 2 : a.y + 16
+    // значок заданий — вторым рядом с i (горизонталь: правее; вертикаль: ниже)
     out.push({
-      key: `${from}-${to}`, path, label: tr?.label, lines, lx, ly, infoX, infoY,
+      key: `${from}|${to}`, path, label: tr?.label, lines, lx, ly, infoX, infoY,
+      taskX: vertical ? infoX : infoX + 14, taskY: vertical ? infoY + 14 : infoY,
+      hasAssign: !!tr?.assignments,
       vertical, dim: tr?.gate_enabled === false,
     })
   }
@@ -258,7 +276,8 @@ function openTransition(
   ev: Event,
   e: { key: string; infoX: number; infoY: number },
 ) {
-  const [from, to] = e.key.split('-')
+  // названия стадий содержат дефис — ключ из '|', не из '-'
+  const [from, to] = e.key.split('|')
   const tr = transitions.value.find((t) => t.from.includes(from) && t.to === to
     && !['cancel', 'reopen'].includes(t.name))
   if (!tr) return
@@ -286,6 +305,10 @@ reviewsApi.workflowSchema().then((s) => {
 .wf-info circle { fill: #e2e8f0; stroke: #94a3b8; stroke-width: 1; }
 .wf-info:hover circle { fill: #cbd5e1; }
 .wf-info-i { font-size: 9px; font-weight: 700; fill: #334155; font-family: Georgia, serif; font-style: italic; }
+/* значок заданий перехода: янтарный, отличим от info */
+.wf-task circle { fill: #fef3c7; stroke: #d97706; }
+.wf-task .wf-info-i { fill: #92400e; font-style: normal; }
+.wf-task-line { color: #92400e; margin-top: 4px; }
 .wf-edge-label { font-size: 10.5px; fill: #475569; }
 .wf-cancel-label { fill: #b45309; }
 /* белая обводка текста: читается поверх линий и узлов */

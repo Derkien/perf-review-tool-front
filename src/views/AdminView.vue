@@ -6,8 +6,11 @@
         <Tab value="users">Пользователи и роли</Tab>
         <Tab value="settings">Настройки цикла</Tab>
         <Tab v-if="auth.can('ROLE_U_COMPETENCY_MATRIX')" value="schemas">Матрицы компетенций</Tab>
+        <Tab v-if="auth.can('ROLE_U_COMPETENCY_REASSESSMENT')" value="reassessment">Переоценка компетенций</Tab>
+        <Tab v-if="auth.can('ROLE_U_ASSIGNMENTS')" value="assignments">Задания</Tab>
         <Tab value="rules">Правила повышений</Tab>
         <Tab value="activity">Активность и аудит</Tab>
+        <Tab v-if="auth.can('ROLE_R_DELIVERY_LOG')" value="outbox">Лог рассылки</Tab>
         <Tab value="rights">Права доступа</Tab>
       </TabList>
       <TabPanels>
@@ -119,9 +122,39 @@
             Делегаты работают вне матрицы подчинения: могут выполнять действие за любых
             руководителей. Роли при этом не меняются.
           </p>
+
+          <h2 style="margin:18px 0 8px">Переоценка компетенций</h2>
+          <div class="settings" data-testid="reassessment-settings">
+            <label>Окно свежести, дней
+              <InputNumber v-model="cr.freshness_days" @update:model-value="saveReassessment" />
+            </label>
+            <label>Автозапуск на старте ревью
+              <ToggleSwitch :model-value="cr.cycle_start_enabled"
+                            @update:model-value="cr.cycle_start_enabled = $event; saveReassessment()" />
+            </label>
+            <label>Напоминания включены
+              <ToggleSwitch :model-value="cr.reminders.enabled"
+                            @update:model-value="cr.reminders.enabled = $event; saveReassessment()" />
+            </label>
+            <label>Время напоминаний (МСК)
+              <InputText v-model="cr.reminders.time" placeholder="10:00" @change="saveReassessment" />
+            </label>
+            <label>Интервал напоминаний, дней
+              <InputNumber v-model="cr.reminders.interval_days" @update:model-value="saveReassessment" />
+            </label>
+            <label>Напоминаний на задание, макс
+              <InputNumber v-model="cr.reminders.max_per_assignment" @update:model-value="saveReassessment" />
+            </label>
+          </div>
         </TabPanel>
         <TabPanel value="schemas">
           <CompetencySchemasTab />
+        </TabPanel>
+        <TabPanel value="reassessment">
+          <ReassessmentTab />
+        </TabPanel>
+        <TabPanel value="assignments">
+          <AdminAssignmentsTab />
         </TabPanel>
         <TabPanel value="activity">
           <div class="head-row">
@@ -165,6 +198,9 @@
               </template>
             </Column>
           </DataTable>
+        </TabPanel>
+        <TabPanel value="outbox">
+          <OutboxLogTab />
         </TabPanel>
         <TabPanel value="rights">
           <p class="muted">
@@ -221,6 +257,7 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import Tab from 'primevue/tab'
 import TabList from 'primevue/tablist'
 import TabPanel from 'primevue/tabpanel'
@@ -231,6 +268,9 @@ import MultiSelect from 'primevue/multiselect'
 import ToggleSwitch from 'primevue/toggleswitch'
 import WorkflowSchema from '../components/WorkflowSchema.vue'
 import CompetencySchemasTab from '../components/CompetencySchemasTab.vue'
+import ReassessmentTab from '../components/ReassessmentTab.vue'
+import AdminAssignmentsTab from '../components/AdminAssignmentsTab.vue'
+import OutboxLogTab from '../components/OutboxLogTab.vue'
 import { adminApi } from '../api/endpoints'
 import type { PermissionsCatalog } from '../api/endpoints'
 import { errMsg } from '../api/errors'
@@ -264,6 +304,11 @@ const gates = ref<{ self_review_gate: boolean; leader_assessment_gate: boolean; 
   { self_review_gate: false, leader_assessment_gate: true, calibration_finished_gate: true })
 const delegation = ref<{ leader_assessment_user_ids: number[]; peer_edit_user_ids: number[] }>(
   { leader_assessment_user_ids: [], peer_edit_user_ids: [] })
+const cr = ref<{ freshness_days: number; cycle_start_enabled: boolean
+                 reminders: { enabled: boolean; time: string; interval_days: number
+                              max_per_assignment: number } }>(
+  { freshness_days: 30, cycle_start_enabled: true,
+    reminders: { enabled: true, time: '10:00', interval_days: 1, max_per_assignment: 5 } })
 const userOptions = computed(() =>
   users.value.filter((u: any) => u.id).map((u: any) => ({ id: u.id, label: `${u.full_name} (${u.email})` })))
 
@@ -299,6 +344,10 @@ onMounted(async () => {
                   ...(st.workflow_gates as any) }
   delegation.value = { leader_assessment_user_ids: [], peer_edit_user_ids: [],
                        ...(st.delegation as any) }
+  cr.value = { freshness_days: 30, cycle_start_enabled: true,
+               reminders: { enabled: true, time: '10:00', interval_days: 1,
+                            max_per_assignment: 5 },
+               ...(st.competency_reassessment as any) }
   await loadRights()
   loadActivity()
 })
@@ -371,6 +420,9 @@ async function saveGates() {
 }
 async function saveDelegation() {
   await adminApi.putSettings({ delegation: delegation.value })
+}
+async function saveReassessment() {
+  await adminApi.putSettings({ competency_reassessment: cr.value })
 }
 async function saveRules() {
   await adminApi.putSettings({ raise_rules: r.value })

@@ -109,6 +109,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assignments/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Assignments
+         * @description Задания исполнителя: открытые + выполненные (переключатель «история» — на фронте).
+         */
+        get: operations["my_assignments_api_v1_assignments_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assignments/subordinates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subordinate Assignments
+         * @description Режим руководителя «анкеты подчинённых»: мои открытые задания оценки
+         *     подчинённых (competency-manager) + открытые задания самих подчинённых.
+         */
+        get: operations["subordinate_assignments_api_v1_assignments_subordinates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assignments/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assignment Detail
+         * @description Детали задания: для peer-review — данные формы оценки (достижения коллеги,
+         *     своя отправленная оценка); для остальных — базовая карточка с прогрессом.
+         */
+        get: operations["assignment_detail_api_v1_assignments__assignment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assignments/{assignment_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Assignment
+         * @description Отмена задания — только оператор с правом; исполнитель своё задание не отменяет.
+         */
+        post: operations["cancel_assignment_api_v1_assignments__assignment_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/org-units": {
         parameters: {
             query?: never;
@@ -870,23 +952,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/reviews/peer-assignments/mine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** My Assignments */
-        get: operations["my_assignments_api_v1_reviews_peer_assignments_mine_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/reviews/peer-reviews/{assignment_id}": {
         parameters: {
             query?: never;
@@ -1510,7 +1575,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Unread Count */
+        /**
+         * Unread Count
+         * @description Счётчики бейджей одним запросом: непрочитанные уведомления + открытые
+         *     задания исполнителя (поллинг раз в 60 с, design реш. 8).
+         */
         get: operations["unread_count_api_v1_notifications_unread_count_get"];
         put?: never;
         post?: never;
@@ -1632,6 +1701,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/competency-reassessment/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reassessment Preview
+         * @description Сухой запуск: кто получит задания, кто отсеивается и почему; ничего не пишет.
+         */
+        post: operations["reassessment_preview_api_v1_admin_competency_reassessment_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/competency-reassessment/launch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reassessment Launch */
+        post: operations["reassessment_launch_api_v1_admin_competency_reassessment_launch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/competency-reassessment/launches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reassessment Launches
+         * @description Список запусков (ручные и автоматические) с живым прогрессом.
+         */
+        get: operations["reassessment_launches_api_v1_admin_competency_reassessment_launches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/launches/{launch_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Launch */
+        post: operations["cancel_launch_api_v1_admin_launches__launch_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/competency-reassessment/force-close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Force Close */
+        post: operations["force_close_api_v1_admin_competency_reassessment_force_close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assignments Registry
+         * @description Реестр всех заданий: фильтры тип/статус/исполнитель/запуск/просроченность,
+         *     поиск исполнителя по имени; человекочитаемые типы из реестра kinds.
+         */
+        get: operations["assignments_registry_api_v1_admin_assignments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assignments/{assignment_id}/remind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Remind
+         * @description Напоминание вне графика по открытому заданию (обновляет счётчики).
+         */
+        post: operations["admin_remind_api_v1_admin_assignments__assignment_id__remind_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assignments/{assignment_id}/admin-cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Cancel */
+        post: operations["admin_cancel_api_v1_admin_assignments__assignment_id__admin_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assignments/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Assignments
+         * @description Массовые действия по выбранным заданиям: применимы только к открытым.
+         */
+        post: operations["bulk_assignments_api_v1_admin_assignments_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/settings": {
         parameters: {
             query?: never;
@@ -1643,6 +1881,27 @@ export interface paths {
         get: operations["get_settings_all_api_v1_admin_settings_get"];
         /** Put Settings */
         put: operations["put_settings_api_v1_admin_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notifications/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delivery Log
+         * @description Лог рассылки поверх outbox (только чтение): канал, событие, адресат,
+         *     статус, попытки, ошибка. Без PII в логах — e-mail только в строке доставки.
+         */
+        get: operations["delivery_log_api_v1_admin_notifications_outbox_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1827,6 +2086,13 @@ export interface components {
              * @default
              */
             text: string;
+        };
+        /** BulkAssignmentsIn */
+        BulkAssignmentsIn: {
+            /** Action */
+            action: string;
+            /** Ids */
+            ids: number[];
         };
         /** CycleIn */
         CycleIn: {
@@ -2038,6 +2304,15 @@ export interface components {
              */
             comment: string;
         };
+        /** ForceCloseIn */
+        ForceCloseIn: {
+            /** Employee Id */
+            employee_id: number;
+            /** Matrix Id */
+            matrix_id: number;
+            /** Assessor Kind */
+            assessor_kind: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2051,6 +2326,11 @@ export interface components {
             matrix_id: number;
             /** Name */
             name: string;
+            /**
+             * Category
+             * @default
+             */
+            category: string;
             /** Description */
             description: string;
             /** Order No */
@@ -2238,6 +2518,20 @@ export interface components {
             cycle_id: number;
             /** Employee Ids */
             employee_ids: number[];
+        };
+        /** ReassessmentLaunchIn */
+        ReassessmentLaunchIn: {
+            /** Functional Group */
+            functional_group?: string | null;
+            /** Org Unit Id */
+            org_unit_id?: number | null;
+            /**
+             * Employee Ids
+             * @default []
+             */
+            employee_ids: number[];
+            /** Due Date */
+            due_date?: string | null;
         };
         /** RevoteIn */
         RevoteIn: {
@@ -2504,6 +2798,119 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    my_assignments_api_v1_assignments_mine_get: {
+        parameters: {
+            query?: {
+                cycle_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    subordinate_assignments_api_v1_assignments_subordinates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    assignment_detail_api_v1_assignments__assignment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_assignment_api_v1_assignments__assignment_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3849,37 +4256,6 @@ export interface operations {
                 "application/json": components["schemas"]["SendAssignmentsIn"];
             };
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    my_assignments_api_v1_reviews_peer_assignments_mine_get: {
-        parameters: {
-            query: {
-                cycle_id: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5295,6 +5671,289 @@ export interface operations {
             };
         };
     };
+    reassessment_preview_api_v1_admin_competency_reassessment_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassessmentLaunchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reassessment_launch_api_v1_admin_competency_reassessment_launch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassessmentLaunchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reassessment_launches_api_v1_admin_competency_reassessment_launches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    cancel_launch_api_v1_admin_launches__launch_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                launch_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    force_close_api_v1_admin_competency_reassessment_force_close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForceCloseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assignments_registry_api_v1_admin_assignments_get: {
+        parameters: {
+            query?: {
+                kind?: string | null;
+                status?: string | null;
+                assignee_id?: number | null;
+                launch_id?: number | null;
+                overdue?: boolean;
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_remind_api_v1_admin_assignments__assignment_id__remind_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_cancel_api_v1_admin_assignments__assignment_id__admin_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_assignments_api_v1_admin_assignments_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkAssignmentsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_settings_all_api_v1_admin_settings_get: {
         parameters: {
             query?: never;
@@ -5327,6 +5986,40 @@ export interface operations {
                 "application/json": components["schemas"]["SettingsIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delivery_log_api_v1_admin_notifications_outbox_get: {
+        parameters: {
+            query?: {
+                channel?: string | null;
+                status?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
