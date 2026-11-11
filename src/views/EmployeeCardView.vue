@@ -56,7 +56,7 @@
 
         <TabPanel value="comp">
           <CompetenciesTab :employee-id="String(route.params.id)" :perms="perms"
-                           :grade-options="gradeOptions" />
+                           :grade-options="gradeOptions" :grade="emp?.grade || ''" />
         </TabPanel>
 
         <TabPanel v-if="perms.pay" value="pay">

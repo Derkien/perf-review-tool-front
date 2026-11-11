@@ -27,7 +27,8 @@ vi.mock('../src/api/endpoints', () => ({
     ]),
     schemaDemo: vi.fn(async () => ({
       axis: ['Python', 'Go', 'Docker'], self: [3, 5, 7], manager: [4, 4, 6],
-      norm: 5, gaps: [], summary: { overestimated: [], growth_zones: [], avg_self: 5, avg_manager: 4.67 },
+      norm: [5, 5, 5], norm_grade: 'Старший 1', gaps: [],
+      summary: { overestimated: [], growth_zones: [], avg_self: 5, avg_manager: 4.67 },
       demo_grade: 'Старший 1',
     })),
     schemaTemplate: vi.fn(async () => new Blob(['xlsx'])),
@@ -45,8 +46,11 @@ vi.mock('../src/api/endpoints', () => ({
     })),
     applySchemaImport: vi.fn(async () => ({ ok: true })),
     radar: vi.fn(async () => ({
-      axis: ['Пункт A'], self: [3], manager: [4], norm: 5, gaps: [],
+      axis: ['Пункт A'], self: [3], manager: [4], norm: [5], norm_grade: 'Основной 1',
+      gaps: [],
       matrices: [{ id: 12, kind: 'hard', specialty: 'backend', version: 2 }],
+      categories: [{ name: 'Пункт A', items: [
+        { item_id: 1, name: 'Пункт A', self: 3, manager: 4, norm: 5 }] }],
       summary: { overestimated: [], growth_zones: [], avg_self: 3, avg_manager: 4 },
     })),
     matrix: vi.fn(async () => [
@@ -61,7 +65,7 @@ vi.mock('../src/api/endpoints', () => ({
       { kind: 'hard', date: '2026-08-01', assessor_kind: 'manager', assessor: 'Тест',
         marks: 1, matrix_id: 11, version: 1, is_current: false },
     ]),
-    sessionDetail: vi.fn(async () => []),
+    sessionDetail: vi.fn(async () => ({ rows: [], categories: { self: [], manager: [] } })),
   },
   reviewsApi: {
     workflowSchema: vi.fn(async () => ({ places: [], transitions: [] })),

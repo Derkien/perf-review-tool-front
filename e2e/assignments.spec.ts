@@ -32,16 +32,25 @@ async function launchReassessment(r: APIRequestContext, employeeIds: number[]) {
   return (await resp.json()) as { launch_id: number }
 }
 
-/** перезапускаемость сюита: hard-delete сегодняшних сессий сотрудника, чтобы прогон
- *  всегда начинался с несвежей разметки (soft-delete оживил бы старые created_at —
- *  правило «задним числом не закрывается» держало бы задания открытыми) */
+/** перезапускаемость сюита: hard-delete сессий сотрудника за окно свежести (30 дн + запас),
+ * чтобы прогон любого дня начинался с несвежей разметки — вчерашние отметки прошлого
+ * прогона иначе держат launch-скип «свежая оценка» (грабля 11.11: reset только сегодня).
+ * Soft-delete не годится — оживил бы старые created_at, а правило «задним числом
+ * не закрывается» оставило бы задания открытыми. */
 async function resetTodaySessions(r: APIRequestContext, employeeId: number) {
   const auth = await adminLogin(r)
-  for (const kind of ['soft', 'hard']) {
-    const del = await r.delete(`/api/v1/competencies/employees/${employeeId}/sessions/${kind}/${today()}`,
-                               { headers: auth, params: { hard: true } })
-    // 404 — сессии сегодня нет (первый прогон); всё прочее должно быть громким
-    expect([200, 404], `hard-delete сессии ${kind}`).toContain(del.status())
+  const windowStart = new Date(Date.now() - 35 * 86_400_000).toISOString().slice(0, 10)
+  const sessions = await (await r.get(`/api/v1/competencies/employees/${employeeId}/sessions`,
+                                      { headers: auth })).json()
+  const stale = [...new Map((sessions as { kind: string; date: string }[])
+    .filter((s) => s.date >= windowStart)
+    .map((s) => [`${s.kind}|${s.date}`, s])).values()]
+  for (const s of stale) {
+    const del = await r.delete(
+      `/api/v1/competencies/employees/${employeeId}/sessions/${s.kind}/${s.date}`,
+      { headers: auth, params: { hard: true } })
+    // всё громко: несуществующую сессию список бы не отдал
+    expect(del.status(), `hard-delete сессии ${s.kind} ${s.date}`).toBe(200)
   }
   // и отменить его открытые задания прошлых прогонов (upsert не двигает created_at —
   // «задним числом не закрывается» оставил бы их открытыми навсегда); manager-задания

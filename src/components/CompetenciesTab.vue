@@ -12,12 +12,17 @@
                 :severity="markMode ? 'secondary' : 'primary'" size="small" @click="markMode = !markMode" />
       </div>
     </div>
-    <div class="comp-grid">
+    <div class="comp-grid" :class="{ 'with-detail': !!detail }">
       <div class="comp-radar">
         <div class="radar-toolbar">
-          <span class="muted small">веса 1–10 · норма грейда — серая{{ radarVersions ? ` · схема v${radarVersions}` : '' }}</span>
-          <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
-                  v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
+          <span class="muted small">веса 1–10 · норма{{ radar?.norm_grade ? ` «${radar.norm_grade}»` : ' грейда' }} — серая{{ radarVersions ? ` · схема v${radarVersions}` : '' }}</span>
+          <div class="radar-tools">
+            <SelectButton v-if="nextGrade" v-model="nextNormMode" :options="normModes"
+                          option-label="label" option-value="value" size="small"
+                          data-testid="norm-grade-toggle" @update:model-value="loadRadar" />
+            <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
+                    v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
+          </div>
         </div>
         <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                     :manager="radar.manager" :norm="radar.norm"
@@ -26,12 +31,32 @@
                     height="620px" />
         <p v-else class="muted">Разметок по этому типу пока нет{{
           markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
+        <!-- детализация категории: вход — чипы (клики по осям ECharts ненадёжны) -->
+        <div v-if="chipCats.length" class="cat-chips" data-testid="cat-chips">
+          <button v-for="c in chipCats" :key="c.name" class="cat-chip"
+                  :class="{ active: c.name === detailCat }" :data-testid="`cat-chip-${c.name}`"
+                  @click="toggleDetail(c.name)">
+            {{ c.name }}<span class="chip-count">{{ c.items.length }}</span>
+          </button>
+        </div>
+      </div>
+      <div v-if="detail" class="comp-detail" data-testid="cat-detail">
+        <div class="radar-toolbar">
+          <b>{{ detail.name }}</b>
+          <i class="pi pi-times act" v-tooltip.top="'Закрыть детализацию'" @click="toggleDetail(detail.name)" />
+        </div>
+        <RadarChart :axis="detail.items.map((i) => i.name)"
+                    :self="detail.items.map((i) => i.self)"
+                    :manager="detail.items.map((i) => i.manager)"
+                    :norm="detail.items.map((i) => i.norm)"
+                    :session1="detailSession(1)" :session2="detailSession(2)"
+                    height="560px" />
       </div>
       <div class="comp-insights">
         <h2 style="margin-top:0">Комментарии и инсайты</h2>
         <Message v-if="radar?.summary" severity="info" :sticky="true">
           Средние веса (1–10): самооценка <b>{{ radar.summary.avg_self }}</b>,
-          руководитель <b>{{ radar.summary.avg_manager }}</b>, норма грейда <b>{{ radar.norm }}</b>
+          руководитель <b>{{ radar.summary.avg_manager }}</b>, норма грейда <b>{{ avgNorm }}</b>
         </Message>
         <Message v-if="radar?.summary?.overestimated?.length" severity="warn" :sticky="true">
           Переоценка (себе выше, чем рукль): {{ radar.summary.overestimated.join(', ') }}
@@ -160,11 +185,17 @@
           <span class="mark-name" v-tooltip.top="sessionRowTip(row)">{{ row.item }}</span>
           <Select v-if="!sessionEditReadonly" v-model="sessionEditDraft[row.item_id]"
                   :options="gradeOptions" option-label="label" option-value="value" filter size="small" />
-          <span v-else class="muted small">{{ row.level }} (вес {{ row.weight }})</span>
+          <span v-else class="muted small">{{ row.level }} (вес {{ row.weight }}, норма {{ row.norm }}{{ row.meets ? '' : ' — не зачёт' }})</span>
           <!-- системные значения видны и в редактировании — иначе их можно молча перезаписать -->
           <Tag v-if="row.is_default" value="по умолчанию" severity="warn"
                data-testid="default-mark-badge" />
         </div>
+      </div>
+      <!-- сводка соответствия норме по категориям (вид разметки открытой сессии) -->
+      <div v-if="sessionEditSummary.length" data-testid="norm-summary" style="margin-top:8px">
+        <Message v-for="c in sessionEditSummary" :key="c.category" severity="warn">
+          {{ c.category }}: не зачтено {{ c.failed }} из {{ c.items }} пунктов, дефицит {{ c.diff }} ур.
+        </Message>
       </div>
       <Message v-if="sessionEditReadonly" severity="info" :sticky="true" style="margin-top:8px">
         Закрытая сессия архивной версии схемы — только просмотр по пунктам своей версии.
@@ -197,7 +228,8 @@ import { useToast } from 'primevue/usetoast'
 
 const props = defineProps<{ employeeId: string | number
   perms: Record<string, boolean>
-  gradeOptions: { label: string; value: string }[] }>()
+  gradeOptions: { label: string; value: string }[]
+  grade?: string }>()
 
 const toast = useToast()
 const confirmDialog = useAppConfirm()
@@ -224,9 +256,15 @@ const sessionEditRows = ref<SessionDetailRow[]>([])
 const sessionEditDraft = ref<Record<number, string>>({})
 const sessionEditReadonly = ref(false)
 const sessionEditSession = ref<any>(null)
+/** сводка незачётов норм по категориям для открытой сессии */
+const sessionEditCategories = ref<Record<string, { category: string; items: number; failed: number; diff: number }[]>>({})
 /** число пунктов версий схем — для признака «закрыта» у сессий архивных версий */
 const versionItemsCount = ref<Record<number, number>>({})
 const busy = ref(false)
+/** выбранная категория детализации (чипы под радаром) */
+const detailCat = ref<string | null>(null)
+/** режим «требования следующей степени» — полигон нормы грейда N+1 */
+const nextNormMode = ref(false)
 
 const canHardDelete = computed(() => auth.can('ROLE_D_COMPETENCY_SESSION'))
 const canReassess = computed(() => auth.can('ROLE_U_COMPETENCY_REASSESSMENT'))
@@ -257,6 +295,44 @@ const radarVersions = computed(() => {
   return vs.length ? [...new Set(vs)].join(', ') : ''
 })
 
+/** средняя норма полигона (для сводки «Комментарии и инсайты») */
+const avgNorm = computed(() => {
+  const n = radar.value?.norm
+  const vals = (Array.isArray(n) ? n : [n]).filter((v): v is number => v != null)
+  return vals.length ? (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1) : '—'
+})
+
+/** категории с >1 пунктом — только им предлагается детализация (реш. спеки) */
+const chipCats = computed(() => (radar.value?.categories || []).filter((c) => c.items.length > 1))
+const detail = computed(() => radar.value?.categories?.find((c) => c.name === detailCat.value) || null)
+
+/** серии сравниваемых сессий внутри детализации (по пунктам категории) */
+function detailSession(n: 1 | 2): (number | null)[] | null {
+  if (!detail.value || !sessionSeries.value[n - 1]) return null
+  return detail.value.items.map((i) => ((i as Record<string, unknown>)[`session_${n}`] as number | null) ?? null)
+}
+
+function toggleDetail(name: string) {
+  detailCat.value = detailCat.value === name ? null : name
+}
+
+/** следующая степень: грейд N+1 для просмотра норм без запуска ассесмента */
+const nextGrade = computed(() => {
+  if (!props.grade) return undefined
+  const idx = props.gradeOptions.findIndex((g) => g.value === props.grade)
+  return idx >= 0 ? props.gradeOptions[idx + 1]?.value : undefined
+})
+const normModes = computed(() => [
+  { label: 'Моя степень', value: false },
+  { label: `Следующая (${nextGrade.value})`, value: true },
+])
+
+/** сводка норм вида разметки открытой сессии */
+const sessionEditSummary = computed(() => {
+  const ak = sessionEditSession.value?.assessor_kind as string
+  return (ak && sessionEditCategories.value[ak]) || []
+})
+
 /** закрытая сессия архивной версии: все пункты версии покрыты — read-only (реш. 6) */
 function isClosedSession(s: any): boolean {
   if (s.is_current !== false || !s.matrix_id) return false
@@ -267,10 +343,21 @@ function isClosedSession(s: any): boolean {
 onMounted(load)
 watch(kind, load)
 
-async function load() {
+/** норма чьего грейда рисуется полигоном (режим «следующая степень» — грейд N+1) */
+function normGradeParam(): string | undefined {
+  return nextNormMode.value && nextGrade.value ? nextGrade.value : undefined
+}
+
+async function loadRadar() {
   try {
-    radar.value = await competenciesApi.radar(props.employeeId, kind.value)
+    radar.value = await competenciesApi.radar(props.employeeId, kind.value,
+      undefined, normGradeParam())
   } catch { radar.value = null }
+}
+
+async function load() {
+  detailCat.value = null
+  await loadRadar()
   try {
     matrixRows.value = await competenciesApi.matrix(props.employeeId, kind.value)
     matrixRows.value.forEach((r) => {
@@ -336,7 +423,7 @@ async function refreshCompareSeries() {
     return
   }
   const dates = compareKeys.value.map((k) => k.split('|')[1])
-  const r = await competenciesApi.radar(props.employeeId, kind.value, dates)
+  const r = await competenciesApi.radar(props.employeeId, kind.value, dates, normGradeParam())
   sessionSeries.value = [r.session_1 || null, r.session_2 || null]
   sessionDefaults.value = [r.session_1_default || null, r.session_2_default || null]
 }
@@ -377,11 +464,12 @@ async function downloadSession(s: any) {
   }
 }
 
-/** строка просмотра сессии: пункты версии сессии + выставленные уровни */
+/** строка просмотра сессии: пункты версии сессии + выставленные уровни + норма/зачёт */
 type SessionDetailRow = {
   item_id: number; item: string; category: string
   descriptions: Record<string, string>
   assessor_kind: 'self' | 'manager'; level: string; weight: number
+  norm: number; meets: boolean
   is_default?: boolean
 }
 
@@ -394,9 +482,11 @@ async function openSessionEdit(s: any) {
   sessionEditReadonly.value = isClosedSession(s)
   sessionEditDraft.value = {}
   // сессия показывается по пунктам своей версии схемы (у архивной — свои пункты)
-  const rows = await competenciesApi.sessionDetail(props.employeeId, s.kind, s.date)
-  sessionEditRows.value = rows.filter((r: SessionDetailRow) => r.assessor_kind === s.assessor_kind)
-  rows.forEach((r: SessionDetailRow) => {
+  const body = await competenciesApi.sessionDetail(props.employeeId, s.kind, s.date)
+  sessionEditCategories.value = body.categories || {}
+  sessionEditRows.value = body.rows
+    .filter((r: SessionDetailRow) => r.assessor_kind === s.assessor_kind)
+  body.rows.forEach((r: SessionDetailRow) => {
     if (r.assessor_kind === s.assessor_kind) sessionEditDraft.value[r.item_id] = r.level
   })
   sessionEditVisible.value = true
@@ -483,8 +573,17 @@ async function deleteSession(s: any) {
 .kind-row { display: flex; align-items: center; gap: 10px; }
 .info-ico { cursor: help; margin-left: 8px; font-size: 0.9rem; }
 .comp-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; }
+.comp-grid.with-detail { grid-template-columns: 1.2fr 1.2fr 1fr; }
 .comp-radar { position: relative; }
-.radar-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.comp-detail { min-width: 0; }
+.radar-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.radar-tools { display: flex; align-items: center; gap: 8px; }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.cat-chip { border: 1px solid var(--p-surface-300, #cbd5e1); background: var(--p-surface-0, #fff);
+  border-radius: 14px; padding: 2px 10px; font-size: 0.8rem; cursor: pointer; }
+.cat-chip:hover { border-color: #2563eb; }
+.cat-chip.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+.chip-count { opacity: 0.7; margin-left: 5px; font-size: 0.72rem; }
 .comp-insights { min-width: 0; }
 .mark-form-head { display: flex; gap: 12px; margin-bottom: 8px; }
 .mark-table { max-width: 620px; }
@@ -496,5 +595,5 @@ async function deleteSession(s: any) {
 .act:hover { color: #1d4ed8; }
 .act.danger { color: #dc2626; }
 .small { font-size: 0.78rem; }
-@media (max-width: 1000px) { .comp-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .comp-grid, .comp-grid.with-detail { grid-template-columns: 1fr; } }
 </style>

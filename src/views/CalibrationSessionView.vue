@@ -125,8 +125,8 @@
             </div>
             <h2>Радар компетенций</h2>
             <RadarChart v-if="pack.competency_radar?.axis?.length"
-                        :axis="pack.competency_radar.axis" :current="pack.competency_radar.current"
-                        :prev="pack.competency_radar.prev ?? []" :norm="pack.competency_radar.norm" />
+                        :axis="pack.competency_radar.axis" :self="pack.competency_radar.self"
+                        :manager="pack.competency_radar.manager" :norm="pack.competency_radar.norm" />
             <p v-else class="muted">нет разметок</p>
           </template>
         </Card>

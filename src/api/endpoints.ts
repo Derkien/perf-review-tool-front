@@ -28,11 +28,24 @@ export type MarkSession = {
   version?: number
   is_current?: boolean
 }
+export type RadarItem = {
+  item_id: number
+  name: string
+  self: number | null
+  manager: number | null
+  norm: number
+  session_1?: number | null
+  session_2?: number | null
+}
+export type RadarCategory = { name: string; items: RadarItem[] }
 export type RadarData = {
   axis: string[]
   self: (number | null)[]
   manager: (number | null)[]
-  norm: number
+  /** полигон нормы по категориям (раньше — плоский скаляр) */
+  norm: (number | null)[]
+  norm_grade?: string
+  categories?: RadarCategory[]
   session_1?: (number | null)[] | null
   session_2?: (number | null)[] | null
   session_1_default?: boolean[] | null
@@ -379,13 +392,15 @@ export const reviewsApi = {
 }
 
 export const competenciesApi = {
-  async radar(employeeId: number | string, kind: 'hard' | 'soft', compareDates?: string[]): Promise<RadarData> {
+  async radar(employeeId: number | string, kind: 'hard' | 'soft', compareDates?: string[],
+              normGrade?: string): Promise<RadarData> {
     const { data, error } = await client.GET('/competencies/employees/{employee_id}/radar', {
       params: {
         path: { employee_id: Number(employeeId) },
         query: {
           kind,
           compare_sessions: compareDates?.length ? compareDates.join('|') : undefined,
+          norm_grade: normGrade,
         } as never,
       },
     })
@@ -426,10 +441,15 @@ export const competenciesApi = {
   },
   /** Сессия по пунктам своей версии схемы (исторические версии — read-only просмотр). */
   async sessionDetail(employeeId: number | string, kind: string, date: string): Promise<{
-    item_id: number; item: string; category: string
-    descriptions: Record<string, string>
-    assessor_kind: 'self' | 'manager'; level: string; weight: number
-  }[]> {
+    rows: {
+      item_id: number; item: string; category: string
+      descriptions: Record<string, string>
+      assessor_kind: 'self' | 'manager'; level: string; weight: number
+      norm: number; meets: boolean; is_default?: boolean
+    }[]
+    categories: Record<'self' | 'manager',
+      { category: string; items: number; failed: number; diff: number }[]>
+  }> {
     const { data, error } = await client.GET('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}', {
       params: { path: { employee_id: Number(employeeId), kind, date_str: date } },
     })

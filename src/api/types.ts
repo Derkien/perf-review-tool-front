@@ -810,7 +810,8 @@ export interface paths {
         };
         /**
          * Session Detail
-         * @description Сессия по пунктам своей версии схемы (исторические версии — read-only на фронте).
+         * @description Сессия по пунктам своей версии схемы (исторические версии — read-only на фронте)
+         *     + соответствие норме грейда сотрудника: зачёт по пункту и сводка по категориям.
          */
         get: operations["session_detail_api_v1_competencies_employees__employee_id__sessions__kind___date_str__get"];
         put?: never;
@@ -4013,6 +4014,7 @@ export interface operations {
             query?: {
                 kind?: string | null;
                 compare_sessions?: string | null;
+                norm_grade?: string | null;
             };
             header?: never;
             path: {

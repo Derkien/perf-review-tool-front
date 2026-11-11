@@ -10,7 +10,8 @@ const props = withDefaults(defineProps<{
   axis: string[]
   self?: (number | null)[] | number[]
   manager?: (number | null)[] | number[]
-  norm?: number
+  /** полигон нормы по осям; скаляр — плоская окружность (все оси одной нормой) */
+  norm?: number | (number | null)[] | null
   session1?: (number | null)[] | null
   session2?: (number | null)[] | null
   /** системные («по умолчанию») значения сравниваемых сессий — пустые точки */
@@ -58,7 +59,11 @@ function render() {
   if (props.current?.length) push('Текущий', props.current, '#2563eb', false, true)
   if (props.prev?.length) push('Прошлый', props.prev, '#94a3b8', true)
   if (props.norm != null && props.axis.length) {
-    push('Норма грейда', props.axis.map(() => props.norm), '#94a3b8')
+    // норма грейда — полигон по осям (категориям); скаляр разворачивается в окружность
+    const normData = Array.isArray(props.norm)
+      ? props.norm
+      : props.axis.map(() => props.norm as number)
+    push('Норма грейда', normData, '#94a3b8')
   }
   chart.setOption({
     tooltip: { trigger: 'item' },
