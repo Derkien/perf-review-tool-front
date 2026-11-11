@@ -59,7 +59,7 @@ test.describe.serial('Нормы грейда: e2e', () => {
     // клик по зоне подписи оси на самом радаре (верхняя ось = «E2E Категория А»):
     // подписи осей silent — фронт выбирает ось геометрически, углом клика от центра
     const box = (await page.locator('.comp-radar canvas').first().boundingBox())!
-    const rMax = Math.min(box.width, box.height) * 0.66 / 2
+    const rMax = Math.min(box.width, box.height) * 0.55 / 2  // радиус радара (55% при широком холсте)
     const axisClick = () => page.mouse.click(
       box.x + box.width / 2, box.y + box.height / 2 - rMax * 1.05)
     await axisClick()

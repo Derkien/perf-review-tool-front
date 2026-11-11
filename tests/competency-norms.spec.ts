@@ -113,6 +113,31 @@ describe('RadarChart: категорийные оси и полигон норм
     expect(norm!.data[0].value).toEqual([5, 5])
   })
 
+  it('длинные подписи осей переносятся по словам ≤15 симв, ≤3 строки, хвост «…»', async () => {
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth',
+      { configurable: true, get: () => 400 })
+    mount(RadarChart, {
+      props: {
+        axis: [
+          'Короткая',
+          'Многопоточность / асинхронность / etc',
+          'Очень очень очень длинная категория с большим количеством слов прямо много слов',
+        ],
+        norm: 1,
+      },
+    })
+    await nextTick()
+    const indicator = setOptionMock.mock.calls[0][0].radar.indicator
+      .map((i: { name: string }) => i.name)
+    expect(indicator[0]).toBe('Короткая')  // короткая — одной строкой
+    expect(indicator[1]).toBe('Многопоточность\n/ асинхронность\n/ etc')
+    // всё, что не влезло в 3 строки, обрезается с «…»
+    expect(indicator[2]).toBe('Очень очень\nочень длинная\nкатегория с бо…')
+    for (const name of indicator.slice(1)) {
+      for (const line of name.split('\n')) expect(line.length).toBeLessThanOrEqual(15)
+    }
+  })
+
   it('клик по зоне подписи оси (zrender) эмитит axis-click ближайшей оси', async () => {
     Object.defineProperty(HTMLElement.prototype, 'clientWidth',
       { configurable: true, get: () => 400 })

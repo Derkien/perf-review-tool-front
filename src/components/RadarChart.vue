@@ -25,11 +25,51 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ (e: 'axis-click', label: string): void }>()
 
-const RADIUS = 66  // % от min(w,h)/2: запас под подписи осей у края холста (28 осей qa резались при 78%)
+const RADIUS = 55  // % от min(w,h)/2 при широком холсте: запас под подписи у краёв
+const RADIUS_NARROW = 48  // узкий холст — звезду поджимаем, подписям нужно больше поля
+// шрифт подписей 11px: при 12px строка в 15 симв (~108px) не влезает в поле
+// между вершиной оси и краем холста даже на широком экране
+const LABEL_FONT = 11
 
 const el = ref<HTMLElement>()
 let chart: echarts.ECharts | null = null
 let ro: ResizeObserver | null = null
+
+/** радиус в % от min(w,h)/2 — один источник для опции радара и геометрии клика */
+function radiusPct(): number {
+  const min = el.value ? Math.min(el.value.clientWidth, el.value.clientHeight) : 0
+  return min && min < 500 ? RADIUS_NARROW : RADIUS
+}
+
+/** подпись оси в 1–3 строки ≤15 симв (перенос по словам, «/» клеится к слову,
+ *  длинное слово не рвём, хвост за 3 строки — «…») — иначе боковые подписи
+ *  вылезают за края холста */
+function wrapLabel(name: string): string {
+  const MAX = 15
+  if (name.length <= MAX) return name
+  const words: string[] = []
+  let pendingSlash = false
+  for (const w of name.split(/\s+/)) {
+    if (w === '/') { pendingSlash = true; continue }  // «/» — префикс следующего слова
+    words.push(pendingSlash ? `/ ${w}` : w)
+    pendingSlash = false
+  }
+  if (pendingSlash && words.length) words[words.length - 1] += ' /'  // хвостовой слэш
+  const lines: string[] = []
+  let cur = ''
+  for (const w of words) {
+    const cand = cur ? `${cur} ${w}` : w
+    if (!cur || cand.length <= MAX) cur = cand
+    else { lines.push(cur); cur = w }
+  }
+  if (cur) lines.push(cur)
+  if (lines.length > 3) {
+    const rest = lines.slice(2).join(' ')
+    lines.length = 2
+    lines.push(rest.length > MAX ? rest.slice(0, MAX - 1) + '…' : rest)
+  }
+  return lines.join('\n')
+}
 
 function render() {
   if (!el.value) return
@@ -43,7 +83,7 @@ function render() {
       const w = el.value.clientWidth, h = el.value.clientHeight
       if (!w || !h) return
       const dx = e.offsetX - w / 2, dy = e.offsetY - h / 2
-      const rMax = RADIUS / 100 * Math.min(w, h) / 2
+      const rMax = radiusPct() / 100 * Math.min(w, h) / 2
       if (Math.hypot(dx, dy) < rMax * 0.9) return  // клик по зоне данных — не выбор категории
       // направление оси i — формула echarts (Radar.js resize(): startAngle 90°,
       // clockwise:false → ПРОТИВ часовой, math-конвенция y вверх): экранная ось i
@@ -94,10 +134,9 @@ function render() {
     tooltip: { trigger: 'item' },
     legend: { bottom: 0 },
     radar: {
-      indicator: props.axis.map((a) => ({
-        name: a.length > 24 ? a.slice(0, 22) + '…' : a, max: 10,
-      })),
-      radius: `${RADIUS}%`,
+      indicator: props.axis.map((a) => ({ name: wrapLabel(a), max: 10 })),
+      axisName: { fontSize: LABEL_FONT },
+      radius: `${radiusPct()}%`,
     },
     series,
   } as never, true)
