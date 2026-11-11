@@ -65,7 +65,6 @@ test.describe.serial('Нормы грейда: e2e', () => {
     await axisClick()
     const detail = page.getByTestId('cat-detail')
     await expect(detail).toBeVisible()
-    await expect(page.getByTestId('cat-detail-head')).toContainText('E2E Категория А')
     // радар не прыгает: bbox холста не изменился после открытия детализации
     const boxAfter = (await page.locator('.comp-radar canvas').first().boundingBox())!
     expect(Math.abs(boxAfter.x - box.x)).toBeLessThan(1)
@@ -79,7 +78,6 @@ test.describe.serial('Нормы грейда: e2e', () => {
     // детализация категории: второй радар по пунктам с теми же сериями и нормами
     await chips.first().click()
     await expect(detail).toBeVisible()
-    await expect(page.getByTestId('cat-detail-head')).toContainText('E2E Категория А')
     await expect(detail.locator('canvas').first()).toBeVisible()
     // холсты на одном уровне: верх основного и детального совпадает
     const mainBox = (await page.locator('.comp-radar canvas').first().boundingBox())!

@@ -191,8 +191,6 @@ describe('CompetenciesTab: категории и следующая степен
       const mainChart = w.find('.comp-radar').findComponent(RadarStub)
       await mainChart.vm.$emit('axis-click', 'Языки')
       expect(w.find('[data-testid="cat-detail"]').exists()).toBe(true)
-      // заголовок детализации — в строке чипов (холсты стартуют на одном Y)
-      expect(w.find('[data-testid="cat-detail-head"]').text()).toContain('Языки')
       await mainChart.vm.$emit('axis-click', 'Языки')  // повторный — закрывает
       expect(w.find('[data-testid="cat-detail"]').exists()).toBe(false)
       await mainChart.vm.$emit('axis-click', 'Одинокий пункт')  // 1 пункт — не открывается

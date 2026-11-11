@@ -24,8 +24,8 @@
                 v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
       </div>
     </div>
-    <!-- детализация категории: чипы + клик по подписи оси на радаре; заголовок
-         открытой детализации — справа этой же строки, чтобы холсты начинались на одном Y -->
+    <!-- детализация категории: чипы + клик по подписи оси на радаре; тумблер как у
+         легенды — ткнул чип/ось, появилась, отжал, пропала (заголовок не нужен) -->
     <div v-if="chipCats.length" class="cat-chips" data-testid="cat-chips">
       <span class="muted small chips-hint">Разбивка категории:</span>
       <button v-for="c in chipCats" :key="c.name" class="cat-chip"
@@ -33,11 +33,6 @@
               @click="toggleDetail(c.name)">
         {{ c.name }}<span class="chip-count">{{ c.items.length }}</span>
       </button>
-      <span v-if="detail" class="detail-head" data-testid="cat-detail-head">
-        <b>{{ detail.name }}</b>
-        <i class="pi pi-times act" v-tooltip.top="'Закрыть детализацию'"
-           @click="toggleDetail(detail.name)" />
-      </span>
     </div>
     <div class="charts-row">
       <div class="comp-radar">
@@ -590,7 +585,6 @@ async function deleteSession(s: any) {
 .charts-row { display: flex; gap: 14px; align-items: stretch; }
 .comp-radar { position: relative; flex: 0 0 44%; min-width: 440px; }
 .comp-detail { min-width: 0; flex: 1 1 0; }
-.detail-head { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
 .radar-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .radar-tools { display: flex; align-items: center; gap: 8px; }
 .cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
