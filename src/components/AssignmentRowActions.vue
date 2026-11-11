@@ -8,7 +8,7 @@
               data-testid="row-remind" @click="$emit('remind')" />
       <!-- принудительное закрытие — только компетенционные виды, по каждой неполной схеме -->
       <Button v-for="m in incompleteMatrices" :key="m.matrix_id"
-              :label="`Принудительно (${m.kind})`" size="small" severity="warn" text
+              :label="`Принудительно (${m.type_code})`" size="small" severity="warn" text
               data-testid="row-force-close" @click="$emit('force-close', m)" />
     </template>
     <span v-else class="muted small">—</span>

@@ -801,7 +801,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/competencies/employees/{employee_id}/sessions/{kind}/{date_str}": {
+    "/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}": {
         parameters: {
             query?: never;
             header?: never;
@@ -813,24 +813,24 @@ export interface paths {
          * @description Сессия по пунктам своей версии схемы (исторические версии — read-only на фронте)
          *     + соответствие норме грейда сотрудника: зачёт по пункту и сводка по категориям.
          */
-        get: operations["session_detail_api_v1_competencies_employees__employee_id__sessions__kind___date_str__get"];
+        get: operations["session_detail_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__get"];
         put?: never;
         post?: never;
         /**
          * Session Delete
          * @description Soft delete сессии (скрыть). hard=True — окончательное удаление (по праву).
          */
-        delete: operations["session_delete_api_v1_competencies_employees__employee_id__sessions__kind___date_str__delete"];
+        delete: operations["session_delete_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__delete"];
         options?: never;
         head?: never;
         /**
          * Session Edit
          * @description Редактирование разметки сессии — только руководитель, изменения в аудите.
          */
-        patch: operations["session_edit_api_v1_competencies_employees__employee_id__sessions__kind___date_str__patch"];
+        patch: operations["session_edit_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__patch"];
         trace?: never;
     };
-    "/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/restore": {
+    "/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -840,14 +840,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Session Restore */
-        post: operations["session_restore_api_v1_competencies_employees__employee_id__sessions__kind___date_str__restore_post"];
+        post: operations["session_restore_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__restore_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/xlsx": {
+    "/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}/xlsx": {
         parameters: {
             query?: never;
             header?: never;
@@ -859,7 +859,7 @@ export interface paths {
          * @description Выгрузка сессии по шаблону разметки: Категория | Оценка разработчика | Вес грейда |
          *     Оценка Head of func | Вес грейда | Макс. вес + вкладка с радаром (Excel-график).
          */
-        get: operations["session_xlsx_api_v1_competencies_employees__employee_id__sessions__kind___date_str__xlsx_get"];
+        get: operations["session_xlsx_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1005,6 +1005,64 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/competencies/types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Types
+         * @description Активные типы по order_no — источник вкладок профиля и селекторов.
+         */
+        get: operations["list_types_api_v1_competencies_types_get"];
+        put?: never;
+        /** Create Type */
+        post: operations["create_type_api_v1_competencies_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/types/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Types All
+         * @description Весь реестр (включая деактивированные) — для админки.
+         */
+        get: operations["list_types_all_api_v1_competencies_types_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/types/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Type */
+        patch: operations["update_type_api_v1_competencies_types__code__patch"];
         trace?: never;
     };
     "/decisions": {
@@ -2413,10 +2471,10 @@ export interface components {
             id: number;
             /** Items Count */
             items_count: number;
-            /** Kind */
-            kind: string;
             /** Specialty */
             specialty: string;
+            /** Type Code */
+            type_code: string;
             /** Version */
             version: number;
         };
@@ -2626,6 +2684,27 @@ export interface components {
             month: string;
             /** Value */
             value: number;
+        };
+        /** TypeIn */
+        TypeIn: {
+            /** Code */
+            code: string;
+            /**
+             * Order No
+             * @default 0
+             */
+            order_no: number;
+            /** Title */
+            title: string;
+        };
+        /** TypePatch */
+        TypePatch: {
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Order No */
+            order_no?: number | null;
+            /** Title */
+            title?: string | null;
         };
         /** UserPatch */
         UserPatch: {
@@ -3946,7 +4025,7 @@ export interface operations {
     employee_competency_dynamics_api_v1_competencies_employees__employee_id__dynamics_get: {
         parameters: {
             query?: {
-                kind?: string | null;
+                type_code?: string | null;
             };
             header?: never;
             path: {
@@ -3979,7 +4058,7 @@ export interface operations {
     employee_matrix_api_v1_competencies_employees__employee_id__matrix_get: {
         parameters: {
             query?: {
-                kind?: string | null;
+                type_code?: string | null;
             };
             header?: never;
             path: {
@@ -4012,9 +4091,10 @@ export interface operations {
     employee_radar_api_v1_competencies_employees__employee_id__radar_get: {
         parameters: {
             query?: {
-                kind?: string | null;
+                type_code?: string | null;
                 compare_sessions?: string | null;
                 norm_grade?: string | null;
+                matrix_id?: number | null;
             };
             header?: never;
             path: {
@@ -4047,7 +4127,7 @@ export interface operations {
     employee_mark_sessions_api_v1_competencies_employees__employee_id__sessions_get: {
         parameters: {
             query?: {
-                kind?: string | null;
+                type_code?: string | null;
             };
             header?: never;
             path: {
@@ -4077,13 +4157,13 @@ export interface operations {
             };
         };
     };
-    session_detail_api_v1_competencies_employees__employee_id__sessions__kind___date_str__get: {
+    session_detail_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 employee_id: number;
-                kind: string;
+                type_code: string;
                 date_str: string;
             };
             cookie?: never;
@@ -4110,7 +4190,7 @@ export interface operations {
             };
         };
     };
-    session_delete_api_v1_competencies_employees__employee_id__sessions__kind___date_str__delete: {
+    session_delete_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__delete: {
         parameters: {
             query?: {
                 hard?: boolean;
@@ -4118,7 +4198,7 @@ export interface operations {
             header?: never;
             path: {
                 employee_id: number;
-                kind: string;
+                type_code: string;
                 date_str: string;
             };
             cookie?: never;
@@ -4145,13 +4225,13 @@ export interface operations {
             };
         };
     };
-    session_edit_api_v1_competencies_employees__employee_id__sessions__kind___date_str__patch: {
+    session_edit_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 employee_id: number;
-                kind: string;
+                type_code: string;
                 date_str: string;
             };
             cookie?: never;
@@ -4182,13 +4262,13 @@ export interface operations {
             };
         };
     };
-    session_restore_api_v1_competencies_employees__employee_id__sessions__kind___date_str__restore_post: {
+    session_restore_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__restore_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 employee_id: number;
-                kind: string;
+                type_code: string;
                 date_str: string;
             };
             cookie?: never;
@@ -4215,13 +4295,13 @@ export interface operations {
             };
         };
     };
-    session_xlsx_api_v1_competencies_employees__employee_id__sessions__kind___date_str__xlsx_get: {
+    session_xlsx_api_v1_competencies_employees__employee_id__sessions__type_code___date_str__xlsx_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 employee_id: number;
-                kind: string;
+                type_code: string;
                 date_str: string;
             };
             cookie?: never;
@@ -4444,6 +4524,114 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_types_api_v1_competencies_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    create_type_api_v1_competencies_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TypeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_types_all_api_v1_competencies_types_all_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    update_type_api_v1_competencies_types__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TypePatch"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4876,6 +5064,7 @@ export interface operations {
                 deactivate_missing?: boolean;
                 month?: string | null;
                 cycle_name?: string;
+                force?: boolean;
             };
             header?: never;
             path: {

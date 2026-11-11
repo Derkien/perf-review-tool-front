@@ -16,14 +16,14 @@ const mine = [
     subject: { id: 5, name: 'Иванов И.И.' }, context: {},
     created_at: '2026-11-01T10:00:00', done_at: null, launch_id: 7,
     progress: { matrices: [
-      { kind: 'soft', specialty: 'backend', version: 2, matrix_id: 9, covered: 1, total: 5, complete: false },
-      { kind: 'hard', specialty: 'backend', version: 3, matrix_id: 10, covered: 4, total: 4, complete: true },
+      { type_code: 'soft', specialty: 'backend', version: 2, matrix_id: 9, covered: 1, total: 5, complete: false },
+      { type_code: 'hard', specialty: 'backend', version: 3, matrix_id: 10, covered: 4, total: 4, complete: true },
     ] } },
   { id: 3, kind: 'competency-manager', kind_title: 'Оценка подчинённых (soft)', status: 'notified',
     due_date: null, overdue: false, assignee: { id: 5, name: 'Иванов И.И.' },
     subject: { id: 6, name: 'Сидоров С.С.' }, context: { matrix_kind: 'soft' },
     created_at: '2026-11-01T10:00:00', done_at: null, launch_id: 7,
-    progress: { matrices: [{ kind: 'soft', specialty: 'backend', version: 2, matrix_id: 9, covered: 2, total: 5, complete: false }] } },
+    progress: { matrices: [{ type_code: 'soft', specialty: 'backend', version: 2, matrix_id: 9, covered: 2, total: 5, complete: false }] } },
   { id: 4, kind: 'competency-manager', kind_title: 'Оценка подчинённых (soft)', status: 'done',
     due_date: null, overdue: false, assignee: { id: 5, name: 'Иванов И.И.' },
     subject: { id: 7, name: 'Кузнецов К.К.' }, context: { matrix_kind: 'soft' },
@@ -76,18 +76,23 @@ vi.mock('../src/api/endpoints', () => ({
     unreadCount: vi.fn(async () => ({ count: 1, open_assignments: 3 })),
   },
   competenciesApi: {
+    types: vi.fn(async () => [
+      { code: 'hard', title: 'Харды', order_no: 1 },
+      { code: 'soft', title: 'Софты', order_no: 2 },
+    ]),
     radar: vi.fn(async () => ({
       axis: ['Пункт A'], self: [3], manager: [4], norm: 5, gaps: [],
-      matrices: [{ id: 9, kind: 'soft', specialty: 'backend', version: 2 }],
+      matrices: [{ id: 9, type_code: 'soft', specialty: 'backend', version: 2 }],
+      versions: [{ matrix_id: 9, version: 2, status: 'active', specialty: 'backend', latest_mark_date: '2026-10-01' }],
       summary: null,
       session_1: [4], session_1_default: [true],
     })),
     matrix: vi.fn(async () => [
-      { kind: 'soft', specialty: 'backend', item_id: 1, item: 'Пункт A', category: '',
+      { type_code: 'soft', specialty: 'backend', item_id: 1, item: 'Пункт A', category: '',
         descriptions: {}, self: null, manager: null },
     ]),
     sessions: vi.fn(async () => [
-      { kind: 'soft', date: '2026-10-01', assessor_kind: 'manager', assessor: 'Рук',
+      { type_code: 'soft', date: '2026-10-01', assessor_kind: 'manager', assessor: 'Рук',
         marks: 20, user_marks: 15, system_marks: 5, matrix_id: 9, version: 2, is_current: true },
     ]),
     matrixItems: vi.fn(async () => Array.from({ length: 20 }, (_, i) => ({ id: i + 1 }))),
@@ -238,9 +243,8 @@ describe('CompetenciesTab: свежесть и системные значени
     setAuth()
     const w = mount(CompetenciesTab, { props: { employeeId: 5, perms, gradeOptions: grades } })
     await settle()
-    expect(w.find('[data-testid="session-completeness"]').text())
-      .toContain('15/20 пользователем')
-    expect(w.text()).toContain('5 системой')
+    expect(w.find('[data-testid="session-completeness"]').text()).toBe('20/20')
+    expect(w.find('[data-testid="norm-grade-tag"]').text()).toBe('по норме грейда')
   })
 
   it('принудительное закрытие: кнопка у незакрытой сессии, уходит с телом (9.10)', async () => {
@@ -249,7 +253,7 @@ describe('CompetenciesTab: свежесть и системные значени
     await settle()
     // сессия 20/20 пунктов версии — «закрытая», кнопки нет; делаем незакрытую
     ;(competenciesApi.sessions as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-      { kind: 'soft', date: '2026-10-01', assessor_kind: 'manager', assessor: 'Рук',
+      { type_code: 'soft', date: '2026-10-01', assessor_kind: 'manager', assessor: 'Рук',
         marks: 3, user_marks: 3, system_marks: 0, matrix_id: 9, version: 2, is_current: true },
     ])
     await w.vm.$forceUpdate()

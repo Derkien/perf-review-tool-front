@@ -77,7 +77,7 @@
         <Tag v-if="u.overdue" value="просрочено" severity="danger" />
         <template v-if="u.progress?.matrices?.length">
           <span v-for="m in u.progress.matrices" :key="m.matrix_id" class="pill small">
-            {{ m.kind }} {{ m.specialty }}: {{ m.complete ? '✓' : `${m.covered}/${m.total}` }}
+            {{ m.type_code }} {{ m.specialty }}: {{ m.complete ? '✓' : `${m.covered}/${m.total}` }}
           </span>
           <Button v-for="m in u.progress.matrices.filter((x) => !x.complete)"
                   :key="`fc-${m.matrix_id}`" label="Закрыть принудительно" size="small"
@@ -231,7 +231,7 @@ async function forceClose(
   const kindLabel = kind === 'self' ? 'самооценка' : `руководительская (${u.matrix_kind})`
   const ok = await confirmDialog.ask({
     header: 'Закрыть разметку принудительно?',
-    message: `Кого: ${u.subject?.name}\nСхема: ${m.kind} ${m.specialty} (v${m.version})`
+    message: `Кого: ${u.subject?.name}\nСхема: ${m.type_code} ${m.specialty} (v${m.version})`
       + `\nВид: ${kindLabel}`
       + `\nНепокрыто: ${m.total - m.covered} из ${m.total}`
       + `\nБудет проставлен грейд: ${u.grade || '—'} (отметки «по умолчанию»)`,

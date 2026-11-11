@@ -22,7 +22,8 @@
       <Column expander style="width: 3rem" />
       <Column header="Тип">
         <template #body="{ data: g }">
-          <Tag :value="g.kind" :severity="g.kind === 'hard' ? 'warn' : 'info'" />
+          <Tag :value="g.type_code"
+               :severity="g.type_code === 'hard' ? 'warn' : g.type_code === 'soft' ? 'info' : 'secondary'" />
         </template>
       </Column>
       <Column field="specialty" header="Роль" />
@@ -114,42 +115,103 @@
       </template>
     </DataTable>
 
+    <!-- реестр типов: вкладки профиля и валидация импорта строятся по нему (change 2) -->
+    <h3 style="margin:18px 0 6px">Типы компетенций</h3>
+    <p class="muted small" style="margin:0 0 6px">
+      Реестр типов: вкладки профиля сотрудников и валидация импорта строятся по нему.
+      Деактивация скрывает тип из интерфейсов, схемы и разметки сохраняются; удаление не предусмотрено.
+    </p>
+    <div style="margin-bottom:6px">
+      <Button label="Добавить тип" icon="pi pi-plus" size="small" data-testid="type-create-btn"
+              @click="openTypeCreate" />
+    </div>
+    <DataTable :value="registryTypes" size="small" data-testid="types-table" style="max-width: 720px">
+      <Column field="code" header="Код" />
+      <Column field="title" header="Название" />
+      <Column field="order_no" header="Порядок" />
+      <Column header="Статус">
+        <template #body="{ data: t }">
+          <Tag :value="t.is_active ? 'активен' : 'деактивирован'"
+               :severity="t.is_active ? 'success' : 'secondary'" data-testid="type-status" />
+        </template>
+      </Column>
+      <Column header="Действия">
+        <template #body="{ data: t }">
+          <Button label="Править" text size="small" :data-testid="`type-edit-${t.code}`"
+                  @click="openTypeEdit(t)" />
+        </template>
+      </Column>
+    </DataTable>
+
     <h3 style="margin:18px 0 6px">Роли без схем</h3>
     <p class="muted small" style="margin:0 0 6px">
       Должности и функциональные группы из кадровых данных, для которых нет ни одной версии
       схемы — заполнение компетенций по ним недоступно.
     </p>
     <div v-if="withoutSchemas.length" class="without-list">
-      <Tag v-for="r in withoutSchemas" :key="r.kind + r.specialty"
-           :value="`${r.kind}: ${r.specialty}`"
-           :severity="r.kind === 'hard' ? 'warn' : 'info'" />
+      <Tag v-for="r in withoutSchemas" :key="r.type_code + r.specialty"
+           :value="`${r.type_code}: ${r.specialty}`"
+           :severity="r.type_code === 'hard' ? 'warn' : 'info'" />
     </div>
     <p v-else class="muted small">Все роли из кадровых данных покрыты схемами.</p>
 
-    <!-- модалка предпросмотра импорта -->
+    <!-- модалка предпросмотра импорта: дифф по парам из API + явный override -->
     <Dialog v-model:visible="previewVisible" modal header="Предпросмотр загрузки схемы"
-            style="width: 640px">
+            style="width: 720px">
       <p v-if="uploadPreview" class="muted small" style="margin-top:0">
         Распознано строк: {{ uploadPreview.rows_total }}. Применение создаст
-        <b>черновики</b> новых версий — активные матрицы не изменятся до активации.
+        <b>черновики</b> изменившихся пар — активные матрицы не изменятся до активации.
       </p>
-      <DataTable v-if="uploadPreview" :value="uploadPairs" size="small">
+      <DataTable v-if="uploadPreview" :value="uploadPreview.pairs || []" size="small"
+                 data-testid="upload-pairs">
         <Column header="Тип">
           <template #body="{ data: p }">
-            <Tag :value="p.kind" :severity="p.kind === 'hard' ? 'warn' : 'info'" />
+            <Tag :value="p.type_code"
+                 :severity="p.type_code === 'hard' ? 'warn' : p.type_code === 'soft' ? 'info' : 'secondary'" />
           </template>
         </Column>
         <Column field="specialty" header="Роль" />
-        <Column field="items" header="Пунктов" />
+        <Column field="items_count" header="Пунктов" />
+        <Column header="Статус">
+          <template #body="{ data: p }">
+            <Tag :value="pairStatusLabel(p.status)" :severity="pairStatusSeverity(p.status)"
+                 :data-testid="`pair-status-${p.specialty}`" />
+            <span v-if="p.status === 'changed' && p.diff" class="muted small diff-counts"
+                  data-testid="pair-diff-counts">
+              +{{ p.diff.added.length }} −{{ p.diff.removed.length }} ~{{ p.diff.changed.length }}
+            </span>
+          </template>
+        </Column>
         <Column header="Итог">
           <template #body="{ data: p }">
-            будет создан черновик v{{ p.nextVersion }}
+            <span v-if="p.status === 'unchanged'" class="muted small">без изменений — версия не поднимется</span>
+            <span v-else>черновик v{{ p.next_version }}</span>
           </template>
         </Column>
       </DataTable>
+      <!-- структурные детали изменившихся пар: добавлено/удалено/изменено по пунктам -->
+      <details v-for="p in changedPairs" :key="p.type_code + p.specialty"
+               class="diff-details" :data-testid="`pair-diff-${p.specialty}`">
+        <summary>{{ p.type_code }}: {{ p.specialty }}</summary>
+        <p v-if="p.diff?.added.length" class="small" style="margin:4px 0">
+          Добавлены: {{ p.diff.added.map((i) => diffItem(i)).join('; ') }}
+        </p>
+        <p v-if="p.diff?.removed.length" class="small" style="margin:4px 0">
+          Удалены: {{ p.diff.removed.map((i) => diffItem(i)).join('; ') }}
+        </p>
+        <p v-for="c in p.diff?.changed || []" :key="c.name" class="small" style="margin:4px 0">
+          Изменён «{{ diffItem(c) }}»: {{ c.changes.join('; ') }}
+        </p>
+      </details>
+      <div v-if="hasUnchangedPairs" class="force-row" data-testid="force-row">
+        <Checkbox v-model="forceUpload" :binary="true" input-id="force-upload" />
+        <label for="force-upload" class="small">
+          Создать версии и для неизменившихся пар (явный override администратора)
+        </label>
+      </div>
       <Message v-for="w in uploadPreview?.warnings || []" :key="w.specialty" severity="warn"
                :sticky="true" style="margin-top:8px">
-        «{{ w.specialty }}» ({{ w.kind }}): {{ w.warning }}
+        «{{ w.specialty }}» ({{ w.type_code }}): {{ w.warning }}
       </Message>
       <Message v-for="c in uploadPreview?.conflicts || []" :key="c.row" severity="error"
                :sticky="true" style="margin-top:8px">
@@ -157,7 +219,34 @@
       </Message>
       <template #footer>
         <Button label="Отмена" severity="secondary" text @click="previewVisible = false" />
-        <Button label="Применить (создать черновики)" :loading="busy" @click="applyUpload" />
+        <Button label="Применить (создать черновики)" :loading="busy" data-testid="apply-import"
+                @click="applyUpload" />
+      </template>
+    </Dialog>
+
+    <!-- диалог создания/правки типа реестра -->
+    <Dialog v-model:visible="typeDialogVisible" modal
+            :header="typeIsNew ? 'Новый тип компетенций' : `Тип «${typeForm.code}»`"
+            style="width: 480px">
+      <div class="type-form">
+        <label>Код (строчные латиница/цифры/дефис, неизменяем)
+          <InputText v-model="typeForm.code" :disabled="!typeIsNew" data-testid="type-code-input" />
+        </label>
+        <label>Название (заголовок вкладки)
+          <InputText v-model="typeForm.title" data-testid="type-title-input" />
+        </label>
+        <label>Порядок во вкладках
+          <InputText v-model="typeOrderStr" type="number" data-testid="type-order-input" />
+        </label>
+        <label v-if="!typeIsNew" class="switch-row">
+          <Checkbox v-model="typeForm.is_active" :binary="true" input-id="type-active" />
+          Активен (деактивация скрывает тип, данные сохраняются)
+        </label>
+      </div>
+      <template #footer>
+        <Button label="Отмена" severity="secondary" text @click="typeDialogVisible = false" />
+        <Button :label="typeIsNew ? 'Создать' : 'Сохранить'" :loading="busy"
+                data-testid="type-submit" @click="saveType" />
       </template>
     </Dialog>
   </div>
@@ -166,15 +255,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import FileUpload from 'primevue/fileupload'
+import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import RadarChart from './RadarChart.vue'
-import { competenciesApi } from '../api/endpoints'
-import type { RadarData, SchemasOverview, SchemaGroup, SchemaVersion } from '../api/endpoints'
+import { competenciesApi, competencyTypesApi } from '../api/endpoints'
+import type { CompetencyTypeAllRow, RadarData, SchemasOverview, SchemaDiffPair, SchemaGroup, SchemaVersion } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAppConfirm } from '../composables/useAppConfirm'
 import { trackAction } from '../api/endpoints'
@@ -184,6 +275,7 @@ const toast = useToast()
 const confirmDialog = useAppConfirm()
 
 const overview = ref<SchemasOverview | null>(null)
+const registryTypes = ref<CompetencyTypeAllRow[]>([])
 // при data-key PrimeVue ждёт объект-мапу { rowKey: rowData } (тип any[] в дататипах неточен)
 const expandedRows = ref<any>({})
 const selectedId = ref<number | null>(null)
@@ -196,7 +288,7 @@ type MatrixItemRow = Awaited<ReturnType<typeof competenciesApi.matrixItems>>[num
 
 type GroupRow = SchemaGroup & { key: string }
 const groups = computed<GroupRow[]>(() =>
-  (overview.value?.groups || []).map((g) => ({ ...g, key: `${g.kind}|${g.specialty}` })))
+  (overview.value?.groups || []).map((g) => ({ ...g, key: `${g.type_code}|${g.specialty}` })))
 const withoutSchemas = computed(() => overview.value?.roles_without_schemas || [])
 const selected = computed(() => {
   for (const g of groups.value) {
@@ -214,6 +306,9 @@ async function load() {
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Не удалось загрузить схемы', detail: errMsg(e), life: 8000 })
   }
+  try {
+    registryTypes.value = await competencyTypesApi.all()
+  } catch { registryTypes.value = [] }
 }
 
 function activeVersion(g: SchemaGroup): SchemaVersion | undefined {
@@ -269,44 +364,41 @@ async function downloadTemplate() {
   } finally { busy.value = false }
 }
 
-// --- загрузка схемы: файл → предпросмотр → apply ---
+// --- загрузка схемы: файл → предпросмотр с диффом → apply (с опциональным force) ---
 
 const file = ref<File | null>(null)
 const previewVisible = ref(false)
 const uploadPreview = ref<Awaited<ReturnType<typeof competenciesApi.previewSchemaImport>> | null>(null)
+/** явный override администратора: черновики и для неизменившихся пар */
+const forceUpload = ref(false)
 
 function onFileSelected(e: { files: File[] }) {
   file.value = e.files?.[0] || null
 }
 
-/** пары файла + итоговые номера версий — то же правило, что в apply бэка:
- *  существующий черновик пары заменяется и его номер переиспользуется. */
-const uploadPairs = computed(() => {
-  const rows = (uploadPreview.value?.preview || []) as Record<string, unknown>[]
-  const byPair = new Map<string, { kind: string; specialty: string; items: number; nextVersion: number }>()
-  for (const g of groups.value) {
-    // без черновика пары: max по оставшимся + 1; versions пусты → 1 (новая роль)
-    const kept = g.versions.filter((v) => v.status !== 'draft')
-    byPair.set(`${g.kind}|${g.specialty}`, {
-      kind: g.kind, specialty: g.specialty, items: 0,
-      nextVersion: (kept.length ? Math.max(...kept.map((v) => v.version)) : 0) + 1,
-    })
-  }
-  for (const r of rows) {
-    const key = `${r.kind}|${r.specialty}`
-    const cur = byPair.get(key)
-      || { kind: String(r.kind), specialty: String(r.specialty), items: 0, nextVersion: 1 }
-    cur.items += 1
-    byPair.set(key, cur)
-  }
-  return [...byPair.values()].filter((p) => p.items > 0)
-})
+/** изменившиеся пары — для структурных деталей под таблицей */
+const changedPairs = computed(() =>
+  (uploadPreview.value?.pairs || []).filter((p) => p.status === 'changed'))
+const hasUnchangedPairs = computed(() =>
+  (uploadPreview.value?.pairs || []).some((p) => p.status === 'unchanged'))
+
+function pairStatusLabel(s: SchemaDiffPair['status']): string {
+  return ({ new: 'новая', changed: 'изменилось', unchanged: 'без изменений' } as const)[s]
+}
+function pairStatusSeverity(s: SchemaDiffPair['status']): 'info' | 'warn' | 'secondary' {
+  return ({ new: 'info', changed: 'warn', unchanged: 'secondary' } as const)[s]
+}
+/** пункт диффа — «категория/имя» (категория может быть пустой) */
+function diffItem(i: { category: string; name: string }): string {
+  return i.category ? `${i.category}/${i.name}` : i.name
+}
 
 async function uploadSchema() {
   if (!file.value) return
   busy.value = true
   try {
     uploadPreview.value = await competenciesApi.previewSchemaImport(file.value)
+    forceUpload.value = false
     previewVisible.value = true
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка разбора файла', detail: errMsg(e), life: 10000 })
@@ -317,10 +409,10 @@ async function applyUpload() {
   if (!uploadPreview.value) return
   busy.value = true
   try {
-    await competenciesApi.applySchemaImport(uploadPreview.value.batch_id)
+    await competenciesApi.applySchemaImport(uploadPreview.value.batch_id, forceUpload.value)
     trackAction('admin.competency-schemas', { action: 'apply-import', batch_id: uploadPreview.value.batch_id })
     toast.add({ severity: 'success',
-      summary: 'Схемы загружены: созданы черновики. Активация — вручную в этом разделе.', life: 8000 })
+                summary: 'Схемы загружены: созданы черновики. Активация — вручную в этом разделе.', life: 8000 })
     previewVisible.value = false
     file.value = null
     await load()
@@ -329,12 +421,67 @@ async function applyUpload() {
   } finally { busy.value = false }
 }
 
+// --- реестр типов: создание/правка/деактивация ---
+
+const typeDialogVisible = ref(false)
+const typeIsNew = ref(true)
+const typeWasActive = ref(true)
+const typeForm = ref<CompetencyTypeAllRow>({ code: '', title: '', order_no: 0, is_active: true })
+/** InputText держит строку — число разбираем на запись */
+const typeOrderStr = computed({
+  get: () => String(typeForm.value.order_no),
+  set: (v: string) => { typeForm.value.order_no = Number(v) || 0 },
+})
+
+function openTypeCreate() {
+  typeIsNew.value = true
+  typeForm.value = { code: '', title: '', order_no: (registryTypes.value.length + 1) * 10, is_active: true }
+  typeDialogVisible.value = true
+}
+function openTypeEdit(t: CompetencyTypeAllRow) {
+  typeIsNew.value = false
+  typeWasActive.value = t.is_active
+  typeForm.value = { ...t }
+  typeDialogVisible.value = true
+}
+
+async function saveType() {
+  busy.value = true
+  try {
+    if (typeIsNew.value) {
+      await competencyTypesApi.create({
+        code: typeForm.value.code, title: typeForm.value.title, order_no: typeForm.value.order_no,
+      })
+      toast.add({ severity: 'success', summary: `Тип «${typeForm.value.code}» создан`, life: 4000 })
+    } else {
+      if (typeWasActive.value && !typeForm.value.is_active) {
+        const ok = await confirmDialog.ask({
+          header: `Деактивировать тип «${typeForm.value.code}»?`,
+          message: 'Вкладка типа скроется из профилей; схемы, разметки и история сохранятся.',
+          okLabel: 'Деактивировать', danger: true,
+        })
+        if (ok === null) return
+      }
+      await competencyTypesApi.patch(typeForm.value.code, {
+        title: typeForm.value.title, order_no: typeForm.value.order_no,
+        is_active: typeForm.value.is_active,
+      })
+      toast.add({ severity: 'success', summary: 'Тип сохранён', life: 4000 })
+    }
+    trackAction('admin.competency-types', { action: typeIsNew.value ? 'create' : 'update', code: typeForm.value.code })
+    typeDialogVisible.value = false
+    await load()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Не удалось сохранить тип', detail: errMsg(e), life: 8000 })
+  } finally { busy.value = false }
+}
+
 // --- активация и удаление черновика (модалки подтверждений) ---
 
 async function confirmActivate(g: GroupRow, v: SchemaVersion) {
   const active = activeVersion(g)
   const ok = await confirmDialog.ask({
-    header: `Активировать схему «${g.specialty}» (${g.kind})?`,
+    header: `Активировать схему «${g.specialty}» (${g.type_code})?`,
     message:
       'Заполнение перейдёт на эту версию; прежняя активная уйдёт в архив, история сохранится.\n\n'
       + `Активировать версию: v${v.version}\n`
@@ -355,8 +502,8 @@ async function confirmActivate(g: GroupRow, v: SchemaVersion) {
 
 async function confirmDelete(g: GroupRow, v: SchemaVersion) {
   const ok = await confirmDialog.ask({
-    header: `Удалить черновик схемы «${g.specialty}» (${g.kind})?`,
-    message: `Роль: ${g.specialty} (${g.kind})\nУдалить черновик: v${v.version} (${v.items_count} пунктов)\n\n`
+    header: `Удалить черновик схемы «${g.specialty}» (${g.type_code})?`,
+    message: `Роль: ${g.specialty} (${g.type_code})\nУдалить черновик: v${v.version} (${v.items_count} пунктов)\n\n`
       + 'Черновик можно перезалить повторным импортом; опубликованные версии затронуты не будут.',
     okLabel: 'Удалить черновик',
     danger: true,
@@ -387,6 +534,13 @@ async function confirmDelete(g: GroupRow, v: SchemaVersion) {
 .demo-table { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; align-self: start; }
 .demo-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
 .without-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.diff-counts { margin-left: 6px; }
+.diff-details { margin: 6px 0; font-size: 0.85rem; }
+.diff-details summary { cursor: pointer; color: #2563eb; }
+.force-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.type-form { display: flex; flex-direction: column; gap: 10px; }
+.type-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+.type-form .switch-row { flex-direction: row; align-items: center; }
 .small { font-size: 0.78rem; }
 :deep(.row-selected) { background: #eff6ff !important; }
 @media (max-width: 900px) { .demo-grid { grid-template-columns: 1fr; } }

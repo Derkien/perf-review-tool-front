@@ -19,14 +19,24 @@ export type CycleTransition = {
   permission: string; allowed: boolean; reasons: string[]
 }
 export type MarkSession = {
-  kind: 'hard' | 'soft'
+  type_code: string
   date: string
   assessor_kind: 'self' | 'manager'
   assessor: string
   marks: number
+  user_marks: number
+  system_marks: number
   matrix_id?: number
   version?: number
   is_current?: boolean
+}
+/** тип из реестра (вкладки профиля строятся по нему) */
+export type CompetencyTypeRow = { code: string; title: string; order_no: number }
+export type CompetencyTypeAllRow = CompetencyTypeRow & { is_active: boolean }
+/** версия схемы в селекторе истории: статус + дата последней разметки */
+export type RadarVersion = {
+  matrix_id: number; version: number; status: string; specialty: string
+  latest_mark_date: string | null
 }
 export type RadarItem = {
   item_id: number
@@ -51,7 +61,8 @@ export type RadarData = {
   session_1_default?: boolean[] | null
   session_2_default?: boolean[] | null
   gaps?: { item: string; self: number; manager: number; gap: number }[]
-  matrices?: { id: number; kind: string; specialty: string; version: number }[]
+  matrices?: { id: number; type_code: string; specialty: string; version: number }[]
+  versions?: RadarVersion[]
   summary?: { overestimated: string[]; growth_zones: string[]; avg_self: number; avg_manager: number }
 }
 export type SchemaVersion = {
@@ -59,22 +70,31 @@ export type SchemaVersion = {
   items_count: number; created_at: string | null
 }
 export type SchemaGroup = {
-  kind: 'hard' | 'soft'; specialty: string
+  type_code: string; specialty: string
   versions: SchemaVersion[]; has_draft: boolean
 }
 export type SchemasOverview = {
   groups: SchemaGroup[]
-  roles_without_schemas: { kind: string; specialty: string }[]
+  roles_without_schemas: { type_code: string; specialty: string }[]
+}
+/** дифф-предпросмотр пары (тип, роль): структурные детали против активной версии */
+export type SchemaDiffPair = {
+  type_code: string; specialty: string; items_count: number; next_version: number
+  active: boolean; status: 'new' | 'changed' | 'unchanged'; active_version?: number
+  diff?: { added: { category: string; name: string }[]; removed: { category: string; name: string }[]
+          changed: { category: string; name: string; changes: string[] }[] } | null
+  content_hash?: string
 }
 export type SchemaPreview = {
   batch_id: number; type: string; rows_total: number
   conflicts: { row?: number; error?: string }[]
   month: string | null
   preview: Record<string, unknown>[]
-  warnings: { kind: string; specialty: string; warning: string }[]
+  pairs?: SchemaDiffPair[]
+  warnings: { type_code: string; specialty: string; warning: string }[]
 }
 export type MatrixRow = {
-  kind: string; specialty: string; item_id: number; item: string; category: string
+  type_code: string; specialty: string; item_id: number; item: string; category: string
   descriptions: Record<string, string>
   self: { level: string; weight: number; date: string } | null
   manager: { level: string; weight: number; date: string } | null
@@ -392,38 +412,40 @@ export const reviewsApi = {
 }
 
 export const competenciesApi = {
-  async radar(employeeId: number | string, kind: 'hard' | 'soft', compareDates?: string[],
-              normGrade?: string): Promise<RadarData> {
+  /** matrixId — селектор версий: построение по конкретной версии (по умолчанию — текущая). */
+  async radar(employeeId: number | string, kind: string, compareDates?: string[],
+              normGrade?: string, matrixId?: number): Promise<RadarData> {
     const { data, error } = await client.GET('/competencies/employees/{employee_id}/radar', {
       params: {
         path: { employee_id: Number(employeeId) },
         query: {
-          kind,
+          type_code: kind,
           compare_sessions: compareDates?.length ? compareDates.join('|') : undefined,
           norm_grade: normGrade,
-        } as never,
+          matrix_id: matrixId,
+        },
       },
     })
     if (error) raise(error, '/competencies/employees/{employee_id}/radar')
     return data as RadarData
   },
-  async matrix(employeeId: number | string, kind: 'hard' | 'soft'): Promise<MatrixRow[]> {
+  async matrix(employeeId: number | string, kind: string): Promise<MatrixRow[]> {
     const { data, error } = await client.GET('/competencies/employees/{employee_id}/matrix', {
-      params: { path: { employee_id: Number(employeeId) }, query: { kind } },
+      params: { path: { employee_id: Number(employeeId) }, query: { type_code: kind } },
     })
     if (error) raise(error, '/competencies/employees/{employee_id}/matrix')
     return data as MatrixRow[]
   },
-  async sessions(employeeId: number | string, kind?: 'hard' | 'soft'): Promise<MarkSession[]> {
+  async sessions(employeeId: number | string, kind?: string): Promise<MarkSession[]> {
     const { data, error } = await client.GET('/competencies/employees/{employee_id}/sessions', {
-      params: { path: { employee_id: Number(employeeId) }, query: { kind } as never },
+      params: { path: { employee_id: Number(employeeId) }, query: { type_code: kind } },
     })
     if (error) raise(error, '/competencies/employees/{employee_id}/sessions')
     return data as never
   },
-  async dynamics(employeeId: number | string, kind?: 'hard' | 'soft'): Promise<{ date: string; avg_weight: number; items: number }[]> {
+  async dynamics(employeeId: number | string, kind?: string): Promise<{ date: string; avg_weight: number; items: number }[]> {
     const { data, error } = await client.GET('/competencies/employees/{employee_id}/dynamics', {
-      params: { path: { employee_id: Number(employeeId) }, query: { kind } as never },
+      params: { path: { employee_id: Number(employeeId) }, query: { type_code: kind } },
     })
     if (error) raise(error, '/competencies/employees/{employee_id}/dynamics')
     return data as never
@@ -450,41 +472,41 @@ export const competenciesApi = {
     categories: Record<'self' | 'manager',
       { category: string; items: number; failed: number; diff: number }[]>
   }> {
-    const { data, error } = await client.GET('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}', {
-      params: { path: { employee_id: Number(employeeId), kind, date_str: date } },
+    const { data, error } = await client.GET('/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}', {
+      params: { path: { employee_id: Number(employeeId), type_code: kind, date_str: date } },
     })
-    if (error) raise(error, 'GET /competencies/employees/{employee_id}/sessions/{kind}/{date_str}')
+    if (error) raise(error, 'GET /competencies/employees/{employee_id}/sessions/{type_code}/{date_str}')
     return data as never
   },
   async editSession(employeeId: number | string, kind: string, date: string, levels: Record<number, string>): Promise<{ ok: boolean; changed: Record<string, { before: string; after: string }> }> {
-    const { data, error } = await client.PATCH('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}', {
-      params: { path: { employee_id: Number(employeeId), kind, date_str: date } },
+    const { data, error } = await client.PATCH('/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}', {
+      params: { path: { employee_id: Number(employeeId), type_code: kind, date_str: date } },
       body: { levels: levels as never },
     })
-    if (error) raise(error, '/competencies/employees/{employee_id}/sessions/{kind}/{date_str}')
+    if (error) raise(error, '/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}')
     return data as never
   },
   async deleteSession(employeeId: number | string, kind: string, date: string, hard = false): Promise<{ ok: boolean; action: string }> {
-    const { data, error } = await client.DELETE('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}', {
-      params: { path: { employee_id: Number(employeeId), kind, date_str: date }, query: { hard } },
+    const { data, error } = await client.DELETE('/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}', {
+      params: { path: { employee_id: Number(employeeId), type_code: kind, date_str: date }, query: { hard } },
     })
-    if (error) raise(error, 'DELETE /competencies/employees/{employee_id}/sessions/{kind}/{date_str}')
+    if (error) raise(error, 'DELETE /competencies/employees/{employee_id}/sessions/{type_code}/{date_str}')
     return data as never
   },
   async restoreSession(employeeId: number | string, kind: string, date: string): Promise<{ ok: boolean }> {
-    const { data, error } = await client.POST('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/restore', {
-      params: { path: { employee_id: Number(employeeId), kind, date_str: date } },
+    const { data, error } = await client.POST('/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}/restore', {
+      params: { path: { employee_id: Number(employeeId), type_code: kind, date_str: date } },
     })
-    if (error) raise(error, '/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/restore')
+    if (error) raise(error, '/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}/restore')
     return data as never
   },
   /** XLSX сессии: blob через клиент с авторизацией (прямой <a href> без токена не работает). */
   async sessionXlsx(employeeId: number | string, kind: string, date: string): Promise<Blob> {
-    const { data, error } = await client.GET('/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/xlsx', {
-      params: { path: { employee_id: Number(employeeId), kind, date_str: date } },
+    const { data, error } = await client.GET('/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}/xlsx', {
+      params: { path: { employee_id: Number(employeeId), type_code: kind, date_str: date } },
       parseAs: 'blob',
     })
-    if (error) raise(error, '/competencies/employees/{employee_id}/sessions/{kind}/{date_str}/xlsx')
+    if (error) raise(error, '/competencies/employees/{employee_id}/sessions/{type_code}/{date_str}/xlsx')
     return data as Blob
   },
 
@@ -531,12 +553,40 @@ export const competenciesApi = {
     if (error) raise(error, '/competencies/schemas/{matrix_id}/demo')
     return data as never
   },
-  /** Предпросмотр импорта схемы: предупреждения о неизвестных ролях — не блокирующие. */
+  /** Реестр типов компетенций: вкладки профиля и селекторы строятся по нему. */
+  async types(): Promise<CompetencyTypeRow[]> {
+    const { data, error } = await client.GET('/competencies/types')
+    if (error) raise(error, '/competencies/types')
+    return data as never
+  },
+  /** Предпросмотр импорта схемы: дифф по парам (тип, роль) против активных версий. */
   async previewSchemaImport(file: File): Promise<SchemaPreview> {
     return importsApi.preview('competency-schema', file, {}) as Promise<SchemaPreview>
   },
-  async applySchemaImport(batchId: number): Promise<Record<string, unknown>> {
-    return importsApi.apply(batchId, {})
+  /** force — черновик даже для неизменившихся пар (явное решение администратора). */
+  async applySchemaImport(batchId: number, force = false): Promise<Record<string, unknown>> {
+    return importsApi.apply(batchId, force ? { force: true } : {})
+  },
+}
+
+/** Управление реестром типов — админка (ROLE_U_COMPETENCY_MATRIX). */
+export const competencyTypesApi = {
+  async all(): Promise<CompetencyTypeAllRow[]> {
+    const { data, error } = await client.GET('/competencies/types/all')
+    if (error) raise(error, '/competencies/types/all')
+    return data as never
+  },
+  async create(body: { code: string; title: string; order_no: number }): Promise<CompetencyTypeRow> {
+    const { data, error } = await client.POST('/competencies/types', { body })
+    if (error) raise(error, 'POST /competencies/types')
+    return data as never
+  },
+  async patch(code: string, body: { title?: string; order_no?: number; is_active?: boolean }): Promise<CompetencyTypeAllRow> {
+    const { data, error } = await client.PATCH('/competencies/types/{code}', {
+      params: { path: { code } }, body,
+    })
+    if (error) raise(error, 'PATCH /competencies/types/{code}')
+    return data as never
   },
 }
 
@@ -836,7 +886,7 @@ export { qs }
 // ---- контур заданий (унифицированные активности ревью) -----------------------
 
 export type AssignmentProgressMatrix = {
-  kind: string; specialty: string; version: number; matrix_id: number
+  type_code: string; specialty: string; version: number; matrix_id: number
   covered: number; total: number; complete: boolean
 }
 

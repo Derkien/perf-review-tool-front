@@ -25,14 +25,19 @@ test.describe.serial('Матрицы компетенций: e2e', () => {
     ])
     expect(download.suggestedFilename()).toBe('competency-schema-template.xlsx')
 
-    // 2. импорт с предпросмотром
+    // 2. импорт с дифф-предпросмотром
     await page.setInputFiles('input[type="file"]', 'e2e/fixtures/schema-e2e.xlsx')
     await page.getByRole('button', { name: 'Загрузить схему' }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toContainText('Предпросмотр загрузки схемы')
     await expect(dialog).toContainText('android')
+    // повторный прогон: файл совпадает с активной версией — override администратора
+    if (await dialog.getByText('без изменений — версия не поднимется').count() > 0) {
+      await dialog.locator('#force-upload').check()
+    }
     const summary = await dialog
-      .getByText(/будет создан черновик v(\d+)/)
+      .getByText(/черновик v(\d+)/)
+      .first()
       .textContent()
     nextVersion = Number(summary!.match(/v(\d+)/)![1])
     await page.screenshot({ path: 'e2e/screenshots/01-import-preview.png' })
@@ -103,21 +108,29 @@ test.describe.serial('Матрицы компетенций: e2e', () => {
     await page.getByRole('button', { name: 'Сохранить разметку' }).click()
     await expect(page.getByText('Разметка сохранена (3 пунктов)')).toBeVisible()
 
-    // история: у новой сессии бейдж версии без «архива», у старых (v1) — «архив»
+    // история: по умолчанию — только сессии текущей (активной) версии
     const history = page.locator('.p-datatable-table')
     const newSessionRow = history
       .getByRole('row').filter({ hasText: iso }).filter({ hasText: `v${nextVersion}` }).first()
     await expect(newSessionRow).toBeVisible()
-    const archivedRow = history
-      .getByRole('row').filter({ hasText: 'архив' }).filter({ hasText: 'руководитель' }).first()
-    await expect(archivedRow).toBeVisible()
+    await expect(history.getByRole('row').filter({ hasText: 'архив' })).toHaveCount(0)
     await page.screenshot({ path: 'e2e/screenshots/05-employee-history.png', fullPage: true })
 
-    // сравнение: текущая версия добавляется на паутинку, архивная — нет
+    // сравнение: сессия текущей версии добавляется на паутинку
     await newSessionRow.click()
     await expect(newSessionRow.locator('i.pi-check-circle')).toBeVisible()
+
+    // селектор версий: архивная версия — история только её сессий, сравнение внутри версии
+    const versionSelect = page.getByTestId('version-select')
+    await expect(versionSelect).toBeVisible()
+    await versionSelect.click()
+    await page.getByRole('option', { name: /v1 — архивная/ }).click()
+    await expect(page.getByTestId('schema-version-badge')).toHaveText('схема v1')
+    const archivedRow = history
+      .getByRole('row').filter({ hasText: 'v1' }).filter({ hasText: 'руководитель' }).first()
+    await expect(archivedRow).toBeVisible()
     await archivedRow.click()
-    await expect(archivedRow.locator('i.pi-check-circle')).toHaveCount(0)
-    await expect(archivedRow.locator('i.pi-circle')).toBeVisible()
+    await expect(archivedRow.locator('i.pi-check-circle')).toBeVisible()
+    await page.screenshot({ path: 'e2e/screenshots/05b-archive-version-history.png', fullPage: true })
   })
 })

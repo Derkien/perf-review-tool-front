@@ -2,8 +2,12 @@
   <div>
     <div class="comp-head">
       <div class="kind-row">
-        <SelectButton v-model="kind" :options="kinds" option-label="label" option-value="value" />
-        <Tag v-if="radarVersions" :value="`схема v${radarVersions}`" severity="secondary"
+        <Select v-if="versionOptions.length > 1" v-model="selectedMatrixId"
+                :options="versionSelectOptions" option-label="label" option-value="value"
+                size="small" data-testid="version-select" @update:model-value="onVersionChange" />
+        <SelectButton v-model="kind" :options="types" option-label="title" option-value="code"
+                      data-testid="type-tabs" />
+        <Tag v-if="currentVersionBadge" :value="currentVersionBadge" severity="secondary"
              data-testid="schema-version-badge" />
       </div>
       <div class="comp-actions">
@@ -15,7 +19,7 @@
     <!-- построчная сетка: типы → заметка о весах/степени → чипы → графики в одну
          строку (холсты на одном уровне, легенды в линию) → комментарии → история -->
     <div class="radar-toolbar">
-      <span class="muted small">веса 1–10 · норма{{ radar?.norm_grade ? ` «${radar.norm_grade}»` : ' грейда' }} — серая{{ radarVersions ? ` · схема v${radarVersions}` : '' }}</span>
+      <span class="muted small">веса 1–10 · норма{{ radar?.norm_grade ? ` «${radar.norm_grade}»` : ' грейда' }} — серая{{ currentVersionBadge ? ` · ${currentVersionBadge}` : '' }}</span>
       <div class="radar-tools">
         <SelectButton v-if="nextGrade" v-model="nextNormMode" :options="normModes"
                       option-label="label" option-value="value" size="small"
@@ -40,6 +44,8 @@
                     :manager="radar.manager" :norm="radar.norm"
                     :session1="sessionSeries[0]" :session2="sessionSeries[1]"
                     :session1-default="sessionDefaults[0]" :session2-default="sessionDefaults[1]"
+                    :session1-label="compareKeys[0]?.split('|')[1]"
+                    :session2-label="compareKeys[1]?.split('|')[1]"
                     height="520px" @axis-click="onAxisClick" />
         <p v-else class="muted">Разметок по этому типу пока нет{{
           markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
@@ -102,13 +108,14 @@
        @click="compareInfoVisible = !compareInfoVisible" />
     <Message v-if="compareInfoVisible" severity="info" :sticky="true" style="margin-top:8px"
              data-testid="compare-info-text">
-      Сравнение возможно только в рамках одной версии схемы: на паутинку добавляются сессии
-      текущей активной версии. Сессии архивных версий смотрите по их собственным пунктам.
+      Сравнение возможно только в рамках одной версии схемы: список истории показывает сессии
+      выбранной версии, на паутинку добавляются они же. Чтобы сравнить разметки архивной
+      версии — выберите её в селекторе версий.
     </Message>
     <p class="muted" style="margin-top:0">
       Клик по строке — добавить/убрать сессию на паутинку (до двух сравнений).
     </p>
-    <DataTable :value="sessions" size="small" style="max-width: 860px"
+    <DataTable :value="visibleSessions" size="small" class="history-table"
                :row-class="sessionRowClass" @row-click="toggleCompare($event.data)">
       <Column header="">
         <template #body="{ data: s }">
@@ -119,9 +126,10 @@
         </template>
       </Column>
       <Column field="date" header="Дата" />
-      <Column field="kind" header="Тип">
+      <Column header="Тип">
         <template #body="{ data: s }">
-          <Tag :value="s.kind" :severity="s.kind === 'hard' ? 'warn' : 'info'" />
+          <Tag :value="typeTitle(s.type_code)"
+               :severity="s.type_code === 'hard' ? 'warn' : s.type_code === 'soft' ? 'info' : 'secondary'" />
         </template>
       </Column>
       <Column header="Версия">
@@ -139,8 +147,9 @@
       <Column header="Пунктов">
         <template #body="{ data: s }">
           <span data-testid="session-completeness">{{ completenessText(s) }}</span>
-          <Tag v-if="s.system_marks" :value="`${s.system_marks} системой`" severity="warn"
-               style="margin-left: 6px" v-tooltip.top="'значения «по умолчанию» — принудительное закрытие'" />
+          <Tag v-if="s.system_marks" value="по норме грейда" severity="warn"
+               style="margin-left: 6px" data-testid="norm-grade-tag"
+               v-tooltip.top="'незаполненные пункты закрыты системными значениями — принудительное закрытие'" />
         </template>
       </Column>
       <Column header="Действия">
@@ -169,12 +178,14 @@
     </DataTable>
 
     <!-- большая паутинка -->
-    <Dialog v-model:visible="radarBig" modal :header="`Паутинка: ${kind === 'hard' ? 'харды' : 'софты'}`"
+    <Dialog v-model:visible="radarBig" modal :header="`Паутинка: ${typeTitle(kind)}`"
             :style="{ width: '96vw' }" :content-style="{ height: '88vh' }" :maximizable="true">
       <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                   :manager="radar.manager" :norm="radar.norm"
                   :session1="sessionSeries[0]" :session2="sessionSeries[1]"
                   :session1-default="sessionDefaults[0]" :session2-default="sessionDefaults[1]"
+                  :session1-label="compareKeys[0]?.split('|')[1]"
+                  :session2-label="compareKeys[1]?.split('|')[1]"
                   height="84vh" />
     </Dialog>
 
@@ -222,7 +233,7 @@ import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import RadarChart from './RadarChart.vue'
 import { competenciesApi, assignmentsApi, reassessmentApi, staffApi } from '../api/endpoints'
-import type { MatrixRow, RadarData } from '../api/endpoints'
+import type { CompetencyTypeRow, MatrixRow, RadarData, RadarVersion } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
 import { useAppConfirm } from '../composables/useAppConfirm'
@@ -237,8 +248,15 @@ const toast = useToast()
 const confirmDialog = useAppConfirm()
 const auth = useAuth()
 
-const kind = ref<'hard' | 'soft'>('hard')
-const kinds = [{ label: 'Харды', value: 'hard' }, { label: 'Софты', value: 'soft' }]
+/** вкладки типов — из реестра (порядок order_no), дефолт — первый активный */
+const types = ref<CompetencyTypeRow[]>([])
+const kind = ref('')
+/** селектор версий: 0 = последняя актуальная, иначе matrix_id версии */
+const selectedMatrixId = ref(0)
+const versionOptions = ref<RadarVersion[]>([])
+const STATUS_LABELS: Record<string, string> = {
+  active: 'текущая', deprecated: 'устаревшая', archived: 'архивная',
+}
 const radar = ref<RadarData | null>(null)
 const matrixRows = ref<MatrixRow[]>([])
 const sessions = ref<any[]>([])
@@ -284,18 +302,41 @@ const staleDateWarning = computed(() => {
   return 'Разметка этой датой не закроет задание: отметки на уже созданную дату обновляются, а не создаются'
 })
 
-/** счётчик полноты сессии: «15/20 пользователем» — если есть пробелы или системные отметки */
+/** счётчик полноты сессии: «X/Y» — покрыто пунктов версии (X ≤ Y), без лишних слов */
 function completenessText(s: any): string {
   const total = versionItemsCount.value[s.matrix_id]
-  if (total === undefined || (total === s.marks && !s.system_marks)) return String(s.marks)
-  return `${s.user_marks}/${total} пользователем`
+  if (total === undefined) return String(s.marks)
+  return `${Math.min(s.marks, total)}/${total}`
 }
 
-/** версии активных схем текущего типа — бейдж у переключателя и в подписи радара */
-const radarVersions = computed(() => {
-  const vs = (radar.value?.matrices || []).filter((m) => m.kind === kind.value).map((m) => m.version)
-  return vs.length ? [...new Set(vs)].join(', ') : ''
+/** опции селектора версий: 0 — текущая (последняя актуальная), далее — с меткой статуса */
+const versionSelectOptions = computed(() => {
+  const active = versionOptions.value.find((v) => v.status === 'active')
+  return [
+    { label: active ? `Текущая (v${active.version})` : 'Текущая', value: 0 },
+    ...versionOptions.value.filter((v) => v.status !== 'active')
+      .map((v) => ({ label: `v${v.version} — ${STATUS_LABELS[v.status] || v.status}`, value: v.matrix_id })),
+  ]
 })
+
+/** история — разметки выбранной версии (дефолт: только текущей версии) */
+const visibleSessions = computed(() => sessions.value.filter((s: any) => selectedMatrixId.value
+  ? s.matrix_id === selectedMatrixId.value : s.is_current !== false))
+
+/** бейдж выбранной версии схемы у вкладок и в подписи радара */
+const currentVersionBadge = computed(() => {
+  if (selectedMatrixId.value) {
+    const v = versionOptions.value.find((x) => x.matrix_id === selectedMatrixId.value)
+    return v ? `схема v${v.version}` : ''
+  }
+  const act = versionOptions.value.find((v) => v.status === 'active')
+  return act ? `схема v${act.version}` : ''
+})
+
+/** человекочитаемое имя типа — заголовок вкладки реестра */
+function typeTitle(code: string): string {
+  return types.value.find((t) => t.code === code)?.title || code
+}
 
 /** средняя норма полигона (для сводки «Комментарии и инсайты») */
 const avgNorm = computed(() => {
@@ -348,19 +389,33 @@ function isClosedSession(s: any): boolean {
   return total !== undefined && s.marks >= total
 }
 
-onMounted(load)
-watch(kind, load)
+onMounted(async () => {
+  try { types.value = await competenciesApi.types() } catch { types.value = [] }
+  kind.value = types.value[0]?.code || ''
+  if (kind.value) await load()
+})
+watch(kind, () => { selectedMatrixId.value = 0; load() })
 
 /** норма чьего грейда рисуется полигоном (режим «следующая степень» — грейд N+1) */
 function normGradeParam(): string | undefined {
   return nextNormMode.value && nextGrade.value ? nextGrade.value : undefined
 }
 
+/** смена версии в селекторе: график по выбранной версии, сравнения сбрасываются */
+async function onVersionChange() {
+  compareKeys.value = []
+  sessionSeries.value = [null, null]
+  sessionDefaults.value = [null, null]
+  await loadRadar()
+}
+
 async function loadRadar() {
+  if (!kind.value) { radar.value = null; versionOptions.value = []; return }
   try {
     radar.value = await competenciesApi.radar(props.employeeId, kind.value,
-      undefined, normGradeParam())
-  } catch { radar.value = null }
+      undefined, normGradeParam(), selectedMatrixId.value || undefined)
+    versionOptions.value = radar.value?.versions || []
+  } catch { radar.value = null; versionOptions.value = [] }
 }
 
 async function load() {
@@ -397,14 +452,14 @@ async function load() {
   } catch { openAssignmentHere.value = false }
 }
 
-function sessionKey(s: any): string { return `${s.kind}|${s.date}` }
+function sessionKey(s: any): string { return `${s.type_code}|${s.date}` }
 function seriesColor(s: any): string {
   const idx = compareKeys.value.indexOf(sessionKey(s))
   return idx === 0 ? '#9333ea' : idx === 1 ? '#0d9488' : '#94a3b8'
 }
 function sessionRowClass(data: any) {
-  // сравнение — только manager-сессии активной версии схемы (реш. 6)
-  if (data.assessor_kind !== 'manager' || data.is_current === false) return 'row-disabled'
+  // сравнение — только manager-сессии; список уже отфильтрован по выбранной версии
+  if (data.assessor_kind !== 'manager') return 'row-disabled'
   return compareKeys.value.includes(sessionKey(data)) ? 'row-selected' : ''
 }
 function rowLevel(row: any): string {
@@ -413,8 +468,8 @@ function rowLevel(row: any): string {
 }
 
 async function toggleCompare(s: any) {
-  // сессии других версий схемы на паутинку не добавляются (одна версия — одно сравнение)
-  if (s.assessor_kind !== 'manager' || s.is_current === false) return
+  // в списке только сессии выбранной версии — сравнение всегда внутри одной версии
+  if (s.assessor_kind !== 'manager') return
   const key = sessionKey(s)
   if (compareKeys.value.includes(key)) {
     compareKeys.value = compareKeys.value.filter((k) => k !== key)
@@ -431,7 +486,8 @@ async function refreshCompareSeries() {
     return
   }
   const dates = compareKeys.value.map((k) => k.split('|')[1])
-  const r = await competenciesApi.radar(props.employeeId, kind.value, dates, normGradeParam())
+  const r = await competenciesApi.radar(props.employeeId, kind.value, dates, normGradeParam(),
+    selectedMatrixId.value || undefined)
   sessionSeries.value = [r.session_1 || null, r.session_2 || null]
   sessionDefaults.value = [r.session_1_default || null, r.session_2_default || null]
 }
@@ -460,11 +516,11 @@ async function saveMarks() {
 
 async function downloadSession(s: any) {
   try {
-    const blob = await competenciesApi.sessionXlsx(props.employeeId, s.kind, s.date)
+    const blob = await competenciesApi.sessionXlsx(props.employeeId, s.type_code, s.date)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `marking-${props.employeeId}-${s.kind}-${s.date}.xlsx`
+    a.download = `marking-${props.employeeId}-${s.type_code}-${s.date}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
   } catch (e) {
@@ -490,7 +546,7 @@ async function openSessionEdit(s: any) {
   sessionEditReadonly.value = isClosedSession(s)
   sessionEditDraft.value = {}
   // сессия показывается по пунктам своей версии схемы (у архивной — свои пункты)
-  const body = await competenciesApi.sessionDetail(props.employeeId, s.kind, s.date)
+  const body = await competenciesApi.sessionDetail(props.employeeId, s.type_code, s.date)
   sessionEditCategories.value = body.categories || {}
   sessionEditRows.value = body.rows
     .filter((r: SessionDetailRow) => r.assessor_kind === s.assessor_kind)
@@ -501,11 +557,11 @@ async function openSessionEdit(s: any) {
 }
 
 async function saveSessionEdit() {
-  const s = sessions.value.find((x) => sessionKey(x) === compareKeys.value[0]) || sessions.value[0]
+  const s = visibleSessions.value.find((x) => sessionKey(x) === compareKeys.value[0]) || visibleSessions.value[0]
   if (!s) return
   busy.value = true
   try {
-    const r = await competenciesApi.editSession(props.employeeId, s.kind, s.date, sessionEditDraft.value)
+    const r = await competenciesApi.editSession(props.employeeId, s.type_code, s.date, sessionEditDraft.value)
     toast.add({ severity: 'success', summary: `Изменено пунктов: ${Object.keys(r.changed || {}).length} (аудит записан)`, life: 4000 })
     sessionEditVisible.value = false
     await load()
@@ -534,7 +590,7 @@ async function forceCloseSession(s: any) {
   const ok = await confirmDialog.ask({
     header: 'Закрыть разметку принудительно?',
     message: `Кого: ${name || `сотрудник #${props.employeeId}`}`
-      + `\nСхема: ${s.kind} (v${s.version || '—'}, #${s.matrix_id})`
+      + `\nСхема: ${typeTitle(s.type_code)} (v${s.version || '—'}, #${s.matrix_id})`
       + `\nВид: ${s.assessor_kind === 'self' ? 'самооценка' : 'руководительская'}`
       + `\nНепокрыто: ${total - s.marks} из ${total}`
       + (grade ? `\nБудет проставлен грейд: ${grade}` : ''),
@@ -556,7 +612,7 @@ async function forceCloseSession(s: any) {
 
 async function deleteSession(s: any) {
   const mode = await confirmDialog.ask({
-    header: `Удалить разметку ${s.kind} от ${s.date}?`,
+    header: `Удалить разметку ${typeTitle(s.type_code)} от ${s.date}?`,
     message: 'Скрытая сессия исчезает из истории и сравнений; восстановить может админ.',
     choices: [
       { label: 'Скрыть (soft)', value: 'soft' },
@@ -567,7 +623,7 @@ async function deleteSession(s: any) {
   })
   if (mode === null) return
   try {
-    await competenciesApi.deleteSession(props.employeeId, s.kind, s.date, mode === 'hard')
+    await competenciesApi.deleteSession(props.employeeId, s.type_code, s.date, mode === 'hard')
     toast.add({ severity: 'success', summary: mode === 'hard' ? 'Удалено навсегда' : 'Скрыто (soft delete)', life: 4000 })
     await load()
   } catch (e) {
@@ -606,6 +662,8 @@ async function deleteSession(s: any) {
 .act:hover { color: #1d4ed8; }
 .act.danger { color: #dc2626; }
 .small { font-size: 0.78rem; }
+/* строки истории — в одну строку: версии, даты и статусы не переносятся */
+.history-table :deep(td) { white-space: nowrap; }
 @media (max-width: 1000px) {
   .charts-row { flex-direction: column; }
   .comp-radar { min-width: 0; }

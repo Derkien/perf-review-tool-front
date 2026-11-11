@@ -21,7 +21,7 @@ describe('API-контракт: competencies', () => {
     const [url, config] = getMock.mock.calls[0] as unknown as GetCall
     expect(url).toBe('/competencies/employees/{employee_id}/radar')
     expect(config.params?.query).toMatchObject({
-      kind: 'hard', compare_sessions: '2026-06-18|2026-07-16',
+      type_code: 'hard', compare_sessions: '2026-06-18|2026-07-16',
     })
     expect(config.params?.path).toEqual({ employee_id: 33 })
   })
@@ -30,6 +30,6 @@ describe('API-контракт: competencies', () => {
     getMock.mockClear()
     await competenciesApi.radar(33, 'soft')
     const call = getMock.mock.calls[0] as unknown as GetCall
-    expect(call[1].params?.query).toEqual({ kind: 'soft', compare_sessions: undefined })
+    expect(call[1].params?.query).toEqual({ type_code: 'soft', compare_sessions: undefined })
   })
 })

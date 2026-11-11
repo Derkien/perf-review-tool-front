@@ -217,7 +217,7 @@ const subGroups = computed(() => {
 
 function progressText(a: AssignmentDto): string {
   const parts = (a.progress?.matrices || []).map((m) =>
-    m.complete ? `${m.kind}: ${m.specialty} — заполнено` : `${m.kind}: ${m.specialty} — осталось ${m.total - m.covered} п.`)
+    m.complete ? `${m.type_code}: ${m.specialty} — заполнено` : `${m.type_code}: ${m.specialty} — осталось ${m.total - m.covered} п.`)
   return parts.join('; ') || 'нет активных схем'
 }
 

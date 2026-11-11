@@ -42,15 +42,15 @@ async function resetTodaySessions(r: APIRequestContext, employeeId: number) {
   const windowStart = new Date(Date.now() - 35 * 86_400_000).toISOString().slice(0, 10)
   const sessions = await (await r.get(`/api/v1/competencies/employees/${employeeId}/sessions`,
                                       { headers: auth })).json()
-  const stale = [...new Map((sessions as { kind: string; date: string }[])
+  const stale = [...new Map((sessions as { type_code: string; date: string }[])
     .filter((s) => s.date >= windowStart)
-    .map((s) => [`${s.kind}|${s.date}`, s])).values()]
+    .map((s) => [`${s.type_code}|${s.date}`, s])).values()]
   for (const s of stale) {
     const del = await r.delete(
-      `/api/v1/competencies/employees/${employeeId}/sessions/${s.kind}/${s.date}`,
+      `/api/v1/competencies/employees/${employeeId}/sessions/${s.type_code}/${s.date}`,
       { headers: auth, params: { hard: true } })
     // всё громко: несуществующую сессию список бы не отдал
-    expect(del.status(), `hard-delete сессии ${s.kind} ${s.date}`).toBe(200)
+    expect(del.status(), `hard-delete сессии ${s.type_code} ${s.date}`).toBe(200)
   }
   // и отменить его открытые задания прошлых прогонов (upsert не двигает created_at —
   // «задним числом не закрывается» оставил бы их открытыми навсегда); manager-задания
@@ -85,7 +85,7 @@ async function fillMarks(r: APIRequestContext, who: typeof USERS.employee,
   const grade = card.grade
   for (const kind of kinds) {
     const rows = await (await r.get(`/api/v1/competencies/employees/${employeeId}/matrix`, {
-      headers, params: { kind },
+      headers, params: { type_code: kind },
     })).json()
     const items = rows.slice(0, Math.max(rows.length - skipCount, 0))
     for (const row of items) {
@@ -209,7 +209,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     // сессия сотрудника: бейджи «по умолчанию» у системных значений и счётчик полноты
     await page.goto(`/#/staff/${KOSAREV}`)
     await page.getByRole('tab', { name: 'Компетенции' }).click()
-    await expect(page.getByText('системой', { exact: false }).first()).toBeVisible()
+    await expect(page.getByText('по норме грейда', { exact: false }).first()).toBeVisible()
     // .act — экшн-иконка в таблице сессий (голый .pi-pencil ловит пункт меню «Моё ревью»)
     await page.locator('[data-testid="session-view"], .pi-pencil.act').first().click()
     await expect(page.getByTestId('default-mark-badge').first()).toBeVisible()

@@ -22,7 +22,11 @@ test.describe.serial('Нормы грейда: e2e', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toContainText('Предпросмотр загрузки схемы')
     await expect(dialog).toContainText('android')
-    const summary = await dialog.getByText(/будет создан черновик v(\d+)/).textContent()
+    // повторный прогон: контент совпадает с активной версией — override администратора
+    if (await dialog.getByText('без изменений — версия не поднимется').count() > 0) {
+      await dialog.locator('#force-upload').check()
+    }
+    const summary = await dialog.getByText(/черновик v(\d+)/).first().textContent()
     nextVersion = Number(summary!.match(/v(\d+)/)![1])
     await page.screenshot({ path: 'e2e/screenshots/norms/01-import-preview.png' })
     await dialog.getByRole('button', { name: 'Применить (создать черновики)' }).click()

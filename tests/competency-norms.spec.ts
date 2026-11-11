@@ -26,6 +26,10 @@ vi.mock('echarts', () => ({
 
 vi.mock('../src/api/endpoints', () => ({
   competenciesApi: {
+    types: vi.fn(async () => [
+      { code: 'hard', title: 'Харды', order_no: 1 },
+      { code: 'soft', title: 'Софты', order_no: 2 },
+    ]),
     radar: (...args: unknown[]) => radarMock(...args),
     matrix: vi.fn(async () => []),
     sessions: vi.fn(async () => []),
@@ -67,7 +71,8 @@ const RADAR = {
     ] },
   ],
   gaps: [],
-  matrices: [{ id: 12, kind: 'hard', specialty: 'backend', version: 2 }],
+  matrices: [{ id: 12, type_code: 'hard', specialty: 'backend', version: 2 }],
+  versions: [{ matrix_id: 12, version: 2, status: 'active', specialty: 'backend', latest_mark_date: null }],
   summary: { overestimated: [], growth_zones: [], avg_self: 3, avg_manager: 4 },
 }
 
@@ -227,13 +232,13 @@ describe('CompetenciesTab: категории и следующая степен
   it('переключатель «следующая степень» шлёт norm_grade грейда N+1', async () => {
     const w = mountTab()
     await settle()
-    expect(radarMock).toHaveBeenCalledWith(5, 'hard', undefined, undefined)
+    expect(radarMock).toHaveBeenCalledWith(5, 'hard', undefined, undefined, undefined)
     const toggle = w.find('[data-testid="norm-grade-toggle"]')
     expect(toggle.exists()).toBe(true)
     expect(toggle.text()).toContain('Старший 1')
     await toggle.findAll('button')[1].trigger('click')
     await settle()
-    expect(radarMock).toHaveBeenLastCalledWith(5, 'hard', undefined, 'Старший 1')
+    expect(radarMock).toHaveBeenLastCalledWith(5, 'hard', undefined, 'Старший 1', undefined)
   })
 
   it('без следующего грейда (Ключевой 2) переключателя нет', async () => {

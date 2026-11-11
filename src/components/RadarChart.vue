@@ -17,6 +17,9 @@ const props = withDefaults(defineProps<{
   /** системные («по умолчанию») значения сравниваемых сессий — пустые точки */
   session1Default?: boolean[] | null
   session2Default?: boolean[] | null
+  /** легенда серий сравнения — датами сессий (спека), а не «Сессия N» */
+  session1Label?: string
+  session2Label?: string
   current?: number[]  // legacy
   prev?: (number | null)[] | null
   width?: string
@@ -111,16 +114,18 @@ function render() {
   if (props.self?.length) push('Самооценка', props.self, '#f59e0b')
   // сравниваемая сессия: системные пункты — отдельной полой линией (бейдж «по умолчанию»)
   const pushSession = (idx: number, data: (number | null)[] | null | undefined,
-                       defaults: boolean[] | null | undefined, color: string) => {
+                       defaults: boolean[] | null | undefined, color: string,
+                       label?: string) => {
     if (!data?.length) return
-    push(`Сессия ${idx}`, data.map((v, i) => (defaults?.[i] ? null : v)), color, true)
+    const name = label || `Сессия ${idx}`
+    push(name, data.map((v, i) => (defaults?.[i] ? null : v)), color, true)
     if (defaults?.some(Boolean)) {
-      push(`Сессия ${idx} (по умолчанию)`, data.map((v, i) => (defaults[i] ? v : null)),
+      push(`${name} (по умолчанию)`, data.map((v, i) => (defaults[i] ? v : null)),
            color, true, false, true)
     }
   }
-  pushSession(1, props.session1, props.session1Default, '#9333ea')
-  pushSession(2, props.session2, props.session2Default, '#0d9488')
+  pushSession(1, props.session1, props.session1Default, '#9333ea', props.session1Label)
+  pushSession(2, props.session2, props.session2Default, '#0d9488', props.session2Label)
   if (props.current?.length) push('Текущий', props.current, '#2563eb', false, true)
   if (props.prev?.length) push('Прошлый', props.prev, '#94a3b8', true)
   if (props.norm != null && props.axis.length) {
@@ -154,7 +159,7 @@ onMounted(() => {
   if (el.value) ro.observe(el.value)
 })
 watch(() => [props.axis, props.self, props.manager, props.norm, props.session1, props.session2,
-  props.session1Default, props.session2Default], render)
+  props.session1Default, props.session2Default, props.session1Label, props.session2Label], render)
 onBeforeUnmount(() => {
   ro?.disconnect()
   chart?.dispose()

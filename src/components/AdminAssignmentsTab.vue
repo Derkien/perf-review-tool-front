@@ -214,7 +214,7 @@ async function forceClose(a: AssignmentDto, m: AssignmentProgressMatrix) {
   const kindOf = a.kind === 'competency-self' ? 'self' : 'manager'
   const ok = await confirmDialog.ask({
     header: 'Закрыть разметку принудительно?',
-    message: `Кого: ${a.subject?.name}\nСхема: ${m.kind} ${m.specialty} (v${m.version})`
+    message: `Кого: ${a.subject?.name}\nСхема: ${m.type_code} ${m.specialty} (v${m.version})`
       + `\nВид: ${kindOf === 'self' ? 'самооценка' : 'руководительская'}`
       + `\nНепокрыто: ${m.total - m.covered} из ${m.total}`
       + '\nБудет проставлен уровень грейда оцениваемого (отметки «по умолчанию»)',
