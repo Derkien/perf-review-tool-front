@@ -13,9 +13,15 @@ import { nextTick } from 'vue'
 
 const radarMock = vi.fn()
 const setOptionMock = vi.fn()
+const zrOnMock = vi.fn()
 
 vi.mock('echarts', () => ({
-  init: vi.fn(() => ({ setOption: setOptionMock, resize: vi.fn(), dispose: vi.fn() })),
+  init: vi.fn(() => ({
+    setOption: setOptionMock,
+    resize: vi.fn(),
+    dispose: vi.fn(),
+    getZr: () => ({ on: zrOnMock }),
+  })),
 }))
 
 vi.mock('../src/api/endpoints', () => ({
@@ -106,6 +112,24 @@ describe('RadarChart: категорийные оси и полигон норм
       .find((s) => s.name === 'Норма грейда')
     expect(norm!.data[0].value).toEqual([5, 5])
   })
+
+  it('клик по зоне подписи оси (zrender) эмитит axis-click ближайшей оси', async () => {
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth',
+      { configurable: true, get: () => 400 })
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight',
+      { configurable: true, get: () => 340 })
+    zrOnMock.mockClear()
+    const w = mount(RadarChart, { props: { axis: ['A', 'B'], norm: [1, 2] } })
+    await nextTick()
+    const handler = zrOnMock.mock.calls.find(([ev]: unknown[]) => ev === 'click')![1]
+    handler({ offsetX: 200, offsetY: 8 })    // верхний сектор у края — ось A (0-я сверху)
+    expect(w.emitted('axis-click')![0]).toEqual(['A'])
+    handler({ offsetX: 200, offsetY: 332 })  // нижний сектор — ось B
+    expect(w.emitted('axis-click')![1]).toEqual(['B'])
+    handler({ offsetX: 200, offsetY: 170 })  // центр — клик по данным, не выбор категории
+    handler({ target: {} })                   // клик по интерактивному элементу (легенда/точка)
+    expect(w.emitted('axis-click')).toHaveLength(2)
+  })
 })
 
 // --- 4.2/4.3 CompetenciesTab: чипы, детализация, следующая степень ---
@@ -156,6 +180,22 @@ describe('CompetenciesTab: категории и следующая степен
       expect(JSON.parse(detailChart.attributes('data-norm')!)).toEqual([3, 4])
       // повторный клик закрывает
       await w.find('.cat-chip.active').trigger('click')
+      expect(w.find('[data-testid="cat-detail"]').exists()).toBe(false)
+    })
+
+  it('клик по подписи оси на радаре открывает детализацию (повторный — закрывает)',
+    async () => {
+      const w = mountTab()
+      await settle()
+      const mainChart = w.find('.comp-radar').findComponent(RadarStub)
+      await mainChart.vm.$emit('axis-click', 'Языки')
+      expect(w.find('[data-testid="cat-detail"]').exists()).toBe(true)
+      expect(w.find('[data-testid="cat-detail"]').text()).toContain('Языки')
+      await mainChart.vm.$emit('axis-click', 'Языки')  // повторный — закрывает
+      expect(w.find('[data-testid="cat-detail"]').exists()).toBe(false)
+      await mainChart.vm.$emit('axis-click', 'Одинокий пункт')  // 1 пункт — не открывается
+      expect(w.find('[data-testid="cat-detail"]').exists()).toBe(false)
+      await mainChart.vm.$emit('axis-click', 'Самооценка')  // не категория — игнор
       expect(w.find('[data-testid="cat-detail"]').exists()).toBe(false)
     })
 

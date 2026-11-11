@@ -4,8 +4,9 @@ Vue 3 + Vite + TypeScript + PrimeVue (Aura) + ECharts. Типы API генери
 
 ## Команды
 
-- Docker: `cd ../perf-review-tool-api && docker compose up -d` → http://localhost:8080
+- Docker: `cd ../perf-review-tool-api && docker compose up -d` → http://localhost:8080 (:8080 отдаёт собранный dist — после правок фронта пересборка `docker compose build front` из api-репо)
 - Локально: `npm run dev` (:5173, `/api` проксируется на :8000), `npm run build` (типы + прод-сборка), `npm run test`
+- Гейт перед коммитом (обязательно): `npm run check`; типы из схемы: `npm run api:types`; UI e2e (Playwright, живой стек :8080): `npm run test:e2e`
 
 ## Обязательно
 

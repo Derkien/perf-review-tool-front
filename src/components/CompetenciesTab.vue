@@ -24,21 +24,22 @@
                     v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
           </div>
         </div>
-        <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
-                    :manager="radar.manager" :norm="radar.norm"
-                    :session1="sessionSeries[0]" :session2="sessionSeries[1]"
-                    :session1-default="sessionDefaults[0]" :session2-default="sessionDefaults[1]"
-                    height="620px" />
-        <p v-else class="muted">Разметок по этому типу пока нет{{
-          markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
-        <!-- детализация категории: вход — чипы (клики по осям ECharts ненадёжны) -->
+        <!-- детализация категории: чипы над графиком + клик по подписи оси на радаре -->
         <div v-if="chipCats.length" class="cat-chips" data-testid="cat-chips">
+          <span class="muted small chips-hint">Разбивка категории:</span>
           <button v-for="c in chipCats" :key="c.name" class="cat-chip"
                   :class="{ active: c.name === detailCat }" :data-testid="`cat-chip-${c.name}`"
                   @click="toggleDetail(c.name)">
             {{ c.name }}<span class="chip-count">{{ c.items.length }}</span>
           </button>
         </div>
+        <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
+                    :manager="radar.manager" :norm="radar.norm"
+                    :session1="sessionSeries[0]" :session2="sessionSeries[1]"
+                    :session1-default="sessionDefaults[0]" :session2-default="sessionDefaults[1]"
+                    height="620px" @axis-click="onAxisClick" />
+        <p v-else class="muted">Разметок по этому типу пока нет{{
+          markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
       </div>
       <div v-if="detail" class="comp-detail" data-testid="cat-detail">
         <div class="radar-toolbar">
@@ -316,6 +317,12 @@ function toggleDetail(name: string) {
   detailCat.value = detailCat.value === name ? null : name
 }
 
+/** клик по зоне подписи оси на самом радаре — тот же вход, что и чип; ось шлёт
+ * каноническое имя, не-категории (одно-пунктовые оси) игнорируются */
+function onAxisClick(name: string) {
+  if (chipCats.value.some((c) => c.name === name)) toggleDetail(name)
+}
+
 /** следующая степень: грейд N+1 для просмотра норм без запуска ассесмента */
 const nextGrade = computed(() => {
   if (!props.grade) return undefined
@@ -578,7 +585,8 @@ async function deleteSession(s: any) {
 .comp-detail { min-width: 0; }
 .radar-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .radar-tools { display: flex; align-items: center; gap: 8px; }
-.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.chips-hint { margin-right: 2px; }
 .cat-chip { border: 1px solid var(--p-surface-300, #cbd5e1); background: var(--p-surface-0, #fff);
   border-radius: 14px; padding: 2px 10px; font-size: 0.8rem; cursor: pointer; }
 .cat-chip:hover { border-color: #2563eb; }

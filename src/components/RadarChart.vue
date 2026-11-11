@@ -23,6 +23,10 @@ const props = withDefaults(defineProps<{
   height?: string
 }>(), { width: '100%', height: '340px' })
 
+const emit = defineEmits<{ (e: 'axis-click', label: string): void }>()
+
+const RADIUS = 66  // % от min(w,h)/2: запас под подписи осей у края холста (28 осей qa резались при 78%)
+
 const el = ref<HTMLElement>()
 let chart: echarts.ECharts | null = null
 let ro: ResizeObserver | null = null
@@ -32,6 +36,21 @@ function render() {
   if (!chart) {
     if (!el.value.clientWidth) return  // контейнер ещё скрыт вкладкой — придёт ResizeObserver
     chart = echarts.init(el.value)
+    // клик по подписи оси: подписи радара silent и не «серия» — chart.on('click') их не
+    // отдаёт и target пуст; выбираем ось геометрически — угол клика от центра → ближайшая
+    chart.getZr().on('click', (e: { target?: unknown; offsetX?: number; offsetY?: number }) => {
+      if (e.target != null || e.offsetX == null || e.offsetY == null || !el.value) return
+      const w = el.value.clientWidth, h = el.value.clientHeight
+      if (!w || !h) return
+      const dx = e.offsetX - w / 2, dy = e.offsetY - h / 2
+      const rMax = RADIUS / 100 * Math.min(w, h) / 2
+      if (Math.hypot(dx, dy) < rMax * 0.9) return  // клик по зоне данных — не выбор категории
+      // оси: 0-я сверху (startAngle 90), далее по часовой; в экранных координатах y вниз
+      const n = props.axis.length
+      const step = Math.PI * 2 / n
+      const i = ((Math.round((Math.atan2(dy, dx) + Math.PI / 2) / step)) % n + n) % n
+      emit('axis-click', props.axis[i])
+    })
   }
   const series: any[] = []
   const push = (name: string, data: any, color: string, dashed = false, area = false,
@@ -72,7 +91,7 @@ function render() {
       indicator: props.axis.map((a) => ({
         name: a.length > 24 ? a.slice(0, 22) + '…' : a, max: 10,
       })),
-      radius: '66%',  // запас под подписи осей у края холста (28 осей qa резались при 78%)
+      radius: `${RADIUS}%`,
     },
     series,
   } as never, true)

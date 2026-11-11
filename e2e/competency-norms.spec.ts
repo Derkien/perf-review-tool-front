@@ -56,9 +56,22 @@ test.describe.serial('Нормы грейда: e2e', () => {
     await expect(chips.first()).toContainText('E2E Категория А')
     await page.screenshot({ path: 'e2e/screenshots/norms/03-radar-categories.png', fullPage: true })
 
+    // клик по зоне подписи оси на самом радаре (верхняя ось = «E2E Категория А»):
+    // подписи осей silent — фронт выбирает ось геометрически, углом клика от центра
+    const box = (await page.locator('.comp-radar canvas').first().boundingBox())!
+    const rMax = Math.min(box.width, box.height) * 0.66 / 2
+    const axisClick = () => page.mouse.click(
+      box.x + box.width / 2, box.y + box.height / 2 - rMax * 1.05)
+    await axisClick()
+    const detail = page.getByTestId('cat-detail')
+    await expect(detail).toBeVisible()
+    await expect(detail).toContainText('E2E Категория А')
+    await page.screenshot({ path: 'e2e/screenshots/norms/04-axis-click.png', fullPage: true })
+    await axisClick()  // повторный клик по той же оси — закрывает
+    await expect(detail).toBeHidden()
+
     // детализация категории: второй радар по пунктам с теми же сериями и нормами
     await chips.first().click()
-    const detail = page.getByTestId('cat-detail')
     await expect(detail).toBeVisible()
     await expect(detail).toContainText('E2E Категория А')
     await expect(detail.locator('canvas').first()).toBeVisible()
