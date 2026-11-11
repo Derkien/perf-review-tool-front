@@ -45,11 +45,17 @@ function render() {
       const dx = e.offsetX - w / 2, dy = e.offsetY - h / 2
       const rMax = RADIUS / 100 * Math.min(w, h) / 2
       if (Math.hypot(dx, dy) < rMax * 0.9) return  // клик по зоне данных — не выбор категории
-      // оси: 0-я сверху (startAngle 90), далее по часовой; в экранных координатах y вниз
+      // направление оси i — формула echarts (Radar.js resize(): startAngle 90°,
+      // clockwise:false → ПРОТИВ часовой, math-конвенция y вверх): экранная ось i
+      // (n осей) = (-sin(i·2π/n), -cos(i·2π/n)); ищем максимальную косинусную близость
       const n = props.axis.length
       const step = Math.PI * 2 / n
-      const i = ((Math.round((Math.atan2(dy, dx) + Math.PI / 2) / step)) % n + n) % n
-      emit('axis-click', props.axis[i])
+      let best = 0, bestDot = -2
+      for (let i = 0; i < n; i++) {
+        const dot = dx * -Math.sin(i * step) + dy * -Math.cos(i * step)
+        if (dot > bestDot) { bestDot = dot; best = i }
+      }
+      emit('axis-click', props.axis[best])
     })
   }
   const series: any[] = []

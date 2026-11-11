@@ -119,16 +119,17 @@ describe('RadarChart: категорийные оси и полигон норм
     Object.defineProperty(HTMLElement.prototype, 'clientHeight',
       { configurable: true, get: () => 340 })
     zrOnMock.mockClear()
-    const w = mount(RadarChart, { props: { axis: ['A', 'B'], norm: [1, 2] } })
+    const w = mount(RadarChart, { props: { axis: ['A', 'B', 'C', 'D'], norm: [1, 2, 3, 4] } })
     await nextTick()
     const handler = zrOnMock.mock.calls.find(([ev]: unknown[]) => ev === 'click')![1]
-    handler({ offsetX: 200, offsetY: 8 })    // верхний сектор у края — ось A (0-я сверху)
-    expect(w.emitted('axis-click')![0]).toEqual(['A'])
-    handler({ offsetX: 200, offsetY: 332 })  // нижний сектор — ось B
-    expect(w.emitted('axis-click')![1]).toEqual(['B'])
+    // раскладка осей как в echarts: 0-я сверху, далее ПРОТИВ часовой (clockwise:false)
+    handler({ offsetX: 200, offsetY: 8 })    // верх — ось A
+    handler({ offsetX: 8, offsetY: 170 })    // левый край — ось B (не D!)
+    handler({ offsetX: 392, offsetY: 170 })  // правый край — ось D (не B!)
+    expect(w.emitted('axis-click')!.map((a: unknown[]) => a[0])).toEqual(['A', 'B', 'D'])
     handler({ offsetX: 200, offsetY: 170 })  // центр — клик по данным, не выбор категории
     handler({ target: {} })                   // клик по интерактивному элементу (легенда/точка)
-    expect(w.emitted('axis-click')).toHaveLength(2)
+    expect(w.emitted('axis-click')).toHaveLength(3)
   })
 })
 

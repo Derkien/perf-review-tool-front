@@ -66,6 +66,12 @@ test.describe.serial('Нормы грейда: e2e', () => {
     const detail = page.getByTestId('cat-detail')
     await expect(detail).toBeVisible()
     await expect(detail).toContainText('E2E Категория А')
+    // радар не прыгает: bbox холста не изменился после открытия детализации
+    const boxAfter = (await page.locator('.comp-radar canvas').first().boundingBox())!
+    expect(Math.abs(boxAfter.x - box.x)).toBeLessThan(1)
+    expect(Math.abs(boxAfter.y - box.y)).toBeLessThan(1)
+    expect(Math.abs(boxAfter.width - box.width)).toBeLessThan(1)
+    expect(Math.abs(boxAfter.height - box.height)).toBeLessThan(1)
     await page.screenshot({ path: 'e2e/screenshots/norms/04-axis-click.png', fullPage: true })
     await axisClick()  // повторный клик по той же оси — закрывает
     await expect(detail).toBeHidden()

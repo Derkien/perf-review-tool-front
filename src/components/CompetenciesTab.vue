@@ -12,7 +12,7 @@
                 :severity="markMode ? 'secondary' : 'primary'" size="small" @click="markMode = !markMode" />
       </div>
     </div>
-    <div class="comp-grid" :class="{ 'with-detail': !!detail }">
+    <div class="comp-grid">
       <div class="comp-radar">
         <div class="radar-toolbar">
           <span class="muted small">веса 1–10 · норма{{ radar?.norm_grade ? ` «${radar.norm_grade}»` : ' грейда' }} — серая{{ radarVersions ? ` · схема v${radarVersions}` : '' }}</span>
@@ -37,7 +37,7 @@
                     :manager="radar.manager" :norm="radar.norm"
                     :session1="sessionSeries[0]" :session2="sessionSeries[1]"
                     :session1-default="sessionDefaults[0]" :session2-default="sessionDefaults[1]"
-                    height="620px" @axis-click="onAxisClick" />
+                    height="520px" @axis-click="onAxisClick" />
         <p v-else class="muted">Разметок по этому типу пока нет{{
           markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
       </div>
@@ -51,21 +51,23 @@
                     :manager="detail.items.map((i) => i.manager)"
                     :norm="detail.items.map((i) => i.norm)"
                     :session1="detailSession(1)" :session2="detailSession(2)"
-                    height="560px" />
+                    height="520px" />
       </div>
-      <div class="comp-insights">
-        <h2 style="margin-top:0">Комментарии и инсайты</h2>
-        <Message v-if="radar?.summary" severity="info" :sticky="true">
-          Средние веса (1–10): самооценка <b>{{ radar.summary.avg_self }}</b>,
-          руководитель <b>{{ radar.summary.avg_manager }}</b>, норма грейда <b>{{ avgNorm }}</b>
-        </Message>
-        <Message v-if="radar?.summary?.overestimated?.length" severity="warn" :sticky="true">
-          Переоценка (себе выше, чем рукль): {{ radar.summary.overestimated.join(', ') }}
-        </Message>
-        <Message v-if="radar?.summary?.growth_zones?.length" severity="success" :sticky="true">
-          Зоны роста (рукль выше самооценки): {{ radar.summary.growth_zones.join(', ') }}
-        </Message>
-      </div>
+    </div>
+    <!-- сводка по радару — под графиком, всю ширину (была правой колонкой: сжимала
+         радар и прыгала при открытии детализации) -->
+    <div class="comp-insights">
+      <h2>Комментарии и инсайты</h2>
+      <Message v-if="radar?.summary" severity="info" :sticky="true">
+        Средние веса (1–10): самооценка <b>{{ radar.summary.avg_self }}</b>,
+        руководитель <b>{{ radar.summary.avg_manager }}</b>, норма грейда <b>{{ avgNorm }}</b>
+      </Message>
+      <Message v-if="radar?.summary?.overestimated?.length" severity="warn" :sticky="true">
+        Переоценка (себе выше, чем рукль): {{ radar.summary.overestimated.join(', ') }}
+      </Message>
+      <Message v-if="radar?.summary?.growth_zones?.length" severity="success" :sticky="true">
+        Зоны роста (рукль выше самооценки): {{ radar.summary.growth_zones.join(', ') }}
+      </Message>
     </div>
 
     <!-- форма разметки -->
@@ -579,10 +581,11 @@ async function deleteSession(s: any) {
 .comp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
 .kind-row { display: flex; align-items: center; gap: 10px; }
 .info-ico { cursor: help; margin-left: 8px; font-size: 0.9rem; }
-.comp-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; }
-.comp-grid.with-detail { grid-template-columns: 1.2fr 1.2fr 1fr; }
-.comp-radar { position: relative; }
-.comp-detail { min-width: 0; }
+/* радар — фикс-ширина слева, детализация занимает место справа: ширина радара
+   не меняется при открытии/закрытии детализации → график не прыгает */
+.comp-grid { display: flex; gap: 14px; align-items: stretch; }
+.comp-radar { position: relative; flex: 0 0 44%; min-width: 440px; }
+.comp-detail { min-width: 0; flex: 1 1 0; }
 .radar-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .radar-tools { display: flex; align-items: center; gap: 8px; }
 .cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
@@ -592,7 +595,8 @@ async function deleteSession(s: any) {
 .cat-chip:hover { border-color: #2563eb; }
 .cat-chip.active { background: #2563eb; border-color: #2563eb; color: #fff; }
 .chip-count { opacity: 0.7; margin-left: 5px; font-size: 0.72rem; }
-.comp-insights { min-width: 0; }
+.comp-insights { margin-top: 4px; }
+.comp-insights h2 { margin: 6px 0; }
 .mark-form-head { display: flex; gap: 12px; margin-bottom: 8px; }
 .mark-table { max-width: 620px; }
 .mark-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
@@ -603,5 +607,8 @@ async function deleteSession(s: any) {
 .act:hover { color: #1d4ed8; }
 .act.danger { color: #dc2626; }
 .small { font-size: 0.78rem; }
-@media (max-width: 1000px) { .comp-grid, .comp-grid.with-detail { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) {
+  .comp-grid { flex-direction: column; }
+  .comp-radar { min-width: 0; }
+}
 </style>
