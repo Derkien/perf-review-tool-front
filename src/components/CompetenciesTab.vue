@@ -12,27 +12,35 @@
                 :severity="markMode ? 'secondary' : 'primary'" size="small" @click="markMode = !markMode" />
       </div>
     </div>
-    <div class="comp-grid">
+    <!-- построчная сетка: типы → заметка о весах/степени → чипы → графики в одну
+         строку (холсты на одном уровне, легенды в линию) → комментарии → история -->
+    <div class="radar-toolbar">
+      <span class="muted small">веса 1–10 · норма{{ radar?.norm_grade ? ` «${radar.norm_grade}»` : ' грейда' }} — серая{{ radarVersions ? ` · схема v${radarVersions}` : '' }}</span>
+      <div class="radar-tools">
+        <SelectButton v-if="nextGrade" v-model="nextNormMode" :options="normModes"
+                      option-label="label" option-value="value" size="small"
+                      data-testid="norm-grade-toggle" @update:model-value="loadRadar" />
+        <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
+                v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
+      </div>
+    </div>
+    <!-- детализация категории: чипы + клик по подписи оси на радаре; заголовок
+         открытой детализации — справа этой же строки, чтобы холсты начинались на одном Y -->
+    <div v-if="chipCats.length" class="cat-chips" data-testid="cat-chips">
+      <span class="muted small chips-hint">Разбивка категории:</span>
+      <button v-for="c in chipCats" :key="c.name" class="cat-chip"
+              :class="{ active: c.name === detailCat }" :data-testid="`cat-chip-${c.name}`"
+              @click="toggleDetail(c.name)">
+        {{ c.name }}<span class="chip-count">{{ c.items.length }}</span>
+      </button>
+      <span v-if="detail" class="detail-head" data-testid="cat-detail-head">
+        <b>{{ detail.name }}</b>
+        <i class="pi pi-times act" v-tooltip.top="'Закрыть детализацию'"
+           @click="toggleDetail(detail.name)" />
+      </span>
+    </div>
+    <div class="charts-row">
       <div class="comp-radar">
-        <div class="radar-toolbar">
-          <span class="muted small">веса 1–10 · норма{{ radar?.norm_grade ? ` «${radar.norm_grade}»` : ' грейда' }} — серая{{ radarVersions ? ` · схема v${radarVersions}` : '' }}</span>
-          <div class="radar-tools">
-            <SelectButton v-if="nextGrade" v-model="nextNormMode" :options="normModes"
-                          option-label="label" option-value="value" size="small"
-                          data-testid="norm-grade-toggle" @update:model-value="loadRadar" />
-            <Button icon="pi pi-search-plus" severity="secondary" size="small" outlined
-                    v-tooltip.bottom="'Увеличить'" @click="radarBig = true" />
-          </div>
-        </div>
-        <!-- детализация категории: чипы над графиком + клик по подписи оси на радаре -->
-        <div v-if="chipCats.length" class="cat-chips" data-testid="cat-chips">
-          <span class="muted small chips-hint">Разбивка категории:</span>
-          <button v-for="c in chipCats" :key="c.name" class="cat-chip"
-                  :class="{ active: c.name === detailCat }" :data-testid="`cat-chip-${c.name}`"
-                  @click="toggleDetail(c.name)">
-            {{ c.name }}<span class="chip-count">{{ c.items.length }}</span>
-          </button>
-        </div>
         <RadarChart v-if="radar && radar.axis?.length" :axis="radar.axis" :self="radar.self"
                     :manager="radar.manager" :norm="radar.norm"
                     :session1="sessionSeries[0]" :session2="sessionSeries[1]"
@@ -42,10 +50,6 @@
           markMode ? '' : ' — нажмите «Внести разметку»' }}.</p>
       </div>
       <div v-if="detail" class="comp-detail" data-testid="cat-detail">
-        <div class="radar-toolbar">
-          <b>{{ detail.name }}</b>
-          <i class="pi pi-times act" v-tooltip.top="'Закрыть детализацию'" @click="toggleDetail(detail.name)" />
-        </div>
         <RadarChart :axis="detail.items.map((i) => i.name)"
                     :self="detail.items.map((i) => i.self)"
                     :manager="detail.items.map((i) => i.manager)"
@@ -581,11 +585,12 @@ async function deleteSession(s: any) {
 .comp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
 .kind-row { display: flex; align-items: center; gap: 10px; }
 .info-ico { cursor: help; margin-left: 8px; font-size: 0.9rem; }
-/* радар — фикс-ширина слева, детализация занимает место справа: ширина радара
-   не меняется при открытии/закрытии детализации → график не прыгает */
-.comp-grid { display: flex; gap: 14px; align-items: stretch; }
+/* построчная сетка; графики в одну строку: холсты одинаковой высоты, стартуют
+   на одном Y → легенды внизу в одну линию, ничего не прыгает при кликах */
+.charts-row { display: flex; gap: 14px; align-items: stretch; }
 .comp-radar { position: relative; flex: 0 0 44%; min-width: 440px; }
 .comp-detail { min-width: 0; flex: 1 1 0; }
+.detail-head { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
 .radar-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .radar-tools { display: flex; align-items: center; gap: 8px; }
 .cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
@@ -608,7 +613,7 @@ async function deleteSession(s: any) {
 .act.danger { color: #dc2626; }
 .small { font-size: 0.78rem; }
 @media (max-width: 1000px) {
-  .comp-grid { flex-direction: column; }
+  .charts-row { flex-direction: column; }
   .comp-radar { min-width: 0; }
 }
 </style>

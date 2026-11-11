@@ -65,7 +65,7 @@ test.describe.serial('Нормы грейда: e2e', () => {
     await axisClick()
     const detail = page.getByTestId('cat-detail')
     await expect(detail).toBeVisible()
-    await expect(detail).toContainText('E2E Категория А')
+    await expect(page.getByTestId('cat-detail-head')).toContainText('E2E Категория А')
     // радар не прыгает: bbox холста не изменился после открытия детализации
     const boxAfter = (await page.locator('.comp-radar canvas').first().boundingBox())!
     expect(Math.abs(boxAfter.x - box.x)).toBeLessThan(1)
@@ -79,8 +79,13 @@ test.describe.serial('Нормы грейда: e2e', () => {
     // детализация категории: второй радар по пунктам с теми же сериями и нормами
     await chips.first().click()
     await expect(detail).toBeVisible()
-    await expect(detail).toContainText('E2E Категория А')
+    await expect(page.getByTestId('cat-detail-head')).toContainText('E2E Категория А')
     await expect(detail.locator('canvas').first()).toBeVisible()
+    // холсты на одном уровне: верх основного и детального совпадает
+    const mainBox = (await page.locator('.comp-radar canvas').first().boundingBox())!
+    const detailBox = (await detail.locator('canvas').first().boundingBox())!
+    expect(Math.abs(mainBox.y - detailBox.y)).toBeLessThan(1)
+    expect(Math.abs(mainBox.height - detailBox.height)).toBeLessThan(1)
     await page.screenshot({ path: 'e2e/screenshots/norms/04-category-detail.png', fullPage: true })
 
     // следующая степень: переключатель шлёт radar с norm_grade грейда N+1
