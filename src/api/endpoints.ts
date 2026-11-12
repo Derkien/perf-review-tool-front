@@ -590,6 +590,79 @@ export const competencyTypesApi = {
   },
 }
 
+// ---- универсальный справочник значений (change competency-dictionaries) -------
+
+export type DictionaryRow = {
+  slug: string; title: string; description: string; items_count: number
+}
+export type DictionaryItemRow = {
+  id: number; value: string; title: string; order_no: number; category: string
+}
+/** дифф импорта словарей: новые значения и правки по каждому справочнику */
+export type DictDiffSheet = {
+  added: { value: string; title: string; order_no: number | null; category: string }[]
+  edited: { value: string; title?: string; order_no?: number }[]
+}
+
+/** Чтение справочников — всем аутентифицированным; запись за ROLE_U_COMPETENCY_MATRIX. */
+export const dictionariesApi = {
+  async list(): Promise<DictionaryRow[]> {
+    const { data, error } = await client.GET('/dictionaries')
+    if (error) raise(error, '/dictionaries')
+    return data as never
+  },
+  async items(slug: string): Promise<DictionaryItemRow[]> {
+    const { data, error } = await client.GET('/dictionaries/{slug}/items', {
+      params: { path: { slug } },
+    })
+    if (error) raise(error, '/dictionaries/{slug}/items')
+    return data as never
+  },
+  async createItem(slug: string, body: { value: string; title: string; order_no?: number | null; category: string }): Promise<DictionaryItemRow> {
+    const { data, error } = await client.POST('/dictionaries/{slug}/items', {
+      params: { path: { slug } }, body,
+    })
+    if (error) raise(error, 'POST /dictionaries/{slug}/items')
+    return data as never
+  },
+  async patchItem(slug: string, itemId: number, body: { title?: string; order_no?: number }): Promise<DictionaryItemRow> {
+    const { data, error } = await client.PATCH('/dictionaries/{slug}/items/{item_id}', {
+      params: { path: { slug, item_id: itemId } }, body,
+    })
+    if (error) raise(error, 'PATCH /dictionaries/{slug}/items/{item_id}')
+    return data as never
+  },
+  /** Выгрузка словарей XLSX; types сужает лист «Типы» (например 'hard,soft'). */
+  async export(types?: string[]): Promise<Blob> {
+    const { data, error } = await client.GET('/admin/dictionaries/export', {
+      params: { query: (types?.length ? { types: types.join(',') } : {}) as never },
+      parseAs: 'blob',
+    })
+    if (error) raise(error, '/admin/dictionaries/export')
+    return data as Blob
+  },
+  /** Предпросмотр диффа словарей: новые значения + правки тайтла/порядка. */
+  async importPreview(file: File): Promise<{ sheets: Record<string, DictDiffSheet>; no_changes: boolean }> {
+    const fd = new FormData()
+    fd.append('file', file)
+    const { data, error } = await client.POST('/admin/dictionaries/import/preview', {
+      body: fd as never,
+    })
+    if (error) raise(error, '/admin/dictionaries/import/preview')
+    return data as never
+  },
+  /** Применение диффа того же файла (stateless-повтор preview). */
+  async importApply(file: File): Promise<{ added: number; edited: number }> {
+    const fd = new FormData()
+    fd.append('file', file)
+    const { data, error } = await client.POST('/admin/dictionaries/import/apply', {
+      body: fd as never,
+    })
+    if (error) raise(error, '/admin/dictionaries/import/apply')
+    return data as never
+  },
+}
+
 export const calibrationApi = {
   async sessions(cycleId?: number): Promise<Record<string, unknown>[]> {
     const { data, error } = await client.GET('/calibration/sessions', {

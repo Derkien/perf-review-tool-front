@@ -191,6 +191,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/dictionaries/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Dictionaries
+         * @description XLSX для ответственного за наполнение: листы-справочники + «Роли» (снапшот
+         *     кадровых) + «Типы» (реестр); types=hard,soft сужает лист «Типы».
+         */
+        get: operations["export_dictionaries_api_v1_admin_dictionaries_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/dictionaries/import/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Dictionaries Apply
+         * @description Применение диффа того же файла (stateless-повтор preview): добавление и правки
+         *     тайтла/порядка; повторное применение выгруженного файла = «без изменений».
+         */
+        post: operations["import_dictionaries_apply_api_v1_admin_dictionaries_import_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/dictionaries/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Dictionaries Preview
+         * @description Предпросмотр диффа: новые значения по справочникам + правки тайтла/порядка.
+         *     Блокирующие ошибки (дубли/пустые/чужая категория) — 422, файл не применяется.
+         */
+        post: operations["import_dictionaries_preview_api_v1_admin_dictionaries_import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/launches/{launch_id}/cancel": {
         parameters: {
             query?: never;
@@ -946,6 +1009,7 @@ export interface paths {
         /**
          * Schema Template
          * @description XLSX-шаблон схемы: пустая форма + лист-инструкция с примером.
+         *     Грейд-колонки — из справочника грейдов (следуют справочнику, не коду).
          */
         get: operations["schema_template_api_v1_competencies_schemas_template_get"];
         put?: never;
@@ -1150,6 +1214,80 @@ export interface paths {
         head?: never;
         /** Patch Decision */
         patch: operations["patch_decision_api_v1_decisions__decision_id__patch"];
+        trace?: never;
+    };
+    "/dictionaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Dictionaries
+         * @description Список справочников со счётчиками значений — чтение всем аутентифицированным
+         *     (значения нужны интерфейсам разметки и профиля).
+         */
+        get: operations["list_dictionaries_api_v1_dictionaries_get"];
+        put?: never;
+        /** Create Dictionary */
+        post: operations["create_dictionary_api_v1_dictionaries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dictionaries/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Dictionary */
+        patch: operations["patch_dictionary_api_v1_dictionaries__slug__patch"];
+        trace?: never;
+    };
+    "/dictionaries/{slug}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Items */
+        get: operations["list_items_api_v1_dictionaries__slug__items_get"];
+        put?: never;
+        /** Create Item */
+        post: operations["create_item_api_v1_dictionaries__slug__items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dictionaries/{slug}/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Item */
+        patch: operations["patch_item_api_v1_dictionaries__slug__items__item_id__patch"];
         trace?: never;
     };
     "/exports/calibration-packs": {
@@ -2126,6 +2264,16 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_import_dictionaries_apply_api_v1_admin_dictionaries_import_apply_post */
+        Body_import_dictionaries_apply_api_v1_admin_dictionaries_import_apply_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_import_dictionaries_preview_api_v1_admin_dictionaries_import_preview_post */
+        Body_import_dictionaries_preview_api_v1_admin_dictionaries_import_preview_post: {
+            /** File */
+            file: string;
+        };
         /** Body_preview_import_api_v1_imports__import_type__preview_post */
         Body_preview_import_api_v1_imports__import_type__preview_post: {
             /** File */
@@ -2233,6 +2381,25 @@ export interface components {
         DevTokenOut: {
             /** Access Token */
             access_token: string;
+        };
+        /** DictionaryIn */
+        DictionaryIn: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+        };
+        /** DictionaryPatch */
+        DictionaryPatch: {
+            /** Description */
+            description?: string | null;
+            /** Title */
+            title?: string | null;
         };
         /** EmployeeCardOut */
         EmployeeCardOut: {
@@ -2377,6 +2544,23 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** ItemIn */
+        ItemIn: {
+            /**
+             * Category
+             * @default
+             */
+            category: string;
+            /** Order No */
+            order_no?: number | null;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Value */
+            value: string;
+        };
         /** ItemOut */
         ItemOut: {
             /**
@@ -2398,6 +2582,15 @@ export interface components {
             name: string;
             /** Order No */
             order_no: number;
+        };
+        /** ItemPatch */
+        ItemPatch: {
+            /** Order No */
+            order_no?: number | null;
+            /** Title */
+            title?: string | null;
+            /** Value */
+            value?: string | null;
         };
         /** LeaderAssessmentIn */
         LeaderAssessmentIn: {
@@ -3075,6 +3268,103 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ReassessmentLaunchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_dictionaries_api_v1_admin_dictionaries_export_get: {
+        parameters: {
+            query?: {
+                types?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_dictionaries_apply_api_v1_admin_dictionaries_import_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_dictionaries_apply_api_v1_admin_dictionaries_import_apply_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_dictionaries_preview_api_v1_admin_dictionaries_import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_dictionaries_preview_api_v1_admin_dictionaries_import_preview_post"];
             };
         };
         responses: {
@@ -4861,6 +5151,196 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DecisionPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_dictionaries_api_v1_dictionaries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    create_dictionary_api_v1_dictionaries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DictionaryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_dictionary_api_v1_dictionaries__slug__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DictionaryPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_items_api_v1_dictionaries__slug__items_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_item_api_v1_dictionaries__slug__items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_item_api_v1_dictionaries__slug__items__item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemPatch"];
             };
         };
         responses: {

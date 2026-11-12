@@ -6,6 +6,7 @@
         <Tab value="users">Пользователи и роли</Tab>
         <Tab value="settings">Настройки цикла</Tab>
         <Tab v-if="auth.can('ROLE_U_COMPETENCY_MATRIX')" value="schemas">Матрицы компетенций</Tab>
+        <Tab v-if="auth.can('ROLE_U_COMPETENCY_MATRIX')" value="dictionaries">Справочники</Tab>
         <Tab v-if="auth.can('ROLE_U_COMPETENCY_REASSESSMENT')" value="reassessment">Переоценка компетенций</Tab>
         <Tab v-if="auth.can('ROLE_U_ASSIGNMENTS')" value="assignments">Задания</Tab>
         <Tab value="rules">Правила повышений</Tab>
@@ -150,6 +151,9 @@
         <TabPanel value="schemas">
           <CompetencySchemasTab />
         </TabPanel>
+        <TabPanel value="dictionaries">
+          <DictionariesTab />
+        </TabPanel>
         <TabPanel value="reassessment">
           <ReassessmentTab />
         </TabPanel>
@@ -268,6 +272,7 @@ import MultiSelect from 'primevue/multiselect'
 import ToggleSwitch from 'primevue/toggleswitch'
 import WorkflowSchema from '../components/WorkflowSchema.vue'
 import CompetencySchemasTab from '../components/CompetencySchemasTab.vue'
+import DictionariesTab from '../components/DictionariesTab.vue'
 import ReassessmentTab from '../components/ReassessmentTab.vue'
 import AdminAssignmentsTab from '../components/AdminAssignmentsTab.vue'
 import OutboxLogTab from '../components/OutboxLogTab.vue'
