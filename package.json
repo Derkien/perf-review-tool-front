@@ -8,8 +8,8 @@
     "build": "vue-tsc --noEmit && vite build",
     "test": "vitest run",
     "preview": "vite preview",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
+    "test:e2e": "./scripts/e2e.sh",
+    "test:e2e:headed": "./scripts/e2e.sh --headed",
     "check": "./scripts/check.sh",
     "api:types": "./scripts/gen-api-types.sh"
   },

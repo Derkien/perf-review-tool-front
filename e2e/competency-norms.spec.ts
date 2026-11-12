@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login, USERS, employeeId } from './helpers'
 
 /**
- * Нормы грейда (change competency-grade-norms), сквозной через nginx :8080:
+ * Нормы грейда (change competency-grade-norms), сквозной через nginx e2e-стенда (:8081, scripts/e2e.sh):
  * импорт схемы с листом «Нормы» → активация → карточка сотрудника: радар
  * по категориям → детализация категории (чипы) → следующая степень (norm_grade).
  * Повторяемость: apply заменяет черновик той же пары, номер версии растёт —

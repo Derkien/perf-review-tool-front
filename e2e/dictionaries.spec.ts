@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login, USERS, apiAuth } from './helpers'
 
 /**
- * Сценарий change competency-dictionaries (6.1) — workflow заказчика через nginx :8080:
+ * Сценарий change competency-dictionaries (6.1) — workflow заказчика через nginx e2e-стенда (scripts/e2e.sh):
  * выгрузка словарей → импорт диффа (новая категория + пункт) → импорт схемы с ними
  * проходит → импорт схемы с опечаткой блокируется.
  * Перезапускаемость: справочники только растут — повторный прогон видит «без изменений»
@@ -59,7 +59,8 @@ test.describe.serial('Справочники: workflow словари-до-сх�
       .locator('input[type="file"]').setInputFiles('e2e/fixtures/schema-dictionaries-e2e.xlsx')
     await page.getByRole('button', { name: 'Загрузить схему' }).click()
     const schemaDialog = page.getByRole('dialog')
-    await expect(schemaDialog).toContainText('E2E')
+    // в сид-мире пара (hard, backend) новая; после прошлых прогонов — «без изменений»
+    await expect(schemaDialog).toContainText('backend')
     const unchanged = await schemaDialog.getByText('без изменений — версия не поднимется').count() > 0
     if (!unchanged) {
       await page.screenshot({ path: 'e2e/screenshots/dictionaries/04-schema-preview.png' })

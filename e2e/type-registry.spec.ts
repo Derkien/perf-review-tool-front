@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login, USERS, employeeId } from './helpers'
 
 /**
- * Сценарий change competency-type-registry (4.1), через nginx :8080:
+ * Сценарий change competency-type-registry (4.1), через nginx e2e-стенда (scripts/e2e.sh):
  * создание типа в админке → импорт схемы нового типа → вкладка у сотрудника;
  * реимпорт без изменений не поднимает версию; селектор версий переключает графики.
  * Перезапускаемость: активная product-схема живёт в БД — повторный прогон
@@ -59,6 +59,26 @@ test.describe.serial('Реестр типов: e2e', () => {
     await confirm.getByRole('button', { name: 'Активировать' }).click()
     await expect(page.getByText(/Версия v\d+ активна/)).toBeVisible()
     await page.screenshot({ path: 'e2e/screenshots/type-registry/03-product-active.png', fullPage: true })
+
+    // 4. самодостаточность: manager-разметка product-схемы у Дзюбы (45 дней назад —
+    // вне окна чистки сессий assignments-e2e) — даёт истории v1 строку «руководитель»
+    // для селектора версий второго теста
+    const fm = await page.request.post('/api/v1/auth/dev-token', {
+      data: { email: 'savanok_s_s@itgri.ru', role: 'functional-manager' } })
+    const fmToken = ((await fm.json()) as { access_token: string }).access_token
+    const fmHeaders = { Authorization: `Bearer ${fmToken}` }
+    const dzuba = await employeeId(page, USERS.employee.email)
+    const rows = await (await page.request.get(
+      `/api/v1/competencies/employees/${dzuba}/matrix`,
+      { headers: fmHeaders, params: { type_code: 'product' } })).json()
+    const day = new Date(Date.now() - 45 * 86_400_000).toISOString().slice(0, 10)
+    for (const row of rows as { item_id: number }[]) {
+      const mark = await page.request.post('/api/v1/competencies/marks', {
+        headers: fmHeaders,
+        data: { employee_id: dzuba, item_id: row.item_id, level: 'Основной 1',
+                assessed_on: day, assessor_kind: 'manager' } })
+      expect(mark.status(), `product-разметка ${day}`).toBeLessThan(300)
+    }
   })
 
   test('сотрудник: вкладка нового типа; селектор версий переключает графики', async ({ page }) => {

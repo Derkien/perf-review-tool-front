@@ -1,17 +1,23 @@
 import { test, expect, APIRequestContext } from '@playwright/test'
-import { login, USERS } from './helpers'
+import { login, USERS, employeeId } from './helpers'
 
 /**
- * Группа 10 change competency-reassessment-notifications, сквозные через nginx :8080.
- * Команда: Дзюба (id 33, android, user employee), Косарев (id 61, qa, user employee),
- * Шваркунов (line-manager Косарева, ROLE_U_COMPETENCY_MARKS), admin.
- * Данные стенда: активные схемы soft (2×8 п.) + hard android v19 (3 E2E-пункта) + hard qa (28 п.).
+ * Группа 10 change competency-reassessment-notifications, сквозной через nginx стенда.
+ * Команда: Дзюба (android, employee), Косарев (qa, employee), Шваркунов (line-manager
+ * Косарева), admin. Мир создаёт scripts/seed_demo.py (staff-seed + схемы + история v1):
+ * тесты самодостаточны, id сотрудников вычисляются, живая база не используется.
  * Попутно снимаем сценарий заказчика в e2e/screenshots/reassessment/ (tasks.md 15.2).
  */
 
-const DZIUBA = 33
-const KOSAREV = 61
+let DZIUBA = 0
+let KOSAREV = 0
 const today = () => new Date().toISOString().slice(0, 10)
+
+test.beforeAll(async ({ request }) => {
+  // e2e-мир создан сидом (scripts/seed_demo.py); id вычисляем, не хардкодим
+  DZIUBA = await employeeId(request, USERS.employee.email)
+  KOSAREV = await employeeId(request, 'kosarev_i_n@itgri.ru')
+})
 
 async function adminLogin(r: APIRequestContext) {
   const resp = await r.post('/api/v1/auth/dev-token', {
@@ -197,7 +203,8 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     while (remaining > 0) {
       await page.getByTestId('btn-force-close').first().click()
       const modal = page.locator('.p-dialog')
-      await expect(modal).toContainText('Непокрыто: 2 из')
+      // число непокрытых зависит от мира (e2e-сид: 3 из 3) — проверяем форму текста
+      await expect(modal).toContainText(/Непокрыто: \d+ из \d+/)
       await expect(modal).toContainText('Будет проставлен грейд')
       await page.screenshot({ path: 'e2e/screenshots/reassessment/06-force-close-modal.png' })
       await modal.getByRole('button', { name: 'Закрыть принудительно' }).click()

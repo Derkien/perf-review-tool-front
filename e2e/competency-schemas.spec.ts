@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login, USERS, employeeId } from './helpers'
 
 /**
- * Сценарий 7.3 (change configurable-competency-matrix), сквозной через nginx :8080:
+ * Сценарий 7.3 (change configurable-competency-matrix), сквозной через nginx e2e-стенда (:8081, scripts/e2e.sh):
  * шаблон → импорт с предпросмотром → черновик → демо → активация → карточка сотрудника
  * (разметка по новой версии, история с версиями, сравнение только текущей версии).
  * Повторяемость: apply заменяет черновик той же пары, номер версии растёт —
