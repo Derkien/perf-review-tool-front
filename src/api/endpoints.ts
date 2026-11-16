@@ -614,10 +614,12 @@ export type DictionaryRow = {
 export type DictionaryItemRow = {
   id: number; slug: string; value: string; title: string; order_no: number; category: string
 }
-/** дифф импорта словарей: новые значения и правки по каждому справочнику */
+/** предпросмотр импорта справочников: апсерт — новые справочники, значения, правки */
 export type DictDiffSheet = {
   added: { value: string; slug: string; title: string; order_no: number | null; category: string }[]
   edited: { value: string; title?: string; order_no?: number }[]
+  /** true — листа ещё нет в системе: импорт создаст справочник целиком */
+  new?: boolean
 }
 
 /** Чтение справочников — всем аутентифицированным; запись за ROLE_U_COMPETENCY_MATRIX. */
@@ -681,8 +683,8 @@ export const dictionariesApi = {
     if (error) raise(error, '/admin/dictionaries/import/preview')
     return data as never
   },
-  /** Применение диффа того же файла (stateless-повтор preview). */
-  async importApply(file: File): Promise<{ added: number; edited: number }> {
+  /** Применение апсерта того же файла (stateless-повтор preview). */
+  async importApply(file: File): Promise<{ added: number; edited: number; created: number }> {
     const fd = new FormData()
     fd.append('file', file)
     const { data, error } = await client.POST('/admin/dictionaries/import/apply', {

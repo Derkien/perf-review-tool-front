@@ -225,8 +225,9 @@ export interface paths {
         put?: never;
         /**
          * Import Dictionaries Apply
-         * @description Применение диффа того же файла (stateless-повтор preview): добавление и правки
-         *     тайтла/порядка; повторное применение выгруженного файла = «без изменений».
+         * @description Применение апсерта того же файла (stateless-повтор preview): создание новых
+         *     справочников, добавление значений и правки тайтла/порядка; повторное применение
+         *     выгруженного файла = «без изменений».
          */
         post: operations["import_dictionaries_apply_api_v1_admin_dictionaries_import_apply_post"];
         delete?: never;
@@ -246,7 +247,7 @@ export interface paths {
         put?: never;
         /**
          * Import Dictionaries Preview
-         * @description Предпросмотр диффа: новые значения по справочникам + правки тайтла/порядка.
+         * @description Предпросмотр апсерта: новые справочники, новые значения, правки тайтла/порядка.
          *     Блокирующие ошибки (дубли/пустые/чужая категория) — 422, файл не применяется.
          */
         post: operations["import_dictionaries_preview_api_v1_admin_dictionaries_import_preview_post"];
@@ -1255,7 +1256,11 @@ export interface paths {
          */
         get: operations["list_dictionaries_api_v1_dictionaries_get"];
         put?: never;
-        /** Create Dictionary */
+        /**
+         * Create Dictionary
+         * @description Слаг справочника необязателен: пустой генерируется транслитерацией названия
+         *     (суффикс при коллизии) — как у значений (приёмка 16.11).
+         */
         post: operations["create_dictionary_api_v1_dictionaries_post"];
         delete?: never;
         options?: never;
@@ -2414,7 +2419,10 @@ export interface components {
              * @default
              */
             description: string;
-            /** Slug */
+            /**
+             * Slug
+             * @default
+             */
             slug: string;
             /** Title */
             title: string;

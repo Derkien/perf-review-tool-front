@@ -193,6 +193,37 @@ describe('DictionariesTab: значения и словарные операци
     })
   })
 
+  it('слаг справочника необязателен: пустой уходит на сервер (автотранслит там, приёмка 16.11)', async () => {
+    const w = mount(DictionariesTab, { global: { stubs: { teleport: true } } })
+    await settle()
+    const vm: any = w.vm
+    vm.dictIsNew = true
+    vm.dictForm = { slug: '', title: 'Часовые пояса', description: '', origSlug: '', codeManaged: false }
+    await vm.saveDict()
+    await settle()
+    expect(dictionariesApi.createDictionary).toHaveBeenCalledWith({
+      slug: '', title: 'Часовые пояса', description: '',
+    })
+  })
+
+  it('предпросмотр апсерта: новый справочник из файла виден как «НОВЫЙ справочник»', async () => {
+    const w = mount(DictionariesTab, { global: { stubs: { teleport: true } } })
+    await settle()
+    const vm: any = w.vm
+    vm.diff = {
+      no_changes: false,
+      sheets: {
+        timezones: { added: [{ value: 'UTC+3', slug: '', title: 'UTC+3', order_no: 1, category: '' }], edited: [], new: true },
+        grade: { added: [], edited: [], new: false },
+      },
+    }
+    vm.diffVisible = true
+    await settle()
+    expect(w.text()).toContain('НОВЫЙ справочник')
+    expect(w.text()).toContain('timezones')
+    expect(w.text()).toContain('будет создан целиком')
+  })
+
   it('правка порядка грейда — подтверждение через useAppConfirm, затем PATCH', async () => {
     const w = mount(DictionariesTab, { global: { stubs: { teleport: true } } })
     await settle()

@@ -1,7 +1,9 @@
 <template>
   <div class="page">
     <h1>Админ</h1>
-    <Tabs value="users">
+    <!-- подразделы — URL-роуты (/admin/dictionaries и т.д.): рефреш и ссылки
+         сохраняют раздел (единое правило навигации, приёмка 16.11) -->
+    <Tabs :value="activeSection" @update:value="goSection">
       <TabList>
         <Tab value="users">Пользователи и роли</Tab>
         <Tab value="settings">Настройки цикла</Tab>
@@ -255,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
@@ -280,10 +282,39 @@ import { adminApi } from '../api/endpoints'
 import type { PermissionsCatalog } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAuth } from '../stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
 const auth = useAuth()
+
+// --- URL-роутинг подразделов админки: раздел = параметр пути, рефреш сохраняет ---
+const SECTION_PERMS: Record<string, string | undefined> = {
+  users: undefined, settings: undefined, schemas: 'ROLE_U_COMPETENCY_MATRIX',
+  dictionaries: 'ROLE_U_COMPETENCY_MATRIX', reassessment: 'ROLE_U_COMPETENCY_REASSESSMENT',
+  assignments: 'ROLE_U_ASSIGNMENTS', rules: undefined, activity: undefined,
+  outbox: 'ROLE_R_DELIVERY_LOG', rights: undefined,
+}
+const availableSections = computed(() =>
+  Object.keys(SECTION_PERMS).filter((s) => {
+    const perm = SECTION_PERMS[s]
+    return !perm || auth.can(perm)
+  }))
+const route = useRoute()
+const router = useRouter()
+const activeSection = computed(() => {
+  const section = String(route.params?.section || '')
+  return availableSections.value.includes(section) ? section : availableSections.value[0]
+})
+function goSection(section: string | number | undefined) {
+  if (!section) return
+  void router.push(`/admin/${section}`)
+}
+// недоступный/чужой раздел в URL — замена на первый доступный (URL остаётся честным)
+watch(activeSection, (s) => {
+  if (String(route.params?.section || 'users') !== s) void router.replace(`/admin/${s}`)
+}, { immediate: true })
+
 const users = ref<any[]>([])
 const assignEmail = ref('')
 const assignRole = ref('employee')

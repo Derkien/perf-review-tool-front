@@ -4,10 +4,11 @@
       <div v-if="!selected">
         <h2 style="margin:0 0 4px">Справочники</h2>
         <p class="muted small" style="margin:0">
-          Управление списками значений: грейды (порядок = вес — влияет на расчёты калибровки
-          и норм), категории и пункты компетенций, любые новые справочники.
-          Валидация шаблона схем идёт по ним: новые значения сначала добавляются сюда.
-          Workflow: выгрузка словарей → наполнение → импорт диффа → импорт схемы.
+          Управление списками значений: грейды (порядок = вес — влияет на расчёты
+          калибровки и норм), категории и пункты компетенций, любые новые справочники.
+          Валидация шаблона схем идёт по ним. Наполнение — двумя путями одного формата:
+          руками здесь или файлом (импорт добавляет новое и создаёт новые справочники;
+          существующее не удаляется и не переименовывается).
         </p>
       </div>
       <div v-else>
@@ -20,7 +21,7 @@
       </div>
       <div class="toolbar-actions">
         <template v-if="!selected">
-          <Button label="Выгрузить все словари" icon="pi pi-download" size="small" severity="secondary"
+          <Button label="Выгрузить справочники" icon="pi pi-download" size="small" severity="secondary"
                   :loading="busy" data-testid="dict-export-btn" @click="downloadExport()" />
         </template>
         <template v-else>
@@ -29,9 +30,9 @@
           <Button label="Добавить значение" icon="pi pi-plus" size="small" data-testid="dict-item-create-btn"
                   @click="openCreate" />
         </template>
-        <FileUpload mode="basic" custom-upload choose-label="Выбрать файл словарей"
+        <FileUpload mode="basic" custom-upload choose-label="Выбрать файл справочников"
                     :accept="'.xlsx'" @select="onFileSelected" />
-        <Button label="Загрузить дифф" icon="pi pi-upload" size="small"
+        <Button label="Импортировать справочники" icon="pi pi-upload" size="small"
                 :disabled="!file" :loading="busy" data-testid="dict-import-btn" @click="previewImport" />
         <Button v-if="!selected" label="Новый справочник" icon="pi pi-plus" size="small"
                 severity="secondary" data-testid="dict-create-btn" @click="openDictCreate" />
@@ -137,14 +138,21 @@
       </p>
     </template>
 
-    <!-- модалка диффа импорта словарей -->
-    <Dialog v-model:visible="diffVisible" modal header="Предпросмотр импорта словарей"
-            style="width: 720px">      <Message v-if="diff && diff.no_changes" severity="info" :sticky="true">
+    <!-- модалка импорта справочников (апсерт: новые справочники + добавления/правки) -->
+    <Dialog v-model:visible="diffVisible" modal header="Импорт справочников — предпросмотр"
+            style="width: 720px">
+      <Message v-if="diff && diff.no_changes" severity="info" :sticky="true">
         Без изменений: значения и порядок совпадают с текущими справочниками.
       </Message>
       <template v-if="diff && !diff.no_changes">
         <div v-for="(sheet, slug) in diff.sheets" :key="slug" class="diff-sheet">
-          <h4 style="margin:8px 0 4px">{{ dictTitle(slug as string) }}</h4>
+          <h4 style="margin:8px 0 4px">
+            <template v-if="sheet.new">
+              <i class="pi pi-plus-circle" style="font-size:.8em" /> НОВЫЙ справочник
+              <code>{{ slug }}</code> — будет создан целиком ({{ sheet.added.length }} знач.)
+            </template>
+            <template v-else>{{ dictTitle(slug as string) }}</template>
+          </h4>
           <p v-if="!sheet.added.length && !sheet.edited.length" class="muted small">без изменений</p>
           <ul v-if="sheet.added.length" class="small">
             <li v-for="a in sheet.added" :key="a.value" data-testid="dict-diff-added">
@@ -160,7 +168,7 @@
       </template>
       <template #footer>
         <Button label="Отмена" severity="secondary" text @click="diffVisible = false" />
-        <Button label="Применить дифф" :disabled="!diff || diff.no_changes" :loading="busy"
+        <Button label="Применить импорт" :disabled="!diff || diff.no_changes" :loading="busy"
                 data-testid="dict-diff-apply" @click="applyImport" />
       </template>
     </Dialog>
@@ -174,8 +182,13 @@
     <Dialog v-model:visible="dictDialogVisible" modal
             :header="dictIsNew ? 'Новый справочник' : 'Правка справочника'" style="width: 520px">
       <div class="type-form">
-        <label v-if="dictIsNew">Слаг (латиница/цифры/дефис, неизменяемо по смыслу — по нему листы выгрузки)
-          <InputText v-model="dictForm.slug" data-testid="dict-slug-input" />
+        <label v-if="dictIsNew">Слаг
+          <InputText v-model="dictForm.slug" placeholder="пусто — сгенерируем из названия"
+                     data-testid="dict-slug-input" />
+          <span class="muted small">
+            Латиница/цифры/дефис, до 32 символов; по нему листы выгрузки. Можно оставить
+            пустым — сгенерируем транслитерацией названия.
+          </span>
         </label>
         <label v-else>Слаг
           <InputText v-model="dictForm.slug" :disabled="dictForm.codeManaged"
@@ -267,7 +280,6 @@ import { dictionariesApi, trackAction } from '../api/endpoints'
 import ImportErrorsDialog from './ImportErrorsDialog.vue'
 import type { ImportErrorRow } from './ImportErrorsDialog.vue'
 import type { DictionaryItemRow, DictionaryRow, DictDiffSheet } from '../api/endpoints'
-import { errMsg } from '../api/errors'
 import { useAppConfirm } from '../composables/useAppConfirm'
 import { useToast } from 'primevue/usetoast'
 
@@ -342,7 +354,6 @@ async function load() {
   try {
     dictionaries.value = await dictionariesApi.list()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не удалось загрузить справочники', detail: errMsg(e), life: 8000 })
   }
 }
 
@@ -386,7 +397,6 @@ async function loadItems() {
         .then((rows) => rows.map((r) => r.value))
     }
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не удалось загрузить значения', detail: errMsg(e), life: 8000 })
   }
 }
 
@@ -402,7 +412,6 @@ async function downloadExport(slug?: string) {
     URL.revokeObjectURL(url)
     trackAction('dictionaries', { action: 'export', slug: slug || 'all' })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка выгрузки', detail: errMsg(e), life: 8000 })
   } finally {
     busy.value = false
   }
@@ -412,7 +421,7 @@ function onFileSelected(ev: { files: File[] }) {
   file.value = ev.files?.[0] || null
 }
 
-/** Блокирующие ошибки импорта словарей — персистентная модалка (приёмка 12.11):
+/** Блокирующие ошибки импорта справочников — персистентная модалка (приёмка 12.11):
  *  структурный detail {message, errors[]} таблицей + файл ошибок; строчный — текстом. */
 const importErrorsVisible = ref(false)
 const importErrors = ref<{ message: string; errors: ImportErrorRow[] } | null>(null)
@@ -425,7 +434,6 @@ function showImportErrors(e: unknown, fallbackSummary: string) {
     importErrorsVisible.value = true
     return
   }
-  toast.add({ severity: 'error', summary: fallbackSummary, detail: errMsg(e), life: 12000 })
 }
 
 async function previewImport() {
@@ -446,7 +454,9 @@ async function applyImport() {
   busy.value = true
   try {
     const res = await dictionariesApi.importApply(file.value)
-    toast.add({ severity: 'success', summary: `Словари обновлены: +${res.added}, правок ${res.edited}`, life: 5000 })
+    toast.add({ severity: 'success',
+                summary: `Справочники обновлены: создано ${res.created || 0}, `
+                          + `добавлено ${res.added}, правок ${res.edited}`, life: 5000 })
     diffVisible.value = false
     file.value = null
     globalLoaded.value = false
@@ -508,7 +518,6 @@ async function saveDict() {
     await load()
     if (selectedSlug.value) await loadItems()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не сохранено', detail: errMsg(e), life: 10000 })
   } finally {
     busy.value = false
   }
@@ -580,7 +589,6 @@ async function saveItem() {
     globalLoaded.value = false
     await loadItems()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не сохранено', detail: errMsg(e), life: 10000 })
   } finally {
     busy.value = false
   }

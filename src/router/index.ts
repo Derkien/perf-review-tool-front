@@ -33,8 +33,10 @@ const routes = [
         meta: { perm: 'ROLE_R_NOMINATION' } },
       { path: 'imports', component: () => import('../views/ImportsView.vue'),
         meta: { perm: 'ROLE_C_IMPORT' } },
-      { path: 'admin', component: () => import('../views/AdminView.vue'),
-        // вкладки админки имеют собственные права: вход — по любому из списка
+      { path: 'admin/:section?',
+        // подразделы админки — URL-роуты (/admin/dictionaries…): рефреш сохраняет
+        // раздел; вкладки имеют собственные права, вход — по любому из списка
+        component: () => import('../views/AdminView.vue'),
         meta: { perm: ['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX',
                        'ROLE_U_COMPETENCY_REASSESSMENT', 'ROLE_U_ASSIGNMENTS',
                        'ROLE_R_DELIVERY_LOG'] } },

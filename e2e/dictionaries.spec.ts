@@ -3,19 +3,25 @@ import { login, USERS, apiAuth } from './helpers'
 
 /**
  * Сценарий change competency-dictionaries (6.1 + приёмка 12.11) — workflow заказчика
- * через nginx e2e-стенда (scripts/e2e.sh): выгрузка словарей → импорт диффа (новая
- * категория + пункт) → импорт схемы с ними проходит → импорт схемы с опечаткой
+ * через nginx e2e-стенда (scripts/e2e.sh): выгрузка справочников → импорт (новая
+ * категория + пункт) → апсерт нового справочника файлом → импорт схемы с ними проходит
+ * → импорт схемы с опечаткой
  * блокируется персистентной модалькой с файлом ошибок. Плюс новый UX справочников:
  * список → drill-down значений с поиском, слаги значений, выгрузка одного справочника.
  * Перезапускаемость: справочники только растут — повторный прогон видит «без изменений»
  * и сверяет, что значения на месте; черновик схемы заменяется, в конце удаляем его
  * через API (2 e2e-значения справочника остаются в БД навсегда — удаления нет).
  */
-test.describe.serial('Справочники: workflow словари-до-схем', () => {
-  test('список → дифф-импорт → схема проходит → опечатка блокируется модалкой', async ({ page }) => {
+test.describe.serial('Справочники: workflow справочники-до-схем', () => {
+  test('список → импорт → апсерт нового справочника → схема проходит → опечатка блокируется модалкой', async ({ page }) => {
     await login(page, USERS.admin)
-    await page.goto('/#/admin')
-    await page.getByRole('tab', { name: 'Справочники' }).click()
+    // подразделы админки — URL-роуты (приёмка 16.11): раздел открывается напрямую
+    await page.goto('/#/admin/dictionaries')
+    await expect(page.getByTestId('dict-list-table')).toBeVisible()
+    // рефреш сохраняет раздел (единое правило навигации)
+    await page.reload()
+    await expect(page.getByTestId('dict-list-table')).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Справочники' })).toHaveAttribute('aria-selected', 'true')
 
     // 1. раздел = список справочников (слаг, название, счётчик, бейдж «в коде»)
     await expect(page.getByTestId('dict-list-table').getByRole('row')
@@ -28,17 +34,17 @@ test.describe.serial('Справочники: workflow словари-до-сх�
     await page.getByTestId('dict-search-input').fill('')
     await page.screenshot({ path: 'e2e/screenshots/dictionaries/01-section.png', fullPage: true })
 
-    // 2. выгрузка всех словарей (клик → скачивание xlsx)
+    // 2. выгрузка всех справочников (клик → скачивание xlsx)
     const downloadPromise = page.waitForEvent('download')
     await page.getByTestId('dict-export-btn').click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe('dictionaries.xlsx')
 
-    // 3. импорт диффа: новая категория + пункт этого справочника
+    // 3. импорт справочников: новая категория + пункт
     // (инпут скопирован на вкладку «Справочники»: все панели в DOM, .first() взял бы схемы)
     await page.getByRole('tabpanel', { name: 'Справочники' })
       .locator('input[type="file"]').setInputFiles('e2e/fixtures/dictionaries-e2e.xlsx')
-    await page.getByTestId('dict-import-btn').click()
+    await page.getByTestId('dict-import-btn').click()  // «Импортировать справочники»
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
     // rerun-детект по тексту итогового Message («Без изменений: …» с двоеточием) —
@@ -48,12 +54,32 @@ test.describe.serial('Справочники: workflow словари-до-сх�
       await expect(dialog.getByTestId('dict-diff-added').first()).toContainText('E2E Инфраструктура')
       await expect(dialog.getByTestId('dict-diff-added').nth(1)).toContainText('E2E Docker')
       await page.screenshot({ path: 'e2e/screenshots/dictionaries/02-diff-preview.png' })
-      await dialog.getByRole('button', { name: 'Применить дифф' }).click()
-      await expect(page.getByText(/Словари обновлены/)).toBeVisible()
+      await dialog.getByRole('button', { name: 'Применить импорт' }).click()
+      await expect(page.getByText(/Справочники обновлены/)).toBeVisible()
     } else {
       await page.screenshot({ path: 'e2e/screenshots/dictionaries/02-diff-no-changes.png' })
       await dialog.getByRole('button', { name: 'Отмена' }).click()
     }
+
+    // 3b. апсерт: файл с НОВЫМ справочником целиком (лист = слаг справочника)
+    await page.getByRole('tabpanel', { name: 'Справочники' })
+      .locator('input[type="file"]').setInputFiles('e2e/fixtures/new-dictionary-e2e.xlsx')
+    await page.getByTestId('dict-import-btn').click()
+    const upsertDialog = page.getByRole('dialog')
+    await expect(upsertDialog).toBeVisible()
+    const upsertRerun = await upsertDialog.getByText('Без изменений:').count() > 0
+    if (!upsertRerun) {
+      await expect(upsertDialog.getByText('НОВЫЙ справочник')).toBeVisible()
+      await expect(upsertDialog).toContainText('e2e-timezones')
+      await page.screenshot({ path: 'e2e/screenshots/dictionaries/03b-upsert-new-dict.png' })
+      await upsertDialog.getByRole('button', { name: 'Применить импорт' }).click()
+      await expect(page.getByText(/Справочники обновлены/)).toBeVisible()
+    } else {
+      await upsertDialog.getByRole('button', { name: 'Отмена' }).click()
+    }
+    // новый справочник в списке
+    await expect(page.getByTestId('dict-list-table').getByRole('row')
+      .filter({ hasText: 'e2e-timezones' })).toBeVisible()
 
     // 4. drill-down значений справочника: новая связка видна, слаги заполнены
     await page.getByTestId('dict-open-competency-item').click()
