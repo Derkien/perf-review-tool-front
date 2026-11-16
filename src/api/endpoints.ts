@@ -531,6 +531,16 @@ export const competenciesApi = {
     if (error) raise(error, '/competencies/schemas/template')
     return data as Blob
   },
+  /** Выгрузка версии схемы в формате импорта (приёмка 12.11): пункты + нормы +
+   *  допустимые значения + инструкция; повторный импорт без правок = «без изменений». */
+  async schemaExport(matrixId: number): Promise<Blob> {
+    const { data, error } = await client.GET('/competencies/schemas/{matrix_id}/export', {
+      params: { path: { matrix_id: matrixId } },
+      parseAs: 'blob',
+    })
+    if (error) raise(error, '/competencies/schemas/{matrix_id}/export')
+    return data as Blob
+  },
   async activateSchema(matrixId: number): Promise<{ id: number; status: string; version: number; former_active_archived: boolean }> {
     const { data, error } = await client.POST('/competencies/schemas/{matrix_id}/activate', {
       params: { path: { matrix_id: matrixId } },
@@ -594,13 +604,19 @@ export const competencyTypesApi = {
 
 export type DictionaryRow = {
   slug: string; title: string; description: string; items_count: number
+  /** справочник зарегистрирован в коде константой: слаг/слаг значений менять нельзя */
+  code_managed: boolean
+  /** значения справочника имеют категорию (выбор из родительского справочника) */
+  has_categories: boolean
+  /** слаг родительского справочника (источник категорий), null — категорий нет */
+  parent_slug: string | null
 }
 export type DictionaryItemRow = {
-  id: number; value: string; title: string; order_no: number; category: string
+  id: number; slug: string; value: string; title: string; order_no: number; category: string
 }
 /** дифф импорта словарей: новые значения и правки по каждому справочнику */
 export type DictDiffSheet = {
-  added: { value: string; title: string; order_no: number | null; category: string }[]
+  added: { value: string; slug: string; title: string; order_no: number | null; category: string }[]
   edited: { value: string; title?: string; order_no?: number }[]
 }
 
@@ -618,24 +634,38 @@ export const dictionariesApi = {
     if (error) raise(error, '/dictionaries/{slug}/items')
     return data as never
   },
-  async createItem(slug: string, body: { value: string; title: string; order_no?: number | null; category: string }): Promise<DictionaryItemRow> {
+  async createDictionary(body: { slug: string; title: string; description: string }): Promise<{ slug: string; title: string }> {
+    const { data, error } = await client.POST('/dictionaries', { body })
+    if (error) raise(error, 'POST /dictionaries')
+    return data as never
+  },
+  /** Смена слага справочника — только не для код-зарегистрированных (гвард useAppConfirm на вызывающей стороне). */
+  async patchDictionary(slug: string, body: { title?: string; description?: string; slug?: string }): Promise<{ slug: string; title: string }> {
+    const { data, error } = await client.PATCH('/dictionaries/{slug}', {
+      params: { path: { slug } }, body,
+    })
+    if (error) raise(error, 'PATCH /dictionaries/{slug}')
+    return data as never
+  },
+  async createItem(slug: string, body: { value: string; title: string; category: string; slug: string; order_no?: number | null }): Promise<DictionaryItemRow> {
     const { data, error } = await client.POST('/dictionaries/{slug}/items', {
       params: { path: { slug } }, body,
     })
     if (error) raise(error, 'POST /dictionaries/{slug}/items')
     return data as never
   },
-  async patchItem(slug: string, itemId: number, body: { title?: string; order_no?: number }): Promise<DictionaryItemRow> {
+  /** Смена слага значения — только не для код-зарегистрированных справочников (гвард на вызывающей стороне). */
+  async patchItem(slug: string, itemId: number, body: { title?: string; order_no?: number; slug?: string; category?: string }): Promise<DictionaryItemRow> {
     const { data, error } = await client.PATCH('/dictionaries/{slug}/items/{item_id}', {
       params: { path: { slug, item_id: itemId } }, body,
     })
     if (error) raise(error, 'PATCH /dictionaries/{slug}/items/{item_id}')
     return data as never
   },
-  /** Выгрузка словарей XLSX; types сужает лист «Типы» (например 'hard,soft'). */
-  async export(types?: string[]): Promise<Blob> {
+  /** Выгрузка словарей XLSX: все справочники или один по слагу (источник диффа). */
+  async export(slug?: string): Promise<Blob> {
     const { data, error } = await client.GET('/admin/dictionaries/export', {
-      params: { query: (types?.length ? { types: types.join(',') } : {}) as never },
+      params: { query: (slug ? { slug } : {}) as never },
       parseAs: 'blob',
     })
     if (error) raise(error, '/admin/dictionaries/export')

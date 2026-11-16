@@ -36,6 +36,7 @@ vi.mock('../src/api/endpoints', () => ({
       demo_grade: 'Старший 1',
     })),
     schemaTemplate: vi.fn(async () => new Blob(['xlsx'])),
+    schemaExport: vi.fn(async () => new Blob(['schema-xlsx'])),
     activateSchema: vi.fn(async () => ({ id: 12, status: 'active', version: 2, former_active_archived: true })),
     deleteSchemaDraft: vi.fn(async () => ({ ok: true })),
     previewSchemaImport: vi.fn(async () => ({
@@ -218,6 +219,51 @@ describe('CompetencySchemasTab: предпросмотр/apply импорта и
     URL.createObjectURL = origCreate
     URL.revokeObjectURL = origRevoke
     expect(competenciesApi.schemaTemplate).toHaveBeenCalled()
+    expect(clicked).toBe(true)
+  })
+
+  it('блокирующие ошибки 422 — персистентная модалка со списком и файлом ошибок (приёмка 12.11)', async () => {
+    ;(competenciesApi.previewSchemaImport as any).mockRejectedValueOnce({
+      status: 422,
+      detail: {
+        message: 'файл не принят целиком — исправьте ошибки и загрузите заново',
+        errors: [
+          { sheet: 'Матрица', row: 2, reason: 'пункт «Python» в справочнике связан с категорией «без категории», а не «Язык программирования»' },
+          { sheet: 'Матрица', row: 3, reason: 'роль «Разработчик бэкенд» (тип hard) не найдена среди должностей/функциональных групп сотрудников' },
+        ],
+      },
+    })
+    const w = mount(CompetencySchemasTab, { global: { stubs: { teleport: true, RadarChart: true } } })
+    await settle()
+    const vm: any = w.vm
+    vm.file = new File(['x'], 'schema.xlsx')
+    await vm.uploadSchema()
+    await settle()
+    expect(vm.importErrorsVisible).toBe(true)
+    expect(w.text()).toContain('файл не принят целиком')
+    expect(w.text()).toContain('связан с категорией')   // строки ошибок в таблице
+    expect(w.text()).toContain('не найдена среди должностей')
+    // ошибки можно скачать файлом — кнопка в модалке
+    expect(w.find('[data-testid="import-errors-download"]').exists()).toBe(true)
+  })
+
+  it('«Скачать текущую схему» — blob-запрос с matrix_id активной версии (приёмка 12.11)', async () => {
+    const w = mount(CompetencySchemasTab, { global: { stubs: { teleport: true, RadarChart: true } } })
+    await settle()
+    let clicked = false
+    const origCreate = URL.createObjectURL
+    const origRevoke = URL.revokeObjectURL
+    URL.createObjectURL = (() => 'blob:x') as typeof URL.createObjectURL
+    URL.revokeObjectURL = (() => undefined) as typeof URL.revokeObjectURL
+    ;(HTMLAnchorElement.prototype as any).click = () => { clicked = true }
+    const btn = w.find('[data-testid="schema-export-hard-backend"]')
+    expect(btn.exists()).toBe(true)
+    await btn.trigger('click')
+    await settle()
+    URL.createObjectURL = origCreate
+    URL.revokeObjectURL = origRevoke
+    // активная версия группы (id 12) — выгрузка в формате импорта
+    expect(competenciesApi.schemaExport).toHaveBeenCalledWith(12)
     expect(clicked).toBe(true)
   })
 })

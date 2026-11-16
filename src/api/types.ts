@@ -200,8 +200,10 @@ export interface paths {
         };
         /**
          * Export Dictionaries
-         * @description XLSX для ответственного за наполнение: листы-справочники + «Роли» (снапшот
-         *     кадровых) + «Типы» (реестр); types=hard,soft сужает лист «Типы».
+         * @description XLSX для ответственного за наполнение: листы-справочники по слагу (Слаг |
+         *     Значение | Категория | Тайтл | Порядок); slug=… — выгрузка одного справочника
+         *     как источник диффа. Доменные реестры (роли, типы) сюда не входят — раздел
+         *     справочников не подмешивает тематику матриц (приёмка 12.11).
          */
         get: operations["export_dictionaries_api_v1_admin_dictionaries_export_get"];
         put?: never;
@@ -1008,8 +1010,8 @@ export interface paths {
         };
         /**
          * Schema Template
-         * @description XLSX-шаблон схемы: пустая форма + лист-инструкция с примером.
-         *     Грейд-колонки — из справочника грейдов (следуют справочнику, не коду).
+         * @description XLSX-шаблон схемы: пустая форма + лист-инструкция + пример из живых данных
+         *     стенда + лист допустимых значений. Грейд-колонки — из справочника грейдов.
          */
         get: operations["schema_template_api_v1_competencies_schemas_template_get"];
         put?: never;
@@ -1063,6 +1065,28 @@ export interface paths {
         };
         /** Schema Demo */
         get: operations["schema_demo_api_v1_competencies_schemas__matrix_id__demo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/{matrix_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Schema Export
+         * @description Выгрузка версии схемы в формате импорта (приёмка 12.11): заполненный шаблон —
+         *     пункты, описания по грейдам, фактические нормы, допустимые значения, инструкция.
+         *     Повторный импорт без правок = «без изменений», версия не поднимается.
+         */
+        get: operations["schema_export_api_v1_competencies_schemas__matrix_id__export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1225,8 +1249,9 @@ export interface paths {
         };
         /**
          * List Dictionaries
-         * @description Список справочников со счётчиками значений — чтение всем аутентифицированным
-         *     (значения нужны интерфейсам разметки и профиля).
+         * @description Список справочников со счётчиками значений и признаком код-регистрации —
+         *     чтение всем аутентифицированным (значения нужны интерфейсам разметки и профиля).
+         *     code_managed=True: слаг/слаг значений менять нельзя — на справочник ссылается код.
          */
         get: operations["list_dictionaries_api_v1_dictionaries_get"];
         put?: never;
@@ -2398,6 +2423,8 @@ export interface components {
         DictionaryPatch: {
             /** Description */
             description?: string | null;
+            /** Slug */
+            slug?: string | null;
             /** Title */
             title?: string | null;
         };
@@ -2554,6 +2581,11 @@ export interface components {
             /** Order No */
             order_no?: number | null;
             /**
+             * Slug
+             * @default
+             */
+            slug: string;
+            /**
              * Title
              * @default
              */
@@ -2585,8 +2617,12 @@ export interface components {
         };
         /** ItemPatch */
         ItemPatch: {
+            /** Category */
+            category?: string | null;
             /** Order No */
             order_no?: number | null;
+            /** Slug */
+            slug?: string | null;
             /** Title */
             title?: string | null;
             /** Value */
@@ -3294,7 +3330,7 @@ export interface operations {
     export_dictionaries_api_v1_admin_dictionaries_export_get: {
         parameters: {
             query?: {
-                types?: string | null;
+                slug?: string | null;
             };
             header?: never;
             path?: never;
@@ -4805,6 +4841,37 @@ export interface operations {
         };
     };
     schema_demo_api_v1_competencies_schemas__matrix_id__demo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matrix_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schema_export_api_v1_competencies_schemas__matrix_id__export_get: {
         parameters: {
             query?: never;
             header?: never;

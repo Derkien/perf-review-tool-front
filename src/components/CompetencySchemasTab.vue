@@ -46,6 +46,13 @@
       <Column header="Версий всего">
         <template #body="{ data: g }">{{ g.versions.length }}</template>
       </Column>
+      <Column header="Действия">
+        <template #body="{ data: g }">
+          <Button v-if="activeVersion(g)" label="Скачать текущую схему" text size="small"
+                  :data-testid="`schema-export-${g.type_code}-${g.specialty}`"
+                  @click="downloadActiveSchema(g)" />
+        </template>
+      </Column>
       <template #expansion="{ data: g }">
         <div class="versions-block">
           <DataTable :value="g.versions" size="small" class="versions-table"
@@ -249,6 +256,11 @@
                 data-testid="type-submit" @click="saveType" />
       </template>
     </Dialog>
+
+    <!-- блокирующие ошибки импорта: персистентный список + файл ошибок (приёмка 12.11) -->
+    <ImportErrorsDialog v-model:visible="importErrorsVisible"
+                        :message="importErrors?.message || ''"
+                        :errors="importErrors?.errors || []" />
   </div>
 </template>
 
@@ -265,6 +277,8 @@ import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import RadarChart from './RadarChart.vue'
 import { competenciesApi, competencyTypesApi } from '../api/endpoints'
+import ImportErrorsDialog from './ImportErrorsDialog.vue'
+import type { ImportErrorRow } from './ImportErrorsDialog.vue'
 import type { CompetencyTypeAllRow, RadarData, SchemasOverview, SchemaDiffPair, SchemaGroup, SchemaVersion } from '../api/endpoints'
 import { errMsg } from '../api/errors'
 import { useAppConfirm } from '../composables/useAppConfirm'
@@ -401,8 +415,24 @@ async function uploadSchema() {
     forceUpload.value = false
     previewVisible.value = true
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка разбора файла', detail: errMsg(e), life: 10000 })
+    showImportErrors(e, 'Ошибка разбора файла')
   } finally { busy.value = false }
+}
+
+/** Блокирующие ошибки импорта — персистентная модалка со списком + файл ошибок
+ * (приёмка 12.11), не исчезающий тост. Строчный detail (словарные импорты) — текстом. */
+const importErrorsVisible = ref(false)
+const importErrors = ref<{ message: string; errors: ImportErrorRow[] } | null>(null)
+
+function showImportErrors(e: unknown, fallbackSummary: string) {
+  const detail = (e as { detail?: unknown })?.detail
+  if (detail && typeof detail === 'object' && 'errors' in detail) {
+    const d = detail as { message?: string; errors: ImportErrorRow[] }
+    importErrors.value = { message: d.message || fallbackSummary, errors: d.errors || [] }
+    importErrorsVisible.value = true
+    return
+  }
+  toast.add({ severity: 'error', summary: fallbackSummary, detail: errMsg(e), life: 10000 })
 }
 
 async function applyUpload() {
@@ -417,7 +447,28 @@ async function applyUpload() {
     file.value = null
     await load()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Не удалось применить', detail: errMsg(e), life: 8000 })
+    showImportErrors(e, 'Не удалось применить')
+  } finally { busy.value = false }
+}
+
+/** «Скачать текущую схему» (приёмка 12.11): активная версия пары (тип, роль)
+ * в формате импорта — правь и загружай обратно; повторный импорт без правок
+ * не поднимает версию. */
+async function downloadActiveSchema(g: GroupRow) {
+  const v = activeVersion(g)
+  if (!v) return
+  busy.value = true
+  try {
+    const blob = await competenciesApi.schemaExport(v.id)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `schema-${g.type_code}-${g.specialty}-v${v.version}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+    trackAction('admin.competency-schemas', { action: 'export-schema', matrix_id: v.id })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Не удалось выгрузить схему', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
 }
 

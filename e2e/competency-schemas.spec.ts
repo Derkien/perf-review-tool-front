@@ -69,6 +69,12 @@ test.describe.serial('Матрицы компетенций: e2e', () => {
     await confirm.getByRole('button', { name: 'Активировать' }).click()
     await expect(page.getByText(`Версия v${nextVersion} активна`)).toBeVisible()
     await expect(groupRow.getByTestId('draft-badge')).toHaveCount(0)
+
+    // 6. «Скачать текущую схему» (приёмка 12.11): активная версия в формате импорта
+    const exportDownload = page.waitForEvent('download')
+    await groupRow.getByRole('button', { name: 'Скачать текущую схему' }).click()
+    const exported = await exportDownload
+    expect(exported.suggestedFilename()).toMatch(/^schema-hard-android-v\d+\.xlsx$/)
   })
 
   test('карточка сотрудника: разметка по новой версии, история, сравнение', async ({ page }) => {

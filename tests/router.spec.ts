@@ -4,6 +4,13 @@ vi.mock('../src/api/endpoints', () => ({
   postActivity: vi.fn(async () => undefined),
 }))
 
+// перехват регистрации: регрессия бага «401 без редиректа» — хендлер обязан быть установлен
+const unauthorizedHandler = vi.hoisted(() => vi.fn())
+vi.mock('../src/api/client', () => ({
+  setUnauthorizedHandler: (fn: () => void) => { unauthorizedHandler.mockImplementation(fn) },
+  client: { GET: vi.fn(), POST: vi.fn() },
+}))
+
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuth } from '../src/stores/auth'
 import router, { homeForAuth } from '../src/router'
@@ -78,5 +85,29 @@ describe('router guards: массив пермишенов /admin (competency-ma
     await router.push('/admin')
     await router.isReady()
     expect(router.currentRoute.value.path).toBe('/dashboard')
+  })
+})
+
+describe('router: 401 от API — редирект на /login', () => {
+  it('хендлер протухания зарегистрирован и ведёт на /login (регрессия: не был зарегистрирован — только тосты)', async () => {
+    expect(unauthorizedHandler.getMockImplementation()).toBeTypeOf('function')
+
+    setActivePinia(createPinia())
+    const auth = useAuth()
+    auth.me = {
+      id: 5, email: 't@x.ru', full_name: 'T', role: 'employee', roles: ['employee'],
+      permissions: ['ROLE_R_DASHBOARD'], has_subordinates: false,
+    }
+    await router.push('/dashboard')
+    await router.isReady()
+    expect(router.currentRoute.value.path).toBe('/dashboard')
+
+    unauthorizedHandler.mock.calls.length = 0
+    unauthorizedHandler()  // клиент дропнул сессию и позвал хендлер
+    // push асинхронен (lazy-компонент логина + guard) — даём навигации завершиться
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await router.isReady()
+    expect(auth.me).toBeNull()          // стор сброшен — guard пустит на /login
+    expect(router.currentRoute.value.path).toBe('/login')
   })
 })

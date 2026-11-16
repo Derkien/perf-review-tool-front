@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuth } from '../stores/auth'
+import { setUnauthorizedHandler } from '../api/client'
 
 const Login = () => import('../views/LoginView.vue')
 const Layout = () => import('../layouts/AppLayout.vue')
@@ -43,6 +44,14 @@ const routes = [
 ]
 
 const router = createRouter({ history: createWebHashHistory(), routes })
+
+// протухший токен/сброс авторизации — клиент дропает localStorage, здесь чистится
+// pinia-стор и происходит переход; без хендлера пользователь оставался на странице
+// с уведомлениями вместо редиректа (guard пускает на /login только при !isAuthed)
+setUnauthorizedHandler(() => {
+  useAuth().logout()
+  void router.push('/login')
+})
 
 // куда попадает пользователь после логина (dashboard — только с правом ROLE_R_DASHBOARD)
 export function homeForAuth(can: (code: string) => boolean): string {

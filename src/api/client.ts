@@ -32,7 +32,8 @@ function tokenExpired(token: string): boolean {
   }
 }
 
-const authMiddleware: Middleware = {
+// экспортирован для теста механики «401 → дроп сессии» (регрессия редиректа на логин)
+export const authMiddleware: Middleware = {
   onRequest({ request }) {
     const token = localStorage.getItem('token')
     if (token) {
