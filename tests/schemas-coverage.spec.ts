@@ -170,6 +170,36 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     expect(vm.selectedKeys.has('hard:backend')).toBe(false)
   })
 
+  it('строчные действия: Выгрузить пары, Исключить/Вернуть с подтверждением', async () => {
+    const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
+    await settle()
+    URL.createObjectURL = (() => 'blob:x') as typeof URL.createObjectURL
+    URL.revokeObjectURL = (() => undefined) as typeof URL.revokeObjectURL
+    ;(HTMLAnchorElement.prototype as any).click = () => undefined
+    await w.find('[data-testid="coverage-row-export-hard:backend"]').trigger('click')
+    await settle()
+    expect(competenciesApi.coverageExport).toHaveBeenCalledWith(['hard:backend'])
+
+    // soft-пара в моке исключена → на строке кнопка «Вернуть» (include)
+    await w.find('[data-testid="coverage-row-include-soft:Разработчик бэкенд"]')
+      .trigger('click')
+    await settle()
+    const { useAppConfirm } = await import('../src/composables/useAppConfirm')
+    expect(useAppConfirm().state.value?.header).toContain('Вернуть')
+    useAppConfirm().state.value?.resolve('')
+    ;(await import('../src/composables/useAppConfirm'))._release()
+    await settle()
+    expect(competenciesApi.coverageInclude).toHaveBeenCalledWith(['soft:Разработчик бэкенд'])
+    // не-исключённая пара — кнопка «Исключить»
+    await w.find('[data-testid="coverage-row-exclude-hard:backend"]').trigger('click')
+    await settle()
+    expect(useAppConfirm().state.value?.header).toContain('Исключить')
+    useAppConfirm().state.value?.resolve('')
+    ;(await import('../src/composables/useAppConfirm'))._release()
+    await settle()
+    expect(competenciesApi.coverageExclude).toHaveBeenCalledWith(['hard:backend'])
+  })
+
   it('возврат: только исключённые выбранные уходят в include', async () => {
     const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
     await settle()

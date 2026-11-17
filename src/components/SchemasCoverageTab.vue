@@ -76,6 +76,16 @@
       <Column header="Обновлена">
         <template #body="{ data: r }">{{ formatDate(r.updated_at) }}</template>
       </Column>
+      <Column header="Действия">
+        <template #body="{ data: r }">
+          <Button label="Выгрузить" text size="small"
+                  :data-testid="`coverage-row-export-${r.key}`" @click="exportOne(r.key)" />
+          <Button v-if="!r.excluded" label="Исключить" text size="small" severity="danger"
+                  :data-testid="`coverage-row-exclude-${r.key}`" @click="excludeOne(r)" />
+          <Button v-else label="Вернуть" text size="small" severity="secondary"
+                  :data-testid="`coverage-row-include-${r.key}`" @click="includeOne(r)" />
+        </template>
+      </Column>
     </AppTable>
   </div>
 </template>
@@ -202,6 +212,41 @@ async function confirmPairs(header: string, actionLabel: string): Promise<boolea
     danger: header.includes('Исключить'),
   })
   return ok !== null
+}
+
+async function excludeOne(r: SchemasCoverageRow & { key: string }) {
+  const ok = await confirmDialog.ask({
+    header: 'Исключить из квалификации?',
+    message: `Кого: ${r.type_code}: ${r.specialty}. Пара перестанет требоваться `
+      + 'в заданиях разметки; схема и история сохранятся.',
+    okLabel: 'Исключить', danger: true,
+  })
+  if (ok === null) return
+  await competenciesApi.coverageExclude([r.key])
+  toast.add({ severity: 'success', summary: 'Исключено из квалификации', life: 4000 })
+  await load()
+}
+async function includeOne(r: SchemasCoverageRow & { key: string }) {
+  const ok = await confirmDialog.ask({
+    header: 'Вернуть в квалификацию?',
+    message: `Кого: ${r.type_code}: ${r.specialty}. Пара снова будет требоваться `
+      + 'в заданиях разметки.',
+    okLabel: 'Вернуть',
+  })
+  if (ok === null) return
+  await competenciesApi.coverageInclude([r.key])
+  toast.add({ severity: 'success', summary: 'Возвращено в квалификацию', life: 4000 })
+  await load()
+}
+async function exportOne(key: string) {
+  const blob = await competenciesApi.coverageExport([key])
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'schemas-coverage.xlsx'
+  a.click()
+  URL.revokeObjectURL(url)
+  trackAction('admin.schemas-coverage', { action: 'export', pairs: 1 })
 }
 
 async function excludeSelected() {

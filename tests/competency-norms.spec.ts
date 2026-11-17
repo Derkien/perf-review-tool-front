@@ -195,6 +195,74 @@ async function settle() {
   await nextTick()
 }
 
+describe('CompetenciesTab: доступность разметки по орг-роли (инцидент 17.11)', () => {
+  it('line-manager: кнопка на hard скрыта (тег-пояснение), на soft — доступна', async () => {
+    setActivePinia(createPinia())
+    const { useAuth } = await import('../src/stores/auth')
+    useAuth().me = { id: 9, email: 'l@x.ru', full_name: 'L', role: 'line-manager',
+      roles: ['line-manager'], permissions: ['ROLE_U_COMPETENCY_MARKS'],
+      has_subordinates: true } as any
+    const w = mount(CompetenciesTab, {
+      props: {
+        employeeId: 5, perms: { edit_marks: true, is_self: false }, grade: 'Основной 1',
+        gradeOptions: [{ label: 'Основной 1', value: 'Основной 1' }],
+      },
+      global: { stubs: { teleport: true, RadarChart: RadarStub } },
+    })
+    await settle()
+    const vm: any = w.vm
+    vm.kind = 'hard'
+    await settle()
+    expect(vm.canMarkThisType).toBe(false)
+    expect(w.text()).not.toContain('Внести разметку')
+    expect(w.text()).toContain('разметка этого типа — не ваша роль')
+    vm.kind = 'soft'
+    await settle()
+    expect(vm.canMarkThisType).toBe(true)
+  })
+
+  it('функциональный: только hard; admin (ROLE_U_COMPETENCY_MARKS) — любые', async () => {
+    setActivePinia(createPinia())
+    const { useAuth } = await import('../src/stores/auth')
+    useAuth().me = { id: 10, email: 'f@x.ru', full_name: 'F', role: 'functional-manager',
+      roles: ['functional-manager'], permissions: ['ROLE_U_COMPETENCY_MARKS'],
+      has_subordinates: true } as any
+    const w = mount(CompetenciesTab, {
+      props: {
+        employeeId: 5, perms: { edit_marks: true, is_self: false }, grade: 'Основной 1',
+        gradeOptions: [{ label: 'Основной 1', value: 'Основной 1' }],
+      },
+      global: { stubs: { teleport: true, RadarChart: RadarStub } },
+    })
+    await settle()
+    const vm: any = w.vm
+    vm.kind = 'hard'
+    await settle()
+    expect(vm.canMarkThisType).toBe(true)
+    vm.kind = 'soft'
+    await settle()
+    expect(vm.canMarkThisType).toBe(false)
+
+    setActivePinia(createPinia())
+    useAuth().me = { id: 11, email: 'a@x.ru', full_name: 'A', role: 'admin',
+      roles: ['admin'], permissions: ['ROLE_U_COMPETENCY_MARKS'], has_subordinates: true } as any
+    const w2 = mount(CompetenciesTab, {
+      props: {
+        employeeId: 5, perms: { edit_marks: true, is_self: false }, grade: 'Основной 1',
+        gradeOptions: [{ label: 'Основной 1', value: 'Основной 1' }],
+      },
+      global: { stubs: { teleport: true, RadarChart: RadarStub } },
+    })
+    await settle()
+    const vm2: any = w2.vm
+    for (const t of ['soft', 'hard']) {
+      vm2.kind = t
+      await settle()
+      expect(vm2.canMarkThisType).toBe(true)
+    }
+  })
+})
+
 describe('CompetenciesTab: категории и следующая степень', () => {
   it('чипы только у категорий из >1 пункта; клик открывает детализацию с теми же сериями',
     async () => {

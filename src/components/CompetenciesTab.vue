@@ -11,9 +11,11 @@
              data-testid="schema-version-badge" />
       </div>
       <div class="comp-actions">
-        <Button v-if="perms.edit_marks || perms.is_self"
+        <Button v-if="canMarkThisType && (perms.edit_marks || perms.is_self)"
                 :label="markMode ? 'Закрыть разметку' : 'Внести разметку'"
                 :severity="markMode ? 'secondary' : 'primary'" size="small" @click="markMode = !markMode" />
+        <Tag v-else-if="(props.perms.edit_marks || props.perms.is_self) && !canMarkThisType" value="разметка этого типа — не ваша роль"
+             severity="secondary" v-tooltip.top="orgMarkHint" />
       </div>
     </div>
     <!-- построчная сетка: типы → заметка о весах/степени → чипы → графики в одну
@@ -251,6 +253,23 @@ const auth = useAuth()
 /** вкладки типов — из реестра (порядок order_no), дефолт — первый активный */
 const types = ref<CompetencyTypeRow[]>([])
 const kind = ref('')
+
+/** Орг-семантика разметки (правило бэка save_mark): line-manager — только soft,
+ *  functional-manager — только hard; прочие держатели ROLE_U_COMPETENCY_MARKS —
+ *  любые типы; self-разметка — сам сотрудник по любому типу. Кнопка недоступного
+ *  типа не предлагается (инцидент 17.11: активная кнопка → 403 на сохранении). */
+const canMarkThisType = computed(() => {
+  if (props.perms.is_self && !props.perms.edit_marks) return true
+  if (!props.perms.edit_marks) return false
+  const role = auth.me?.role
+  if (role === 'line-manager') return kind.value === 'soft'
+  if (role === 'functional-manager') return kind.value === 'hard'
+  return true
+})
+const orgMarkHint = computed(() =>
+  auth.me?.role === 'line-manager'
+    ? 'Линейный руководитель размечает только soft-компетенции'
+    : 'Функциональный руководитель размечает только hard-компетенции')
 /** селектор версий: 0 = последняя актуальная, иначе matrix_id версии */
 const selectedMatrixId = ref(0)
 const versionOptions = ref<RadarVersion[]>([])

@@ -156,6 +156,8 @@ function clearSelection() { selectedKeys.value = new Set() }
 const q = ref('')
 const group = ref<string | null>(null)
 const grade = ref<string | null>(null)
+// руководителю сразу показываем ПОДЧИНЁННЫХ (боль заказчика 17.11: «как найти
+// своих»); переключатель в фильтрах возвращает всех
 const mineOnly = ref(false)
 const peersFor = ref<any>(null)
 const busy = ref(false)
@@ -234,7 +236,10 @@ const hasExcludedInSelection = computed(() =>
 let timer: number | undefined
 function debounced() { clearTimeout(timer); timer = window.setTimeout(load, 300) }
 
-onMounted(() => { refreshActiveStage(); loadCycles(); load() })
+onMounted(async () => {
+  if (auth.me?.has_subordinates) mineOnly.value = true
+  refreshActiveStage(); loadCycles(); load()
+})
 
 async function refreshActiveStage() {
   const cs = await reviewsApi.cycles()

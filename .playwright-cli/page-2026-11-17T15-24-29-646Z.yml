@@ -1,0 +1,82 @@
+- generic [ref=e37]:
+  - complementary [ref=e38]:
+    - generic [ref=e39]: PR Tool
+    - list [ref=e40]:
+      - listitem [ref=e41]:
+        - link " Дашборд цикла" [ref=e42] [cursor=pointer]:
+          - /url: "#/dashboard"
+          - generic [ref=e43]: 
+          - text: Дашборд цикла
+      - listitem [ref=e44]:
+        - link " Сотрудники" [ref=e45] [cursor=pointer]:
+          - /url: "#/staff"
+          - generic [ref=e46]: 
+          - text: Сотрудники
+      - listitem [ref=e47]:
+        - link " Моё ревью" [ref=e48] [cursor=pointer]:
+          - /url: "#/my-review"
+          - generic [ref=e49]: 
+          - text: Моё ревью
+      - listitem [ref=e50]:
+        - link " Оценки" [ref=e51] [cursor=pointer]:
+          - /url: "#/assessments"
+          - generic [ref=e52]: 
+          - text: Оценки
+      - listitem [ref=e53]:
+        - link " Калибровки" [ref=e54] [cursor=pointer]:
+          - /url: "#/calibration"
+          - generic [ref=e55]: 
+          - text: Калибровки
+      - listitem [ref=e56]:
+        - link " Номинации" [ref=e57] [cursor=pointer]:
+          - /url: "#/nominations"
+          - generic [ref=e58]: 
+          - text: Номинации
+    - generic [ref=e59]: admin@itgri.ru · лин. рукль
+  - main [ref=e60]:
+    - generic [ref=e62]:
+      - generic [ref=e63]: 
+      - generic [ref=e65] [cursor=pointer]: 
+      - generic [ref=e66] [cursor=pointer]: AI
+      - button "Выйти" [ref=e67] [cursor=pointer]
+    - generic [ref=e69]:
+      - navigation [ref=e70]:
+        - link "Сотрудники" [ref=e71] [cursor=pointer]:
+          - /url: "#/staff"
+        - generic [ref=e72]: 
+        - generic [ref=e73]: Дзюба Владислав Сергеевич
+      - heading "Дзюба Владислав Сергеевич" [level=1] [ref=e74]
+      - generic [ref=e75]:
+        - tablist [ref=e78]:
+          - tab " Обзор" [selected] [ref=e79] [cursor=pointer]:
+            - generic [ref=e80]: 
+            - text: Обзор
+          - tab " Компетенции" [ref=e81] [cursor=pointer]:
+            - generic [ref=e82]: 
+            - text: Компетенции
+          - tab " Ревью" [ref=e83] [cursor=pointer]:
+            - generic [ref=e84]: 
+            - text: Ревью
+        - tabpanel " Обзор" [ref=e86]:
+          - generic [ref=e88]:
+            - generic [ref=e89]: Профиль
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - generic [ref=e93]: Должность
+                - generic [ref=e94]: Старший разработчик андроид
+              - generic [ref=e95]:
+                - generic [ref=e96]: Грейд
+                - generic [ref=e97]: Старший 2
+              - generic [ref=e99]:
+                - generic [ref=e100]: Команда
+                - generic [ref=e101]: Группа разработки "Выбор"
+              - generic [ref=e102]:
+                - generic [ref=e103]: Лин. рукль
+                - generic [ref=e104]: Гусаров Сергей Александрович
+              - generic [ref=e105]:
+                - generic [ref=e106]: Функц. рукль
+                - generic [ref=e107]: —
+              - generic [ref=e108]:
+                - generic [ref=e109]: Дата найма
+                - generic [ref=e110]: 2023-12-04
+        - text:           
