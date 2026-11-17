@@ -3,8 +3,8 @@ import type { APIRequestContext, Page } from '@playwright/test'
 /** Тестовые пользователи e2e-мира (dev-режим; сотрудников создаёт scripts/seed_demo.py). */
 export const USERS = {
   admin: { email: 'admin@itgri.ru', role: 'admin' },
-  // android-сотрудник с историей разметок по архивной v1 (захардкожен в dev-логине)
-  employee: { email: 'dziuba_v_s@itgri.ru', role: 'employee' },
+  // backend-сотрудник с историей разметок по архивной v1 (тестовый мир сида)
+  employee: { email: 'backendov_b_b@itgri.ru', role: 'employee' },
 }
 
 /**

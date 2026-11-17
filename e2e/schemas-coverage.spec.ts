@@ -18,7 +18,7 @@ test.describe.serial('Покрытие схем', () => {
 
     // единый фреймворк AppTable: демо-мир ≤20 строк — пагинатор СКРЫТ (правило >20)
     await expect(page.locator('[data-testid="coverage-table"] .p-paginator')).toHaveCount(0)
-    await expect(page.getByTestId('coverage-status-hard-android')).toHaveText('активна')
+    await expect(page.getByTestId('coverage-status-hard-backend')).toHaveText('активна')
     await page.getByTestId('coverage-status-filter').click()
     await page.getByRole('option', { name: 'нет схемы' }).click()
     const missingRows = page.getByTestId('coverage-table').locator('tbody tr')
@@ -26,7 +26,7 @@ test.describe.serial('Покрытие схем', () => {
     await page.screenshot({ path: 'e2e/screenshots/coverage/02-filter-missing.png', fullPage: true })
     await expect(page.getByTestId('coverage-reset-filters')).toBeVisible()
     await page.getByTestId('coverage-reset-filters').click()
-    await expect(page.getByTestId('coverage-status-hard-android')).toBeVisible() // сброс вернул все
+    await expect(page.getByTestId('coverage-status-hard-backend')).toBeVisible() // сброс вернул все
 
     // РАЗНОТИПНАЯ выборка (hard + soft) своим чекбокс-слоем → масс-выгрузка.
     // Регресс инцидента 17.11: выбор обязан переживать смену фильтра, а POST-
@@ -43,9 +43,8 @@ test.describe.serial('Покрытие схем', () => {
     await expect(massBar).toContainText('выбрано: 2')
     await page.screenshot({ path: 'e2e/screenshots/coverage/01b-mass-bar.png', fullPage: true })
 
-    // живучесть: фильтр «нет схемы» прячет обе строки — выбор и счётчик живут
-    await page.getByTestId('coverage-status-filter').click()
-    await page.getByRole('option', { name: 'нет схемы' }).click()
+    // живучесть: поиск по несуществующему тексту прячет обе строки — выбор живёт
+    await page.getByTestId('coverage-search').fill('СОВСЕМ НЕ СУЩЕСТВУЕТ')
     await expect(massBar).toContainText('выбрано: 2')
     await expect(massBar).toContainText('в т.ч. скрыто фильтром: 2')
     await page.getByTestId('coverage-reset-filters').click()

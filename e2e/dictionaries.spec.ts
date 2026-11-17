@@ -81,17 +81,15 @@ test.describe.serial('Справочники: workflow справочники-д
     await expect(page.getByTestId('dict-list-table').getByRole('row')
       .filter({ hasText: 'e2e-timezones' })).toBeVisible()
 
-    // 4. drill-down значений справочника: новая связка видна, слаги заполнены
+    // 4. drill-down значений справочника: новая связка видна, слаги заполнены.
+    // 28 пунктов — пагинация AppTable из коробки (страница 1 = 20): ищем поиском.
     await page.getByTestId('dict-open-competency-item').click()
+    await page.getByTestId('dict-search-input').fill('e2e-docker')
     await expect(page.getByTestId('dict-items-table').getByRole('row')
       .filter({ hasText: 'E2E Docker' })).toBeVisible()
     // слаг значения сгенерирован автотранслитом (python-slugify)
     await expect(page.getByTestId('dict-items-table')).toContainText('e2e-docker')
     await page.screenshot({ path: 'e2e/screenshots/dictionaries/03-item-in-dict.png', fullPage: true })
-    // локальный поиск по значениям (значение/слаг/тайтл)
-    await page.getByTestId('dict-search-input').fill('e2e-docker')
-    await expect(page.getByTestId('dict-items-table').getByRole('row')
-      .filter({ hasText: 'E2E Docker' })).toBeVisible()
     await page.getByTestId('dict-search-input').fill('')
 
     // 5. выгрузка одного справочника — источник диффа

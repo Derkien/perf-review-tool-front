@@ -43,7 +43,7 @@ test.describe.serial('Реестр типов: e2e', () => {
       await expect(page.locator('.versions-table').locator('tbody').getByRole('row')).toHaveCount(1)
       test.skip(true, 'product-схема уже активна с прошлого прогона — версия не выросла')
     }
-    await expect(dialog).toContainText('новая') // пара (product, android) без активной версии
+    await expect(dialog).toContainText('новая') // пара (product, backend) без активной версии
     await page.screenshot({ path: 'e2e/screenshots/type-registry/02-import-preview.png' })
     await dialog.getByRole('button', { name: 'Применить (создать черновики)' }).click()
     await expect(page.getByText('созданы черновики')).toBeVisible()
@@ -64,7 +64,7 @@ test.describe.serial('Реестр типов: e2e', () => {
     // вне окна чистки сессий assignments-e2e) — даёт истории v1 строку «руководитель»
     // для селектора версий второго теста
     const fm = await page.request.post('/api/v1/auth/dev-token', {
-      data: { email: 'savanok_s_s@itgri.ru', role: 'functional-manager' } })
+      data: { email: 'samorodskiy_i_v@itgri.ru', role: 'functional-manager' } })
     const fmToken = ((await fm.json()) as { access_token: string }).access_token
     const fmHeaders = { Authorization: `Bearer ${fmToken}` }
     const dzuba = await employeeId(page, USERS.employee.email)
@@ -94,7 +94,7 @@ test.describe.serial('Реестр типов: e2e', () => {
     await expect(page.getByTestId('schema-version-badge')).toHaveText('схема v1')
     await page.screenshot({ path: 'e2e/screenshots/type-registry/04-employee-product-tab.png', fullPage: true })
 
-    // селектор версий: на hard у Дзюбы несколько версий (боевая v1 + песочницы e2e)
+    // селектор версий: у Бэкендова hard/backend несколько версий (сид v1+e2e-черновик)
     await tabs.getByRole('button', { name: 'Харды' }).click()
     const versionSelect = page.getByTestId('version-select')
     await expect(versionSelect).toBeVisible()

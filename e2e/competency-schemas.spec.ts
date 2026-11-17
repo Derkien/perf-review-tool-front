@@ -30,7 +30,7 @@ test.describe.serial('Матрицы компетенций: e2e', () => {
     await page.getByRole('button', { name: 'Загрузить схему' }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toContainText('Предпросмотр загрузки схемы')
-    await expect(dialog).toContainText('android')
+    await expect(dialog).toContainText('backend')
     // повторный прогон: файл совпадает с активной версией — override администратора
     if (await dialog.getByText('без изменений — версия не поднимется').count() > 0) {
       await dialog.locator('#force-upload').check()
@@ -44,8 +44,8 @@ test.describe.serial('Матрицы компетенций: e2e', () => {
     await dialog.getByRole('button', { name: 'Применить (создать черновики)' }).click()
     await expect(page.getByText('созданы черновики')).toBeVisible() // toast
 
-    // 3. бейдж черновика у роли android
-    const groupRow = page.getByRole('row').filter({ hasText: 'android' }).first()
+    // 3. бейдж черновика у роли backend
+    const groupRow = page.getByRole('row').filter({ hasText: 'backend' }).first()
     await expect(groupRow.getByTestId('draft-badge')).toBeVisible()
 
     // 4. демо-предпросмотр черновика (раскрытие группы → клик по черновику).
@@ -74,7 +74,7 @@ test.describe.serial('Матрицы компетенций: e2e', () => {
     const exportDownload = page.waitForEvent('download')
     await groupRow.getByRole('button', { name: 'Скачать текущую схему' }).click()
     const exported = await exportDownload
-    expect(exported.suggestedFilename()).toMatch(/^schema-hard-android-v\d+\.xlsx$/)
+    expect(exported.suggestedFilename()).toMatch(/^schema-hard-backend-v\d+\.xlsx$/)
   })
 
   test('карточка сотрудника: разметка по новой версии, история, сравнение', async ({ page }) => {

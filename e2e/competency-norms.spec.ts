@@ -21,7 +21,7 @@ test.describe.serial('Нормы грейда: e2e', () => {
     await page.getByRole('button', { name: 'Загрузить схему' }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toContainText('Предпросмотр загрузки схемы')
-    await expect(dialog).toContainText('android')
+    await expect(dialog).toContainText('backend')
     // повторный прогон: контент совпадает с активной версией — override администратора
     if (await dialog.getByText('без изменений — версия не поднимется').count() > 0) {
       await dialog.locator('#force-upload').check()
@@ -32,7 +32,7 @@ test.describe.serial('Нормы грейда: e2e', () => {
     await dialog.getByRole('button', { name: 'Применить (создать черновики)' }).click()
     await expect(page.getByText('созданы черновики')).toBeVisible()
 
-    const groupRow = page.getByRole('row').filter({ hasText: 'android' }).first()
+    const groupRow = page.getByRole('row').filter({ hasText: 'backend' }).first()
     await groupRow.locator('.p-datatable-row-toggle-button').click()
     const draftRow = page.locator('.versions-table')
       .getByRole('row').filter({ hasText: 'черновик' }).first()

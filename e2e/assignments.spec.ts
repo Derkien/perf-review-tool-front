@@ -164,7 +164,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
   test('10.4: руководитель — групповая карточка с прогрессом; полная разметка закрывает', async ({ page, request }) => {
     await resetTodaySessions(request, KOSAREV)
     await launchReassessment(request, [KOSAREV])
-    const manager = { email: 'shvarkunov_m_s@itgri.ru', role: 'line-manager' }
+    const manager = { email: 'gritsenko_o_v@itgri.ru', role: 'line-manager' }
     await login(page, manager)
     await page.goto('/#/assessments')
     // одна карточка на вид с прогрессбаром «заполнено X из Y сотрудников»
@@ -187,7 +187,7 @@ test.describe.serial('Задания: хаб «Оценки» и жизненн�
     // самооценка Косарева не свежая → запуск создаёт self-задание; заполняем 15/20-стиль (без 2 пунктов)
     await resetTodaySessions(request, KOSAREV)
     await launchReassessment(request, [KOSAREV])
-    const manager = { email: 'shvarkunov_m_s@itgri.ru', role: 'line-manager' }
+    const manager = { email: 'gritsenko_o_v@itgri.ru', role: 'line-manager' }
     // manager-разметка полная — единственное незаполненное в запуске: self с 2 пробелами
     await fillMarks(request, manager, KOSAREV, 'manager', 0)
     await fillMarks(request, { email: 'kosarev_i_n@itgri.ru', role: 'employee' }, KOSAREV, 'self', 2)
