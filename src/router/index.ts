@@ -72,10 +72,17 @@ router.afterEach((to) => {
 
 router.beforeEach(async (to) => {
   const auth = useAuth()
-  if (to.path !== '/login' && !auth.isAuthed) return '/login'
+  // прямая ссылка без авторизации: исходный путь возвращается после логина
+  if (to.path !== '/login' && !auth.isAuthed) {
+    return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  if (to.path === '/login' && auth.isAuthed) {
+    const redirect = typeof to.query.redirect === 'string' && to.query.redirect.startsWith('/')
+      ? to.query.redirect : null
+    return redirect || homeForAuth(auth.can)
+  }
   // старая сессия без пермишенов — обновляем me (там теперь список прав)
   if (auth.isAuthed && !Array.isArray(auth.me?.permissions)) await auth.ensurePermissions()
-  if (to.path === '/login' && auth.isAuthed) return homeForAuth(auth.can)
   // раздел закрыт без пермишена → домашняя страница (никаких красных экранов);
   // perm может быть массивом — доступ при любом из списка (вкладки /admin)
   const perm = to.meta?.perm as string | string[] | undefined

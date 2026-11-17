@@ -89,6 +89,44 @@ describe('router guards: массив пермишенов /admin (competency-ma
   })
 })
 
+describe('router: прямая ссылка без авторизации — возврат после логина', () => {
+  it('guard сохраняет исходный путь в ?redirect; после авторизации ведёт на него', async () => {
+    setActivePinia(createPinia())
+    const auth = useAuth()
+    auth.me = null
+    await router.push('/admin/schemas-coverage')
+    await router.isReady()
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.redirect).toBe('/admin/schemas-coverage')
+    // «логин» прошёл: me с правами появился; LoginView делает replace(redirect) —
+    // повторная навигация на исходный путь теперь проходит guard
+    auth.me = {
+      id: 7, email: 'r@x.ru', full_name: 'R', role: 'admin', roles: ['admin'],
+      permissions: ['ROLE_U_COMPETENCY_MATRIX', 'ROLE_R_DASHBOARD'], has_subordinates: false,
+    }
+    await router.push('/admin/schemas-coverage')  // replace(redirect) из LoginView
+    await router.isReady()
+    expect(router.currentRoute.value.path).toBe('/admin/schemas-coverage')
+
+    // а авторизованный заход на /login с redirect уводит сразу на исходный путь
+    await router.push('/login?redirect=/admin/schemas')
+    await router.isReady()
+    expect(router.currentRoute.value.path).toBe('/admin/schemas')
+  })
+
+  it('redirect вне приложения (внешний URL) игнорируется — домой', async () => {
+    setActivePinia(createPinia())
+    const auth = useAuth()
+    auth.me = {
+      id: 8, email: 's@x.ru', full_name: 'S', role: 'employee', roles: ['employee'],
+      permissions: ['ROLE_R_DASHBOARD'], has_subordinates: false,
+    }
+    await router.push('/login?redirect=https://evil.example')
+    await router.isReady()
+    expect(router.currentRoute.value.path).toBe('/dashboard')
+  })
+})
+
 describe('router: 401 от API — редирект на /login', () => {
   it('хендлер протухания зарегистрирован и ведёт на /login (регрессия: не был зарегистрирован — только тосты)', async () => {
     expect(unauthorizedHandler.getMockImplementation()).toBeTypeOf('function')

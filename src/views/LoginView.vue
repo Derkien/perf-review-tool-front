@@ -31,6 +31,7 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
+import { useRoute } from 'vue-router'
 import { homeForAuth } from '../router'
 import { useAuth } from '../stores/auth'
 import { errMsg } from '../api/errors'
@@ -38,6 +39,7 @@ import { useToast } from 'primevue/usetoast'
 
 const auth = useAuth()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
 const mode = ref('dev')
 const email = ref('admin@itgri.ru')
@@ -66,7 +68,10 @@ async function login() {
       window.location.href = '/api/v1/auth/login-redirect'
       return
     }
-    router.replace(homeForAuth(auth.can))
+    // возврат на прямую ссылку, по которой пришли до авторизации
+    const redirect = typeof route.query.redirect === 'string'
+      && String(route.query.redirect).startsWith('/') ? String(route.query.redirect) : null
+    router.replace(redirect || homeForAuth(auth.can))
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Не удалось войти', detail: errMsg(e), life: 5000 })
   } finally {
