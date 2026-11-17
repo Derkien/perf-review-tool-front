@@ -26,7 +26,8 @@ vi.mock('../src/api/endpoints', () => ({
   },
   reviewsApi: { workflowSchema: vi.fn(async () => ({ places: [], transitions: [] })) },
   notificationsApi: { unreadCount: vi.fn(async () => ({ count: 0 })) },
-  competenciesApi: { schemas: vi.fn(async () => ({ groups: [], roles_without_schemas: [] })) },
+  competenciesApi: {
+    schemasCoverage: vi.fn(async () => []), schemas: vi.fn(async () => ({ groups: [], roles_without_schemas: [] })) },
   competencyTypesApi: { all: vi.fn(async () => []) },
   dictionariesApi: {
     list: vi.fn(async () => []),

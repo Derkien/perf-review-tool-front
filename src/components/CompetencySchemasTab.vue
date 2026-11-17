@@ -150,18 +150,6 @@
       </Column>
     </DataTable>
 
-    <h3 style="margin:18px 0 6px">Роли без схем</h3>
-    <p class="muted small" style="margin:0 0 6px">
-      Должности и функциональные группы из кадровых данных, для которых нет ни одной версии
-      схемы — заполнение компетенций по ним недоступно.
-    </p>
-    <div v-if="withoutSchemas.length" class="without-list">
-      <Tag v-for="r in withoutSchemas" :key="r.type_code + r.specialty"
-           :value="`${r.type_code}: ${r.specialty}`"
-           :severity="r.type_code === 'hard' ? 'warn' : 'info'" />
-    </div>
-    <p v-else class="muted small">Все роли из кадровых данных покрыты схемами.</p>
-
     <!-- модалка предпросмотра импорта: дифф по парам из API + явный override -->
     <Dialog v-model:visible="previewVisible" modal header="Предпросмотр загрузки схемы"
             style="width: 720px">
@@ -303,7 +291,6 @@ type MatrixItemRow = Awaited<ReturnType<typeof competenciesApi.matrixItems>>[num
 type GroupRow = SchemaGroup & { key: string }
 const groups = computed<GroupRow[]>(() =>
   (overview.value?.groups || []).map((g) => ({ ...g, key: `${g.type_code}|${g.specialty}` })))
-const withoutSchemas = computed(() => overview.value?.roles_without_schemas || [])
 const selected = computed(() => {
   for (const g of groups.value) {
     const v = g.versions.find((x) => x.id === selectedId.value)

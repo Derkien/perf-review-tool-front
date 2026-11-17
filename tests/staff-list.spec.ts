@@ -7,6 +7,7 @@ import { nextTick } from 'vue'
 
 // мок API-слоя и роутера/тостов для интеграционного теста страницы
 vi.mock('../src/api/endpoints', () => ({
+  competenciesApi: { schemasCoverage: vi.fn(async () => []) },
   reviewsApi: {
     cycles: vi.fn(async () => [
       { id: 7, name: 'Тест-цикл', stage: 'self-review' },

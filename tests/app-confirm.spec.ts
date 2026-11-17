@@ -4,7 +4,8 @@ import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import { nextTick } from 'vue'
 
-vi.mock('../src/api/endpoints', () => ({ reviewsApi: { cycles: vi.fn(async () => []) } }))
+vi.mock('../src/api/endpoints', () => ({
+  competenciesApi: { schemasCoverage: vi.fn(async () => []) }, reviewsApi: { cycles: vi.fn(async () => []) } }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
 

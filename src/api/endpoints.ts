@@ -73,9 +73,15 @@ export type SchemaGroup = {
   type_code: string; specialty: string
   versions: SchemaVersion[]; has_draft: boolean
 }
+export type SchemasCoverageRow = {
+  type_code: string; specialty: string
+  status: 'active' | 'draft' | 'missing' | 'excluded'
+  active_version: number | null; versions_count: number; items_count: number
+  updated_at: string | null; excluded: boolean
+}
+
 export type SchemasOverview = {
   groups: SchemaGroup[]
-  roles_without_schemas: { type_code: string; specialty: string }[]
 }
 /** дифф-предпросмотр пары (тип, роль): структурные детали против активной версии */
 export type SchemaDiffPair = {
@@ -529,6 +535,33 @@ export const competenciesApi = {
   async schemaTemplate(): Promise<Blob> {
     const { data, error } = await client.GET('/competencies/schemas/template', { parseAs: 'blob' })
     if (error) raise(error, '/competencies/schemas/template')
+    return data as Blob
+  },
+  /** Панель «Покрытие схем»: строка на каждую пару тип × роль кадровых данных. */
+  async schemasCoverage(): Promise<SchemasCoverageRow[]> {
+    const { data, error } = await client.GET('/competencies/schemas/coverage')
+    if (error) raise(error, '/competencies/schemas/coverage')
+    return data as never
+  },
+  /** Исключить пары тип:role из квалификации (задания разметки их не требуют). */
+  async coverageExclude(pairs: string[]): Promise<{ excluded: string[] }> {
+    const { data, error } = await client.POST('/competencies/schemas/coverage/exclude', { body: { pairs } })
+    if (error) raise(error, '/competencies/schemas/coverage/exclude')
+    return data as never
+  },
+  /** Вернуть пары в квалификацию. */
+  async coverageInclude(pairs: string[]): Promise<{ excluded: string[] }> {
+    const { data, error } = await client.POST('/competencies/schemas/coverage/include', { body: { pairs } })
+    if (error) raise(error, '/competencies/schemas/coverage/include')
+    return data as never
+  },
+  /** Масс-файл разметки по выбранным парам: скелеты без схем + существующие версии. */
+  async coverageExport(pairs: string[]): Promise<Blob> {
+    const { data, error } = await client.GET('/competencies/schemas/coverage/export', {
+      params: { query: { pairs: pairs.join(',') } },
+      parseAs: 'blob',
+    })
+    if (error) raise(error, '/competencies/schemas/coverage/export')
     return data as Blob
   },
   /** Выгрузка версии схемы в формате импорта (приёмка 12.11): пункты + нормы +

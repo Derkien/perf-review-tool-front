@@ -1002,6 +1002,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/competencies/schemas/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Schemas Coverage
+         * @description Таблица покрытия: строка на каждую пару активный тип × роль кадровых данных
+         *     со статусом (active|draft|missing|excluded) и счётчиками.
+         */
+        get: operations["schemas_coverage_api_v1_competencies_schemas_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/coverage/exclude": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Coverage Exclude
+         * @description Исключить пары из квалификации (задания разметки их не требуют); модалка
+         *     подтверждения — на вызывающей стороне.
+         */
+        post: operations["coverage_exclude_api_v1_competencies_schemas_coverage_exclude_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/coverage/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Coverage Export
+         * @description Масс-файл разметки по выбранным парам (format импорта): пары с активной
+         *     версией — с пунктами и нормами, без схемы — скелет-заготовка с ролью и типом.
+         *     Один файл на все пары; дозаполненный грузится штатным импортом.
+         */
+        get: operations["coverage_export_api_v1_competencies_schemas_coverage_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/schemas/coverage/include": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Coverage Include
+         * @description Вернуть пары в квалификацию.
+         */
+        post: operations["coverage_include_api_v1_competencies_schemas_coverage_include_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/competencies/schemas/template": {
         parameters: {
             query?: never;
@@ -2330,6 +2414,11 @@ export interface components {
             action: string;
             /** Ids */
             ids: number[];
+        };
+        /** CoveragePairs */
+        CoveragePairs: {
+            /** Pairs */
+            pairs: string[];
         };
         /** CycleIn */
         CycleIn: {
@@ -4762,6 +4851,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    schemas_coverage_api_v1_competencies_schemas_coverage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    coverage_exclude_api_v1_competencies_schemas_coverage_exclude_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoveragePairs"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    coverage_export_api_v1_competencies_schemas_coverage_export_get: {
+        parameters: {
+            query: {
+                pairs: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    coverage_include_api_v1_competencies_schemas_coverage_include_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoveragePairs"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

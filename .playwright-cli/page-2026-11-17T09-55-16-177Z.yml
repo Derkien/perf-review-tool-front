@@ -1,0 +1,127 @@
+- generic [ref=e23]:
+  - complementary [ref=e24]:
+    - generic [ref=e25]: PR Tool
+    - list [ref=e26]:
+      - listitem [ref=e27]:
+        - link " Дашборд цикла" [ref=e28] [cursor=pointer]:
+          - /url: "#/dashboard"
+          - generic [ref=e29]: 
+          - text: Дашборд цикла
+      - listitem [ref=e30]:
+        - link " Сотрудники" [ref=e31] [cursor=pointer]:
+          - /url: "#/staff"
+          - generic [ref=e32]: 
+          - text: Сотрудники
+      - listitem [ref=e33]:
+        - link " Моё ревью" [ref=e34] [cursor=pointer]:
+          - /url: "#/my-review"
+          - generic [ref=e35]: 
+          - text: Моё ревью
+      - listitem [ref=e36]:
+        - link " Оценки" [ref=e37] [cursor=pointer]:
+          - /url: "#/assessments"
+          - generic [ref=e38]: 
+          - text: Оценки
+      - listitem [ref=e39]:
+        - link " Калибровки" [ref=e40] [cursor=pointer]:
+          - /url: "#/calibration"
+          - generic [ref=e41]: 
+          - text: Калибровки
+      - listitem [ref=e42]:
+        - link " Решения и бюджет" [ref=e43] [cursor=pointer]:
+          - /url: "#/decisions"
+          - generic [ref=e44]: 
+          - text: Решения и бюджет
+      - listitem [ref=e45]:
+        - link " Номинации" [ref=e46] [cursor=pointer]:
+          - /url: "#/nominations"
+          - generic [ref=e47]: 
+          - text: Номинации
+      - listitem [ref=e48]:
+        - link " Импорт" [ref=e49] [cursor=pointer]:
+          - /url: "#/imports"
+          - generic [ref=e50]: 
+          - text: Импорт
+      - listitem [ref=e51]:
+        - link " Админ" [ref=e52] [cursor=pointer]:
+          - /url: "#/admin"
+          - generic [ref=e53]: 
+          - text: Админ
+    - generic [ref=e54]: admin@itgri.ru · админ
+  - main [ref=e55]:
+    - generic [ref=e57]:
+      - generic [ref=e58]: 
+      - generic [ref=e60] [cursor=pointer]: 
+      - generic [ref=e61] [cursor=pointer]: AI
+      - button "Выйти" [ref=e62] [cursor=pointer]
+    - generic [ref=e64]:
+      - generic [ref=e65]:
+        - heading "Дашборд цикла" [level=1] [ref=e66]
+        - generic [ref=e67]:
+          - combobox "Autumn 2026 · подготовка" [ref=e69] [cursor=pointer]
+          - button "Новый цикл" [ref=e73] [cursor=pointer]
+      - generic [ref=e75]:
+        - generic [ref=e77]:
+          - generic [ref=e78]: Autumn 2026
+          - generic [ref=e80]:
+            - generic [ref=e81]: подготовка
+            - generic [ref=e83]:
+              - button "Начать сбор ачивок" [ref=e84] [cursor=pointer]
+              - button "Отменить цикл" [ref=e86] [cursor=pointer]
+        - generic [ref=e89]:
+          - generic [ref=e90]: Селф-ревью
+          - generic [ref=e92]: 0 / 5
+        - generic [ref=e94]:
+          - generic [ref=e95]: Ответы пиров
+          - generic [ref=e97]: 0 / 0
+        - generic [ref=e99]:
+          - generic [ref=e100]: Предоценки руклей
+          - generic [ref=e102]: 0 / 5
+        - generic [ref=e104]:
+          - generic [ref=e105]: Доступно действий
+          - generic [ref=e107]:
+            - text: "0"
+            - paragraph [ref=e108]: Всё под контролем — блокировок нет.
+      - generic [ref=e109]:
+        - generic [ref=e111]:
+          - generic [ref=e112]: Распределение оценок
+          - generic [ref=e114]:
+            - group [ref=e115]:
+              - button "Пиры (по ачивкам)" [pressed] [ref=e116] [cursor=pointer]
+              - button "Лин. рукль" [ref=e119] [cursor=pointer]
+              - button "Функц. рукль" [ref=e122] [cursor=pointer]
+              - button "После калибровки" [ref=e125] [cursor=pointer]
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - generic [ref=e130]: A
+                - generic [ref=e132]: "0"
+              - generic [ref=e133]:
+                - generic [ref=e134]: B
+                - generic [ref=e136]: "0"
+              - generic [ref=e137]:
+                - generic [ref=e138]: C
+                - generic [ref=e140]: "0"
+              - generic [ref=e141]:
+                - generic [ref=e142]: D
+                - generic [ref=e144]: "0"
+              - generic [ref=e145]:
+                - generic [ref=e146]: E
+                - generic [ref=e148]: "0"
+            - paragraph [ref=e149]: Усреднение пайр-оценок по достижениям (как в мастер-файле)
+        - generic [ref=e151]:
+          - generic [ref=e152]: Прогресс по отделам
+          - table [ref=e157]:
+            - rowgroup [ref=e158]:
+              - row [ref=e159]:
+                - columnheader "Отдел" [ref=e160]
+                - columnheader "Чел." [ref=e163]
+                - columnheader "Селф" [ref=e166]
+                - columnheader "Ответы" [ref=e169]
+                - columnheader "Задания" [ref=e172]
+            - rowgroup [ref=e175]:
+              - row [ref=e176]:
+                - cell "IT" [ref=e177]
+                - cell "5" [ref=e178]
+                - cell "0" [ref=e179]
+                - cell "0" [ref=e180]
+                - cell "0" [ref=e181]

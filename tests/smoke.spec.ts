@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/api/endpoints', () => ({
+  competenciesApi: { schemasCoverage: vi.fn(async () => []) },
   authApi: {
     config: vi.fn(async () => ({
       auth_mode: 'dev', keycloak_server_url: '', keycloak_realm: '', keycloak_client_id: '',

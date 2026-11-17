@@ -26,6 +26,7 @@ vi.mock('echarts', () => ({
 
 vi.mock('../src/api/endpoints', () => ({
   competenciesApi: {
+    schemasCoverage: vi.fn(async () => []),
     types: vi.fn(async () => [
       { code: 'hard', title: 'Харды', order_no: 1 },
       { code: 'soft', title: 'Софты', order_no: 2 },

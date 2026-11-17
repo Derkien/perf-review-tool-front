@@ -95,7 +95,8 @@ vi.mock('../src/api/endpoints', () => ({
   },
   notificationsApi: { unreadCount: vi.fn(async () => ({ count: 0, open_assignments: 0 })) },
   reviewsApi: { workflowSchema: vi.fn(async () => ({ places: [], transitions: [] })) },
-  competenciesApi: {},
+  competenciesApi: {
+    schemasCoverage: vi.fn(async () => []),},
   trackAction: vi.fn(),
   errMsg: (e: unknown) => String((e as Error)?.message || e),
 }))

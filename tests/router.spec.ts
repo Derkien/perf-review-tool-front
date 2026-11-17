@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/api/endpoints', () => ({
+  competenciesApi: { schemasCoverage: vi.fn(async () => []) },
   postActivity: vi.fn(async () => undefined),
 }))
 

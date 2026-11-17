@@ -6,6 +6,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 // мок API-слоя: справочники (грейды + категории/пункты), реестр типов, админка
 vi.mock('../src/api/endpoints', () => ({
+  competenciesApi: { schemasCoverage: vi.fn(async () => []) },
   dictionariesApi: {
     list: vi.fn(async () => [
       { slug: 'grade', title: 'Грейды', description: 'порядок = вес', items_count: 10,

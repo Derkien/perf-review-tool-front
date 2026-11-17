@@ -8,6 +8,7 @@ import { defineComponent, h, nextTick } from 'vue'
 // подтверждения — через РЕАЛЬНУЮ модалку (useAppConfirm не мокаем; память: тесты
 // модалки отдельно от моков композабла). Мокаем только API-слой.
 vi.mock('../src/api/endpoints', () => ({
+  competenciesApi: { schemasCoverage: vi.fn(async () => []) },
   reassessmentApi: {
     preview: vi.fn(async () => ({
       selected: 3, freshness_days: 30,

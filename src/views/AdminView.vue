@@ -9,6 +9,7 @@
         <Tab value="settings">Настройки цикла</Tab>
         <Tab v-if="auth.can('ROLE_U_COMPETENCY_MATRIX')" value="schemas">Матрицы компетенций</Tab>
         <Tab v-if="auth.can('ROLE_U_COMPETENCY_MATRIX')" value="dictionaries">Справочники</Tab>
+        <Tab v-if="auth.can('ROLE_U_COMPETENCY_MATRIX')" value="schemas-coverage">Покрытие схем</Tab>
         <Tab v-if="auth.can('ROLE_U_COMPETENCY_REASSESSMENT')" value="reassessment">Переоценка компетенций</Tab>
         <Tab v-if="auth.can('ROLE_U_ASSIGNMENTS')" value="assignments">Задания</Tab>
         <Tab value="rules">Правила повышений</Tab>
@@ -156,6 +157,9 @@
         <TabPanel value="dictionaries">
           <DictionariesTab />
         </TabPanel>
+      <TabPanel value="schemas-coverage">
+        <SchemasCoverageTab />
+      </TabPanel>
         <TabPanel value="reassessment">
           <ReassessmentTab />
         </TabPanel>
@@ -275,6 +279,7 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import WorkflowSchema from '../components/WorkflowSchema.vue'
 import CompetencySchemasTab from '../components/CompetencySchemasTab.vue'
 import DictionariesTab from '../components/DictionariesTab.vue'
+import SchemasCoverageTab from '../components/SchemasCoverageTab.vue'
 import ReassessmentTab from '../components/ReassessmentTab.vue'
 import AdminAssignmentsTab from '../components/AdminAssignmentsTab.vue'
 import OutboxLogTab from '../components/OutboxLogTab.vue'
@@ -291,7 +296,9 @@ const auth = useAuth()
 // --- URL-роутинг подразделов админки: раздел = параметр пути, рефреш сохраняет ---
 const SECTION_PERMS: Record<string, string | undefined> = {
   users: undefined, settings: undefined, schemas: 'ROLE_U_COMPETENCY_MATRIX',
-  dictionaries: 'ROLE_U_COMPETENCY_MATRIX', reassessment: 'ROLE_U_COMPETENCY_REASSESSMENT',
+  dictionaries: 'ROLE_U_COMPETENCY_MATRIX',
+  'schemas-coverage': 'ROLE_U_COMPETENCY_MATRIX',
+  reassessment: 'ROLE_U_COMPETENCY_REASSESSMENT',
   assignments: 'ROLE_U_ASSIGNMENTS', rules: undefined, activity: undefined,
   outbox: 'ROLE_R_DELIVERY_LOG', rights: undefined,
 }

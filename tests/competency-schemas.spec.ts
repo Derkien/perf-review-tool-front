@@ -12,6 +12,7 @@ vi.mock('../src/api/endpoints', () => ({
       { code: 'hard', title: 'Харды', order_no: 1 },
       { code: 'soft', title: 'Софты', order_no: 2 },
     ]),
+    schemasCoverage: vi.fn(async () => []),
     schemas: vi.fn(async () => ({
       groups: [{
         type_code: 'hard', specialty: 'backend', has_draft: true,
@@ -21,7 +22,6 @@ vi.mock('../src/api/endpoints', () => ({
           { id: 13, version: 3, status: 'draft', items_count: 3, created_at: '2026-11-05T10:00:00' },
         ],
       }],
-      roles_without_schemas: [{ type_code: 'soft', specialty: 'Разработчик бэкенд' }],
     })),
     matrixItems: vi.fn(async (id: number) => [
       { id: id * 100 + 1, matrix_id: id, name: 'Python', category: 'Языки', description: '',
@@ -160,7 +160,7 @@ describe('AdminView: вкладка «Матрицы компетенций» (5
     expect(tabs).not.toContain('Матрицы компетенций')
   })
 
-  it('видна с правом; бейдж черновика, статусы версий и «Роли без схем» — из ответа API', async () => {
+  it('видна с правом; бейдж черновика и статусы версий — из ответа API', async () => {
     setAuth(['ROLE_U_SETTINGS', 'ROLE_U_COMPETENCY_MATRIX'])
     const w = mount(AdminView, { global: { stubs: { teleport: true, RadarChart: true } } })
     await settle()
@@ -169,8 +169,6 @@ describe('AdminView: вкладка «Матрицы компетенций» (5
     const tab = w.findComponent(CompetencySchemasTab)
     expect(tab.exists()).toBe(true)
     expect(tab.text()).toContain('есть черновик')          // бейдж группы
-    expect(tab.text()).toContain('Роли без схем')
-    expect(tab.text()).toContain('Разработчик бэкенд')      // сводка из кадровых данных
   })
 })
 

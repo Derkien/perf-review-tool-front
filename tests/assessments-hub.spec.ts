@@ -76,6 +76,7 @@ vi.mock('../src/api/endpoints', () => ({
     unreadCount: vi.fn(async () => ({ count: 1, open_assignments: 3 })),
   },
   competenciesApi: {
+    schemasCoverage: vi.fn(async () => []),
     types: vi.fn(async () => [
       { code: 'hard', title: 'Харды', order_no: 1 },
       { code: 'soft', title: 'Софты', order_no: 2 },
