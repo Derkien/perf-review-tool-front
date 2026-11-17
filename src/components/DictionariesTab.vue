@@ -19,6 +19,8 @@
           <code>{{ selected.slug }}</code><span v-if="selected.description"> — {{ selected.description }}</span>
         </p>
       </div>
+      <!-- порядок един в обоих режимах: [выгрузка] [файл] [импорт] [создание] —
+           создающее действие всегда крайнее правое (консистентность, приёмка 17.11) -->
       <div class="toolbar-actions">
         <template v-if="!selected">
           <Button label="Выгрузить справочники" icon="pi pi-download" size="small" severity="secondary"
@@ -27,8 +29,6 @@
         <template v-else>
           <Button label="Выгрузить справочник" icon="pi pi-download" size="small" severity="secondary"
                   :loading="busy" data-testid="dict-export-one-btn" @click="downloadExport(selected ? selected.slug : undefined)" />
-          <Button label="Добавить значение" icon="pi pi-plus" size="small" data-testid="dict-item-create-btn"
-                  @click="openCreate" />
         </template>
         <FileUpload mode="basic" custom-upload choose-label="Выбрать файл справочников"
                     :accept="'.xlsx'" @select="onFileSelected" />
@@ -36,6 +36,8 @@
                 :disabled="!file" :loading="busy" data-testid="dict-import-btn" @click="previewImport" />
         <Button v-if="!selected" label="Новый справочник" icon="pi pi-plus" size="small"
                 severity="secondary" data-testid="dict-create-btn" @click="openDictCreate" />
+        <Button v-else label="Добавить значение" icon="pi pi-plus" size="small"
+                data-testid="dict-item-create-btn" @click="openCreate" />
       </div>
     </div>
 
