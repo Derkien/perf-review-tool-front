@@ -48,7 +48,9 @@
       </Column>
       <Column header="Действия">
         <template #body="{ data: g }">
-          <Button v-if="activeVersion(g)" label="Скачать текущую схему" text size="small"
+          <Button v-if="activeVersion(g)" icon="pi pi-file-export" text rounded size="small"
+                  aria-label="Скачать текущую схему"
+                  v-tooltip.top="'Выгрузить активную версию в формате импорта — правь и загружай обратно'"
                   :data-testid="`schema-export-${g.type_code}-${g.specialty}`"
                   @click="downloadActiveSchema(g)" />
         </template>

@@ -79,10 +79,14 @@
     <span v-if="applicable.length !== selectedKeys.size" class="mass-note">
       применимы: {{ applicable.length }}
     </span>
-    <Button label="Напомнить выбранным" size="small" severity="info" text :disabled="!applicable.length"
-            :loading="busy" data-testid="bulk-remind" @click="bulk('remind')" />
-    <Button label="Отменить выбранные" size="small" severity="danger" text :disabled="!applicable.length"
-            :loading="busy" data-testid="bulk-cancel" @click="bulk('cancel')" />
+    <Button icon="pi pi-bell" label="Напомнить" size="small" severity="info" text
+            :disabled="!applicable.length" :loading="busy"
+            v-tooltip.top="'Отправить напоминание выбранным'" data-testid="bulk-remind"
+            @click="bulk('remind')" />
+    <Button icon="pi pi-ban" label="Отменить" size="small" severity="danger" text
+            :disabled="!applicable.length" :loading="busy"
+            v-tooltip.top="'Отменить выбранные открытые задания'" data-testid="bulk-cancel"
+            @click="bulk('cancel')" />
   </MassActionBar>
 </template>
 

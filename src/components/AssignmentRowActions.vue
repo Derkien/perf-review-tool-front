@@ -2,13 +2,17 @@
   <!-- контекстное меню: кнопки только применимые к состоянию задания (правило fixes9) -->
   <span class="row-actions" v-tooltip.top="!isOpen ? 'задание закрыто/отменено — действий нет' : undefined">
     <template v-if="isOpen">
-      <Button label="Отменить" size="small" severity="danger" text
+      <Button icon="pi pi-ban" text rounded size="small" severity="danger" aria-label="Отменить"
+      v-tooltip.top="'Отменить задание'"
               data-testid="row-cancel" @click="$emit('cancel')" />
-      <Button label="Напомнить" size="small" severity="info" text
+      <Button icon="pi pi-bell" text rounded size="small" severity="info" aria-label="Напомнить"
+      v-tooltip.top="'Отправить напоминание'"
               data-testid="row-remind" @click="$emit('remind')" />
       <!-- принудительное закрытие — только компетенционные виды, по каждой неполной схеме -->
       <Button v-for="m in incompleteMatrices" :key="m.matrix_id"
-              :label="`Принудительно (${m.type_code})`" size="small" severity="warn" text
+              icon="pi pi-lock" text rounded size="small" severity="warn"
+              :aria-label="`Принудительно закрыть ${m.type_code}`"
+              v-tooltip.top="`Закрыть принудительно: ${m.type_code} — непокрытое по норме грейда`"
               data-testid="row-force-close" @click="$emit('force-close', m)" />
     </template>
     <span v-else class="muted small">—</span>

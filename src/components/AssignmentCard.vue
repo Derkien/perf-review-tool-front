@@ -9,7 +9,8 @@
         </div>
       </div>
       <Tag v-if="assignment.overdue" value="просрочено" severity="danger" />
-      <Button label="Заполнить" size="small" text @click="$emit('open')" />
+      <Button icon="pi pi-pencil" text rounded size="small" aria-label="Заполнить"
+      v-tooltip.top="'Открыть задание для заполнения'" @click="$emit('open')" />
     </div>
   </div>
 </template>

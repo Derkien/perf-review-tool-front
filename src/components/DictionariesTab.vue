@@ -71,10 +71,12 @@
         </Column>
         <Column header="Действия">
           <template #body="{ data: d }">
-            <Button label="Значения" text size="small" :data-testid="`dict-open-${d.slug}`"
-                    @click.stop="openDict({ data: d })" />
-            <Button label="Править" text size="small" :data-testid="`dict-edit-${d.slug}`"
-                    @click.stop="openDictEdit(d)" />
+            <Button icon="pi pi-list" text rounded size="small" aria-label="Значения"
+                    v-tooltip.top="'Открыть значения справочника'"
+                    :data-testid="`dict-open-${d.slug}`" @click.stop="openDict({ data: d })" />
+            <Button icon="pi pi-pencil" text rounded size="small" aria-label="Править"
+                    v-tooltip.top="'Править справочник'"
+                    :data-testid="`dict-edit-${d.slug}`" @click.stop="openDictEdit(d)" />
           </template>
         </Column>
       </AppTable>
@@ -93,7 +95,9 @@
           <Column field="dictTitle" header="Справочник" />
           <Column header="Действия">
             <template #body="{ data: it }">
-              <Button label="К справочнику" text size="small"
+              <Button icon="pi pi-arrow-up-left" text rounded size="small"
+                      aria-label="К справочнику"
+                      v-tooltip.top="`Открыть справочник «${it.dictSlug}»`"
                       :data-testid="`dict-goto-${it.slug}`" @click.stop="gotoDict(it.dictSlug)" />
             </template>
           </Column>
