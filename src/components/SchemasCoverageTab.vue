@@ -14,23 +14,6 @@
 
     <!-- единый фреймворк таблиц: фильтры очищаются точкой в селекте (= «все»)
          и кнопкой полного сброса; число активных фильтров видно -->
-    <div class="filters">
-      <Select v-model="statusFilter" :options="statusOptions" option-label="label"
-              option-value="value" placeholder="все статусы" show-clear size="small"
-              data-testid="coverage-status-filter" />
-      <MultiSelect v-model="typeFilter" :options="typeOptions" placeholder="все типы"
-                   show-clear :max-selected-labels="2" size="small"
-                   data-testid="coverage-type-filter" class="coverage-type-ms" />
-      <IconField icon-position="left">
-        <InputIcon class="pi pi-search" />
-        <InputText v-model="search" size="small" placeholder="поиск по роли"
-                   data-testid="coverage-search" />
-      </IconField>
-      <Button v-if="hasFilters" label="Сбросить фильтры" icon="pi pi-filter-slash"
-              size="small" text severity="secondary" data-testid="coverage-reset-filters"
-              @click="statusFilter = null; typeFilter = []; search = ''" />
-      <span class="muted small">строк: {{ filtered.length }} из {{ withKeys.length }}</span>
-    </div>
 
     <!-- единый фреймворк таблиц: масс-действия — MassActionBar (попап внизу) -->
     <MassActionBar :count="selected.size" @clear="clearSelection">
@@ -45,24 +28,28 @@
               @click="includeSelected" />
     </MassActionBar>
 
-    <DataTable :value="filtered" data-key="key" size="small"
-               data-testid="coverage-table" style="max-width: 1080px"
-               paginator :rows="20" :rows-per-page-options="[20, 50, 100]"
-               :total-records="filtered.length" current-page-report-template="{first}–{last} из {totalRecords}">
-      <!-- свой чекбокс-слой: выбор по ключам переживает фильтр/страницу; события
-           DataTable-селекции (update:selection/row-select) unreliable при смене
-           :value (инцидент 17.11) — полный контроль вместо магии -->
-      <Column>
-        <template #header>
-          <Checkbox :model-value="allVisibleChecked" binary
-                    :indeterminate="someVisibleChecked && !allVisibleChecked"
-                    data-testid="coverage-check-all" @update:model-value="toggleAllVisible" />
-        </template>
-        <template #body="{ data: r }">
-          <Checkbox :model-value="selectedKeys.has(r.key)" binary
-                    :data-testid="`coverage-check-${r.key}`" @update:model-value="() => toggleKey(r.key)" />
-        </template>
-      </Column>
+    <!-- системный компонент таблиц: авто-пагинация (>20), выбор по ключам
+         (переживает фильтр/страницу — AppTable), счётчик строк -->
+    <AppTable :value="filtered" row-key="key" :selected-keys="selectedKeys"
+              data-testid="coverage-table" style="max-width: 1080px"
+              table-testid="coverage" size="small"
+              @toggle-key="toggleKey" @toggle-all="toggleAllVisible">
+      <template #filters>
+        <Select v-model="statusFilter" :options="statusOptions" option-label="label"
+                option-value="value" placeholder="все статусы" show-clear size="small"
+                data-testid="coverage-status-filter" />
+        <MultiSelect v-model="typeFilter" :options="typeOptions" placeholder="все типы"
+                     show-clear :max-selected-labels="2" size="small"
+                     data-testid="coverage-type-filter" class="coverage-type-ms" />
+        <IconField icon-position="left">
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="search" size="small" placeholder="поиск по роли"
+                     data-testid="coverage-search" />
+        </IconField>
+        <Button v-if="hasFilters" label="Сбросить фильтры" icon="pi pi-filter-slash"
+                size="small" text severity="secondary" data-testid="coverage-reset-filters"
+                @click="statusFilter = null; typeFilter = []; search = ''" />
+      </template>
       <Column header="Тип">
         <template #body="{ data: r }">
           <Tag :value="r.type_code"
@@ -89,19 +76,18 @@
       <Column header="Обновлена">
         <template #body="{ data: r }">{{ formatDate(r.updated_at) }}</template>
       </Column>
-    </DataTable>
+    </AppTable>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
+import AppTable from './AppTable.vue'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
-import Checkbox from 'primevue/checkbox'
 import MultiSelect from 'primevue/multiselect'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
@@ -153,10 +139,6 @@ const canInclude = computed(() => selectedRows.value.some((r) => r.excluded))
 
 const allVisibleChecked = computed(() =>
   filtered.value.length > 0 && filtered.value.every((r) => selectedKeys.value.has(r.key)))
-const someVisibleChecked = computed(() =>
-  filtered.value.some((r) => selectedKeys.value.has(r.key))
-  && !allVisibleChecked.value)
-
 function toggleKey(key: string) {
   const next = new Set(selectedKeys.value)
   if (next.has(key)) next.delete(key)
@@ -243,11 +225,8 @@ async function includeSelected() {
 
 <style scoped>
 .toolbar { margin-bottom: 10px; }
-.filters { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
 .muted { color: #64748b; }
 .mass-note { font-size: 0.8rem; opacity: 0.85; margin-right: 4px; }
 .coverage-type-ms { min-width: 140px; }
-.mass-bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; margin-bottom: 10px;
-            border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; flex-wrap: wrap; }
 .small { font-size: 0.82rem; }
 </style>

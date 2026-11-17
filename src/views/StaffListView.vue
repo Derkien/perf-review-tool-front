@@ -26,7 +26,7 @@
                     @change="applyParticipantFilter" />
     </div>
 
-    <DataTable v-model:selection="selected" :value="rows" size="small" paginator :rows="25"
+    <AppTable v-model:selection="selected" :value="rows" size="small"
                scrollable stripedRows data-key="id" selection-mode="multiple">
       <Column selection-mode="multiple" style="width: 34px" />
       <Column field="full_name" header="ФИО" sortable>
@@ -58,7 +58,7 @@
                            @toggle-cycle="toggleCycleFor(e)" />
         </template>
       </Column>
-    </DataTable>
+    </AppTable>
 
     <!-- плавающая панель: кнопки по составу выбранных (исключённым не предлагают
          исключиться, участникам — вернуться) — меню непротиворечиво -->
@@ -105,12 +105,12 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'

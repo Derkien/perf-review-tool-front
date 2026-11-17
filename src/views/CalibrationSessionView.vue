@@ -25,7 +25,7 @@
     <Card v-if="analytics" style="margin-bottom: 14px">
       <template #title>Аналитика голосований</template>
       <template #content>
-        <DataTable :value="analytics.by_voter" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+        <AppTable :value="analytics.by_voter" size="small">
           <Column field="voter" header="Голосующий" />
           <Column field="voter_group" header="Направление" />
           <Column field="votes" header="Голосов" />
@@ -48,7 +48,7 @@
               <span v-else class="muted">—</span>
             </template>
           </Column>
-        </DataTable>
+        </AppTable>
         <p class="muted">Перекос ≥ 0.8 — подозрение на занижение «чужим» относительно «своих». Смены после вскрытия видны в аудит-логе и журнале голосов.</p>
       </template>
     </Card>

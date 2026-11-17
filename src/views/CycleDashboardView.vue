@@ -81,13 +81,13 @@
       <Card>
         <template #title>Прогресс по отделам</template>
         <template #content>
-          <DataTable :value="deptRows" size="small" scrollable scroll-height="260px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+          <AppTable :value="deptRows" size="small" scrollable scroll-height="260px">
             <Column field="dept" header="Отдел" />
             <Column field="total" header="Чел." />
             <Column field="self_done" header="Селф" />
             <Column field="peer_answers" header="Ответы" />
             <Column field="peer_total" header="Задания" />
-          </DataTable>
+          </AppTable>
         </template>
       </Card>
     </div>
@@ -107,11 +107,11 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'

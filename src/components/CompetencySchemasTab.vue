@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <DataTable :value="groups" data-key="key" v-model:expanded-rows="expandedRows" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+    <AppTable :value="groups" data-key="key" v-model:expanded-rows="expandedRows" size="small">
       <Column expander style="width: 3rem" />
       <Column header="Тип">
         <template #body="{ data: g }">
@@ -55,8 +55,7 @@
       </Column>
       <template #expansion="{ data: g }">
         <div class="versions-block">
-          <DataTable :value="g.versions" size="small" class="versions-table"
-                     paginator :rows="20" :rows-per-page-options="[20, 50, 100]"
+          <AppTable :value="g.versions" size="small" class="versions-table"
                      :row-class="(v: SchemaVersion) => v.id === selectedId ? 'row-selected' : ''"
                      @row-click="selectVersion(g, $event.data)">
             <Column header="Версия">
@@ -86,7 +85,7 @@
                 </span>
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
 
           <!-- детали версии: пункты с описаниями по грейдам + демо для черновика -->
           <div v-if="selected && selectedGroup === g.key" class="version-detail">
@@ -121,7 +120,7 @@
           </div>
         </div>
       </template>
-    </DataTable>
+    </AppTable>
 
     <!-- реестр типов: вкладки профиля и валидация импорта строятся по нему (change 2) -->
     <h3 style="margin:18px 0 6px">Типы компетенций</h3>
@@ -133,7 +132,7 @@
       <Button label="Добавить тип" icon="pi pi-plus" size="small" data-testid="type-create-btn"
               @click="openTypeCreate" />
     </div>
-    <DataTable :value="registryTypes" size="small" data-testid="types-table" style="max-width: 720px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+    <AppTable :value="registryTypes" size="small" data-testid="types-table" style="max-width: 720px">
       <Column field="code" header="Код" />
       <Column field="title" header="Название" />
       <Column field="order_no" header="Порядок" />
@@ -149,7 +148,7 @@
                   @click="openTypeEdit(t)" />
         </template>
       </Column>
-    </DataTable>
+    </AppTable>
 
     <!-- модалка предпросмотра импорта: дифф по парам из API + явный override -->
     <Dialog v-model:visible="previewVisible" modal header="Предпросмотр загрузки схемы"
@@ -158,8 +157,8 @@
         Распознано строк: {{ uploadPreview.rows_total }}. Применение создаст
         <b>черновики</b> изменившихся пар — активные матрицы не изменятся до активации.
       </p>
-      <DataTable v-if="uploadPreview" :value="uploadPreview.pairs || []" size="small"
-                 data-testid="upload-pairs" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+      <AppTable v-if="uploadPreview" :value="uploadPreview.pairs || []" size="small"
+                 data-testid="upload-pairs">
         <Column header="Тип">
           <template #body="{ data: p }">
             <Tag :value="p.type_code"
@@ -184,7 +183,7 @@
             <span v-else>черновик v{{ p.next_version }}</span>
           </template>
         </Column>
-      </DataTable>
+      </AppTable>
       <!-- структурные детали изменившихся пар: добавлено/удалено/изменено по пунктам -->
       <details v-for="p in changedPairs" :key="p.type_code + p.specialty"
                class="diff-details" :data-testid="`pair-diff-${p.specialty}`">
@@ -254,11 +253,11 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import FileUpload from 'primevue/fileupload'
 import InputText from 'primevue/inputtext'

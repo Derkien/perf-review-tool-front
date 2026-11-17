@@ -15,17 +15,17 @@
             Тренд: <b :style="{ color: effTrend.color }">{{ effTrend.arrow }} {{ effTrend.text }}</b>
             ({{ effTrend.from }} → {{ effTrend.to }}, {{ effTrend.delta > 0 ? '+' : '' }}{{ effTrend.delta }})
           </div>
-          <DataTable :value="[...effRows].reverse()" size="small" style="max-width: 360px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+          <AppTable :value="[...effRows].reverse()" size="small" style="max-width: 360px">
             <Column field="month" header="Месяц" />
             <Column field="value" header="Result" />
-          </DataTable>
+          </AppTable>
           <p v-if="!effRows.length" class="muted">нет данных</p>
         </template>
       </Card>
       <Card v-if="effParams.length" style="margin-top: 12px; max-width: 820px">
         <template #title>Аналитика параметров</template>
         <template #content>
-          <DataTable :value="effParams" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+          <AppTable :value="effParams" size="small">
             <Column header="Параметр">
               <template #body="{ data: p }">{{ paramLabel(p.code) }}</template>
             </Column>
@@ -44,7 +44,7 @@
                 </span>
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
           <div class="reco">
             <b>Рекомендации:</b>
             <ul>
@@ -59,7 +59,7 @@
       <Card style="max-width: 640px">
         <template #title>Светофор</template>
         <template #content>
-          <DataTable :value="[...trafficRows].reverse()" size="small" style="max-width: 320px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+          <AppTable :value="[...trafficRows].reverse()" size="small" style="max-width: 320px">
             <Column field="month" header="Дата" />
             <Column header="Значение">
               <template #body="{ data: t }">
@@ -69,7 +69,7 @@
                    v-tooltip.top="t.comment" />
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
           <p v-if="!trafficRows.length" class="muted">нет данных — импортируйте файл светофора</p>
         </template>
       </Card>
@@ -91,11 +91,11 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'

@@ -128,9 +128,10 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     expect(vm.search).toBe('')
     expect(vm.filtered.length).toBe(3)
 
-    // пагинация из коробки: 20 строк на страницу, счётчик «N из M»
-    expect(w.find('[data-testid="coverage-table"] .p-paginator').exists()).toBe(true)
-    expect(w.text()).toContain('3 из 3')
+    // авто-пагинация AppTable: 3 строки ≤ 20 → пагинатор скрыт (правило ≤20)
+    expect(w.find('[data-testid="coverage-table"] .p-paginator').exists()).toBe(false)
+    // счётчик строк рисует AppTable (слот фильтров coverage)
+    expect(w.find('.app-table-count').text()).toBe('строк: 3')
   })
 
   it('регресс 17.11: выбор переживает смену фильтра — выгрузка полным набором', async () => {
@@ -158,14 +159,13 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
   it('клик по чекбоксу строки (свой слой) — выбор регистрируется без магии DataTable', async () => {
     const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
     await settle()
-    const cb = w.find('[data-testid="coverage-check-hard:backend"]')
-    expect(cb.exists()).toBe(true)
-    await cb.get('input').trigger('change')
-    await settle()
     const vm: any = w.vm
+    expect(w.find('[data-testid="coverage-check-hard:backend"]').exists()).toBe(true)
+    await w.find('[data-testid="coverage-check-hard:backend"] input').trigger('change')
+    await settle()
     expect(vm.selectedKeys.has('hard:backend')).toBe(true)
-    // повторный клик снимает
-    await cb.get('input').trigger('change')
+    // повторный клик снимает (чекбокс перерендерен — ищем заново)
+    await w.find('[data-testid="coverage-check-hard:backend"] input').trigger('change')
     await settle()
     expect(vm.selectedKeys.has('hard:backend')).toBe(false)
   })

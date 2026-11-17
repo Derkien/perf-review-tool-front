@@ -13,7 +13,7 @@
     <Card style="margin-top: 12px; max-width: 760px">
       <template #title>История изменений</template>
       <template #content>
-        <DataTable v-if="salaryHistory.length" :value="salaryHistory" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+        <AppTable v-if="salaryHistory.length" :value="salaryHistory" size="small">
           <Column field="date" header="Дата" sortable />
           <Column field="salary" header="Оклад">
             <template #body="{ data: h }">{{ h.salary.toLocaleString('ru') }} ₽</template>
@@ -24,7 +24,7 @@
           <Column field="grade" header="Грейд" />
           <Column field="reason" header="Основание" />
           <Column field="source" header="Источник" />
-        </DataTable>
+        </AppTable>
         <p v-else class="muted">истории пока нет</p>
       </template>
     </Card>
@@ -32,10 +32,10 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import { onMounted, ref } from 'vue'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import BandBar from './BandBar.vue'
 import { staffApi } from '../api/endpoints'
 

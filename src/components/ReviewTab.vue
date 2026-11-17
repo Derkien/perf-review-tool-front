@@ -61,8 +61,8 @@
       <Card style="margin-top: 12px">
         <template #title>Достижения</template>
         <template #content>
-          <DataTable v-if="result.achievements_table?.length"
-                     :value="result.achievements_table" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+          <AppTable v-if="result.achievements_table?.length"
+                     :value="result.achievements_table" size="small">
             <Column header="Достижение">
               <template #body="{ data: a }"><span class="ach-text">{{ a.text }}</span></template>
             </Column>
@@ -81,7 +81,7 @@
                 <span v-else class="muted">—</span>
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
           <p v-else class="muted">селф-ревью не отправлялось</p>
           <div v-if="result.self_review?.can_edit || result.self_review?.can_request_edit" class="edit-line">
             <Button v-if="result.self_review.can_edit" label="Поправить селф-ревью" size="small" text
@@ -122,11 +122,11 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'

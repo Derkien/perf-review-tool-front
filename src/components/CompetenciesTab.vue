@@ -115,8 +115,8 @@
     <p class="muted" style="margin-top:0">
       Клик по строке — добавить/убрать сессию на паутинку (до двух сравнений).
     </p>
-    <DataTable :value="visibleSessions" size="small" class="history-table"
-               :row-class="sessionRowClass" @row-click="toggleCompare($event.data)" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+    <AppTable :value="visibleSessions" size="small" class="history-table"
+               :row-class="sessionRowClass" @row-click="toggleCompare($event.data)">
       <Column header="">
         <template #body="{ data: s }">
           <i v-if="s.assessor_kind === 'manager'" class="pi"
@@ -175,7 +175,7 @@
           </span>
         </template>
       </Column>
-    </DataTable>
+    </AppTable>
 
     <!-- большая паутинка -->
     <Dialog v-model:visible="radarBig" modal :header="`Паутинка: ${typeTitle(kind)}`"
@@ -220,11 +220,11 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'

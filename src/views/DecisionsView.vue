@@ -20,7 +20,7 @@
         </div>
       </template>
     </Card>
-    <DataTable :value="decisions" size="small" scrollable edit-mode="cell" stripedRows paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+    <AppTable :value="decisions" size="small" scrollable edit-mode="cell" stripedRows>
       <Column field="employee" header="Сотрудник" />
       <Column field="grade" header="Грейд" />
       <Column field="salary" header="Оклад">
@@ -62,7 +62,7 @@
              style="color:#f59e0b; margin-right:4px" v-tooltip.top="w" />
         </template>
       </Column>
-    </DataTable>
+    </AppTable>
 
     <Dialog v-model:visible="createDialog" modal header="Новое решение">
       <div class="create-form">
@@ -78,11 +78,11 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'

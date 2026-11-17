@@ -2,14 +2,14 @@
   <Dialog :visible="visible" modal header="Файл не принят — ошибки импорта" style="width: 720px"
           data-testid="import-errors-dialog" @update:visible="$emit('update:visible', $event)">
     <p style="margin:0 0 8px">{{ message }}</p>
-    <DataTable v-if="errors.length" :value="errors" size="small" scrollable
+    <AppTable v-if="errors.length" :value="errors" size="small" scrollable
                scroll-height="320px" data-testid="import-errors-table">
       <Column field="sheet" header="Лист" />
       <Column field="row" header="Строка">
         <template #body="{ data: e }">{{ e.row ?? '—' }}</template>
       </Column>
       <Column field="reason" header="Причина" />
-    </DataTable>
+    </AppTable>
     <p class="muted small" style="margin-top:8px">
       Список остаётся на экране до закрытия. Исправьте строки в файле и загрузите заново —
       частичного применения не происходит.
@@ -23,9 +23,9 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 
 export interface ImportErrorRow { sheet?: string; row?: number | null; reason: string }

@@ -13,7 +13,7 @@
             data-testid="filter-status" @change="load" />
     <span class="muted small">всего: {{ total }}</span>
   </div>
-  <DataTable :value="items" size="small" paginator :rows="20" :loading="loading"
+  <AppTable :value="items" size="small" :loading="loading"
              data-testid="outbox-table">
     <Column header="Время">
       <template #body="{ data: m }">{{ m.created_at ? new Date(m.created_at).toLocaleString('ru') : '' }}</template>
@@ -38,14 +38,14 @@
         <span class="small muted">{{ m.last_error || '—' }}</span>
       </template>
     </Column>
-  </DataTable>
+  </AppTable>
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import { onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { deliveryApi } from '../api/endpoints'

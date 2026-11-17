@@ -16,8 +16,8 @@ test.describe.serial('Покрытие схем', () => {
     await page.reload() // URL-роут сохраняет раздел
     await expect(page.getByTestId('coverage-table')).toBeVisible()
 
-    // единый фреймворк таблиц: пагинатор из коробки, фильтры очищаются и сбрасываются
-    await expect(page.locator('[data-testid="coverage-table"] .p-paginator')).toBeVisible()
+    // единый фреймворк AppTable: демо-мир ≤20 строк — пагинатор СКРЫТ (правило >20)
+    await expect(page.locator('[data-testid="coverage-table"] .p-paginator')).toHaveCount(0)
     await expect(page.getByTestId('coverage-status-hard-android')).toHaveText('активна')
     await page.getByTestId('coverage-status-filter').click()
     await page.getByRole('option', { name: 'нет схемы' }).click()

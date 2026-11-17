@@ -64,14 +64,14 @@
           </Message>
 
           <!-- история -->
-          <DataTable v-if="showHistory && historyRows.length" :value="historyRows" size="small" style="margin-top: 12px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+          <AppTable v-if="showHistory && historyRows.length" :value="historyRows" size="small" style="margin-top: 12px">
             <Column header="Тип"><template #body="{ data: a }">{{ a.kind_title }}</template></Column>
             <Column header="Кого"><template #body="{ data: a }">{{ a.subject?.name || a.assignee?.name }}</template></Column>
             <Column header="Статус"><template #body="{ data: a }">
               <Tag :value="a.status === 'done' ? 'выполнено' : 'отменено'"
                    :severity="a.status === 'done' ? 'success' : 'secondary'" />
             </template></Column>
-          </DataTable>
+          </AppTable>
         </TabPanel>
 
         <TabPanel v-if="subRows.length" value="subordinates">
@@ -127,12 +127,12 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Badge from 'primevue/badge'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import ProgressBar from 'primevue/progressbar'

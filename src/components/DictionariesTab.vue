@@ -56,8 +56,8 @@
 
     <!-- список справочников -->
     <template v-if="!selected">
-      <DataTable :value="filteredDictionaries" size="small" data-testid="dict-list-table"
-                 :row-click="true" style="max-width: 860px" @row-click="openDict" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+      <AppTable :value="filteredDictionaries" size="small" data-testid="dict-list-table"
+                 :row-click="true" style="max-width: 860px" @row-click="openDict">
         <Column field="slug" header="Слаг">
           <template #body="{ data: d }"><code>{{ d.slug }}</code></template>
         </Column>
@@ -77,13 +77,13 @@
                     @click.stop="openDictEdit(d)" />
           </template>
         </Column>
-      </DataTable>
+      </AppTable>
 
       <!-- глобальный поиск по значениям всех справочников -->
       <template v-if="search.trim() && globalMatches.length">
         <h4 style="margin:16px 0 4px">Значения всех справочников</h4>
-        <DataTable :value="globalMatches" size="small" data-testid="dict-global-results"
-                   style="max-width: 860px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+        <AppTable :value="globalMatches" size="small" data-testid="dict-global-results"
+                   style="max-width: 860px">
           <Column field="value" header="Значение">
             <template #body="{ data: it }"><b>{{ it.value }}</b></template>
           </Column>
@@ -97,7 +97,7 @@
                       :data-testid="`dict-goto-${it.slug}`" @click.stop="gotoDict(it.dictSlug)" />
             </template>
           </Column>
-        </DataTable>
+        </AppTable>
       </template>
       <p class="muted small">
         Справочники только растут: переименование значения и удаление недоступны — история
@@ -108,7 +108,7 @@
 
     <!-- значения выбранного справочника -->
     <template v-else>
-      <DataTable :value="filteredItems" size="small" data-testid="dict-items-table" style="max-width: 960px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+      <AppTable :value="filteredItems" size="small" data-testid="dict-items-table" style="max-width: 960px">
         <Column field="slug" header="Слаг">
           <template #body="{ data: it }"><code>{{ it.slug }}</code></template>
         </Column>
@@ -133,7 +133,7 @@
                     @click="openEdit(it)" />
           </template>
         </Column>
-      </DataTable>
+      </AppTable>
       <p class="muted small">
         Справочники только растут: переименование значения и удаление недоступны — история
         версий схем и разметки ссылается на строки.
@@ -266,10 +266,10 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from './AppTable.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import FileUpload from 'primevue/fileupload'
 import IconField from 'primevue/iconfield'

@@ -13,16 +13,16 @@
         <div v-if="previewData" class="preview">
           <h2>{{ previewData.rows_total }} строк распознано, конфликтов: {{ previewData.conflicts.length }}</h2>
           <div v-for="(c, i) in previewData.conflicts.slice(0, 10)" :key="i" class="muted">! {{ c.error }}</div>
-          <DataTable :value="previewData.preview.slice(0, 10)" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+          <AppTable :value="previewData.preview.slice(0, 10)" size="small">
             <Column v-for="f of previewFields" :key="f" :field="f" :header="f" />
-          </DataTable>
+          </AppTable>
           <Button label="Применить" severity="success" :loading="busy" @click="apply"
                   :disabled="!previewData" />
         </div>
       </template>
     </Card>
     <h2 style="margin-top:18px">История импортов</h2>
-    <DataTable :value="batches" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+    <AppTable :value="batches" size="small">
       <Column field="id" header="#" />
       <Column field="type" header="Тип" />
       <Column field="filename" header="Файл" />
@@ -35,16 +35,16 @@
         <template #body="{ data: b }">{{ b.rows_ok }}/{{ b.rows_total }}</template>
       </Column>
       <Column field="summary" header="Итог" style="max-width: 400px" />
-    </DataTable>
+    </AppTable>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Select from 'primevue/select'
 import FileUpload from 'primevue/fileupload'
 import InputText from 'primevue/inputtext'

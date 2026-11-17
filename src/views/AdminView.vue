@@ -25,7 +25,7 @@
             <Button label="Назначить роль" size="small" @click="assignByEmail" />
             <span class="muted">Пользователь создаётся заранее — при первом входе по SSO/email роль уже ждёт его.</span>
           </div>
-          <DataTable :value="users" size="small" edit-mode="cell" paginator :rows="20"
+          <AppTable :value="users" size="small" edit-mode="cell"
                      scrollable scroll-height="560px" filter-display="menu">
             <Column field="full_name" header="Сотрудник" sortable>
               <template #body="{ data: u }">
@@ -53,7 +53,7 @@
                 <Tag :value="u.is_active ? 'да' : 'нет'" :severity="u.is_active ? 'success' : 'danger'" />
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
         </TabPanel>
         <TabPanel value="settings">
           <h2 style="margin:0 0 6px">Схема цикла перф-ревью</h2>
@@ -171,7 +171,7 @@
             <h2 style="margin:0">Действия пользователей (навигация)</h2>
             <Button label="Обновить" size="small" text @click="loadActivity" />
           </div>
-          <DataTable :value="activity" size="small" scrollable scroll-height="260px" paginator :rows="15">
+          <AppTable :value="activity" size="small" scrollable scroll-height="260px" :rows="15">
             <Column field="at" header="Время">
               <template #body="{ data: a }">{{ a.at ? new Date(a.at).toLocaleString('ru') : '' }}</template>
             </Column>
@@ -188,9 +188,9 @@
                 <span class="small" v-tooltip.top="a.user_agent">{{ deviceLabel(a.user_agent) }}</span>
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
           <h2>Аудит изменений (с diff)</h2>
-          <DataTable :value="audit" size="small" scrollable scroll-height="300px" paginator :rows="15">
+          <AppTable :value="audit" size="small" scrollable scroll-height="300px" :rows="15">
             <Column field="at" header="Время">
               <template #body="{ data: a }">{{ a.at ? new Date(a.at).toLocaleString('ru') : '' }}</template>
             </Column>
@@ -207,7 +207,7 @@
                 <span v-else class="muted">—</span>
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
         </TabPanel>
         <TabPanel value="outbox">
           <OutboxLogTab />
@@ -221,7 +221,7 @@
           <p v-if="!catalog" class="muted">Загрузка каталога прав…</p>
           <div v-for="group in permissionGroups" :key="group.name" class="rights-group">
             <h3 class="rights-title">{{ group.name }}</h3>
-            <DataTable :value="matrixRows" size="small" scrollable paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+            <AppTable :value="matrixRows" size="small" scrollable>
               <Column field="role" header="Роль" class="role-col">
                 <template #body="{ data: r }">
                   <Tag :value="roleLabels[r.role] || r.role" severity="secondary" />
@@ -237,7 +237,7 @@
                             @update:model-value="toggleRight(r.role, p.code)" />
                 </template>
               </Column>
-            </DataTable>
+            </AppTable>
           </div>
         </TabPanel>
         <TabPanel value="rules">
@@ -261,10 +261,10 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'

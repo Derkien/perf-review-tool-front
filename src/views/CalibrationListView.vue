@@ -9,8 +9,7 @@
       <Button label="AI-пакет (xlsx)" severity="secondary" :disabled="!cycleId" @click="exportAi" />
       <FileUpload mode="basic" custom-upload choose-label="Импорт AI-ответов" @select="importAi" />
     </div>
-    <DataTable :value="sessions" size="small" style="margin-top: 12px"
-               paginator :rows="20" :rows-per-page-options="[20, 50, 100]"
+    <AppTable :value="sessions" size="small" style="margin-top: 12px"
                @row-click="(e: any) => $router.push(`/calibration/${e.data.id}`)"
                style-cursor="cursor:pointer">
       <Column field="title" header="Сессия" />
@@ -24,15 +23,15 @@
         <template #body="{ data: s }">{{ s.items_final }} / {{ s.items_total }}</template>
       </Column>
       <Column field="host" header="Ведущий" />
-    </DataTable>
+    </AppTable>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Select from 'primevue/select'
 import FileUpload from 'primevue/fileupload'
 import Tag from 'primevue/tag'

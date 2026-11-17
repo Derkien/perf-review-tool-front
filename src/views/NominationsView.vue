@@ -6,7 +6,7 @@
       <Button label="Экспорт XLSX" severity="secondary" @click="exportXlsx" />
       <span class="muted">Список к подаче до 4 сентября</span>
     </div>
-    <DataTable :value="nominations" size="small" stripedRows paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
+    <AppTable :value="nominations" size="small" stripedRows>
       <Column field="employee" header="Сотрудник" />
       <Column field="grade" header="Грейд" />
       <Column field="salary" header="Оклад">
@@ -35,7 +35,7 @@
           <Tag v-else :value="statusLabel(n)" :severity="sev(n.status)" />
         </template>
       </Column>
-    </DataTable>
+    </AppTable>
 
     <Dialog v-model:visible="dialog" modal header="Новая номинация">
       <div class="form">
@@ -52,10 +52,10 @@
 </template>
 
 <script setup lang="ts">
+import AppTable from '../components/AppTable.vue'
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'

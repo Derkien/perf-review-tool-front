@@ -25,9 +25,8 @@
     </label>
   </div>
 
-  <DataTable :value="items" size="small" stripedRows data-key="id" v-model:selection="selected"
-             selection-mode="multiple" :loading="loading" lazy paginator :rows="pageSize"
-             :total-records="total" :first="(page - 1) * pageSize"
+  <AppTable :value="items" size="small" stripedRows data-key="id" v-model:selection="selected"
+             selection-mode="multiple" :loading="loading" lazy :rows="pageSize" :first="(page - 1) * pageSize"
              @page="onPage($event.page + 1)" data-testid="assignments-table">
     <Column selection-mode="multiple" style="width: 34px" />
     <Column header="Тип">
@@ -70,7 +69,7 @@
                               @force-close="(m) => forceClose(a, m)" />
       </template>
     </Column>
-  </DataTable>
+  </AppTable>
 
   <!-- плавающая панель массовых действий: применимы только открытые из выбранных -->
   <Transition name="mass-bar">
@@ -91,12 +90,12 @@
 
 <script setup lang="ts">
 // shortcut: сортировка DataTable — в пределах загруженной страницы (сервер отдаёт по id desc)
+import AppTable from './AppTable.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
