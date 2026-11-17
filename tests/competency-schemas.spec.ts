@@ -322,7 +322,7 @@ describe('CompetencySchemasTab: активация/удаление через �
 
   it('модалка активации: текст предупреждения и объект действия видны; ОК шлёт activate с точным id', async () => {
     const w = await mountHost()
-    const btn = w.findAll('button').find((b) => b.text() === 'Активировать')!
+    const btn = w.findAll('button').find((b) => b.attributes('data-testid') === 'version-activate')!
     await btn.trigger('click')
     await settle(5)
     const modal = w.find('.p-dialog')
@@ -331,8 +331,8 @@ describe('CompetencySchemasTab: активация/удаление через �
     expect(modal.text()).toContain('Активировать версию: v3')   // объект действия
     expect(modal.text()).toContain('Сейчас активна: v2')
     const ok = w.findAll('button').find((b) => b.text() === 'Активировать' && b.attributes('severity') !== 'secondary')
-    // ОК в футере — последний «Активировать» в модалке
-    await w.findAll('button').filter((b) => b.text() === 'Активировать').at(-1)!.trigger('click')
+    // ОК в футере модалки — текстовая кнопка внутри диалога (в таблице — иконки)
+    await modal.findAll('button').find((b) => b.text() === 'Активировать')!.trigger('click')
     await settle()
     expect(competenciesApi.activateSchema).toHaveBeenCalledWith(13)
     expect(trackAction).toHaveBeenCalledWith('admin.competency-schemas',
@@ -342,7 +342,7 @@ describe('CompetencySchemasTab: активация/удаление через �
 
   it('отмена модалки не отправляет ничего', async () => {
     const w = await mountHost()
-    await w.findAll('button').find((b) => b.text() === 'Активировать')!.trigger('click')
+    await w.findAll('button').find((b) => b.attributes('data-testid') === 'version-activate')!.trigger('click')
     await settle(5)
     await w.findAll('button').find((b) => b.text() === 'Отмена')!.trigger('click')
     await settle()
@@ -351,7 +351,7 @@ describe('CompetencySchemasTab: активация/удаление через �
 
   it('модалка удаления черновика: объект действия; ОК шлёт delete с точным id', async () => {
     const w = await mountHost()
-    await w.findAll('button').find((b) => b.text() === 'Удалить черновик')!.trigger('click')
+    await w.findAll('button').find((b) => b.attributes('data-testid') === 'version-delete')!.trigger('click')
     await settle(5)
     const modal = w.find('.p-dialog')
     expect(modal.text()).toContain('Удалить черновик: v3')

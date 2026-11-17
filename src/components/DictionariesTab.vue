@@ -129,8 +129,9 @@
         </Column>
         <Column header="Действия">
           <template #body="{ data: it }">
-            <Button label="Править" text size="small" :data-testid="`dict-item-edit-${it.id}`"
-                    @click="openEdit(it)" />
+            <Button icon="pi pi-pencil" text rounded size="small" aria-label="Править"
+                    v-tooltip.top="'Править значение'"
+                    :data-testid="`dict-item-edit-${it.id}`" @click="openEdit(it)" />
           </template>
         </Column>
       </AppTable>

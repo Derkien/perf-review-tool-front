@@ -78,11 +78,17 @@
       </Column>
       <Column header="Действия">
         <template #body="{ data: r }">
-          <Button label="Выгрузить" text size="small"
+          <!-- иконки-действия с тултипами: pi-download/pi-ban/pi-undo (PrimeIcons) -->
+          <Button icon="pi pi-download" text rounded size="small" aria-label="Выгрузить для разметки"
+                  v-tooltip.top="'Выгрузить файл разметки пары'"
                   :data-testid="`coverage-row-export-${r.key}`" @click="exportOne(r.key)" />
-          <Button v-if="!r.excluded" label="Исключить" text size="small" severity="danger"
+          <Button v-if="!r.excluded" icon="pi pi-ban" text rounded size="small" severity="danger"
+                  aria-label="Исключить из квалификации"
+                  v-tooltip.top="'Исключить из квалификации: задания разметки не потребуют'"
                   :data-testid="`coverage-row-exclude-${r.key}`" @click="excludeOne(r)" />
-          <Button v-else label="Вернуть" text size="small" severity="secondary"
+          <Button v-if="r.excluded" icon="pi pi-undo" text rounded size="small" severity="secondary"
+                  aria-label="Вернуть в квалификацию"
+                  v-tooltip.top="'Вернуть в квалификацию'"
                   :data-testid="`coverage-row-include-${r.key}`" @click="includeOne(r)" />
         </template>
       </Column>

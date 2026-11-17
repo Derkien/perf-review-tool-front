@@ -76,12 +76,18 @@
             <Column header="Действия">
               <template #body="{ data: v }">
                 <span class="acts">
-                  <Button v-if="v.status === 'draft'" label="Активировать" size="small"
-                          @click.stop="confirmActivate(g, v)" />
-                  <Button v-if="v.status === 'archived'" label="Вернуть активной" size="small"
-                          severity="secondary" @click.stop="confirmActivate(g, v)" />
-                  <Button v-if="v.status === 'draft'" label="Удалить черновик" size="small"
-                          severity="danger" outlined @click.stop="confirmDelete(g, v)" />
+                  <Button v-if="v.status === 'draft'" icon="pi pi-check-circle" text rounded
+                          size="small" severity="success" aria-label="Активировать"
+                          v-tooltip.top="'Активировать версию: прежняя активная уйдёт в архив'"
+                          data-testid="version-activate" @click.stop="confirmActivate(g, v)" />
+                  <Button v-if="v.status === 'archived'" icon="pi pi-undo" text rounded
+                          size="small" severity="secondary"
+                          v-tooltip.top="'Вернуть активной'"
+                          data-testid="version-reactivate" @click.stop="confirmActivate(g, v)" />
+                  <Button v-if="v.status === 'draft'" icon="pi pi-trash" text rounded
+                          size="small" severity="danger" aria-label="Удалить черновик"
+                          v-tooltip.top="'Удалить черновик'"
+                          data-testid="version-delete" @click.stop="confirmDelete(g, v)" />
                 </span>
               </template>
             </Column>
@@ -144,8 +150,9 @@
       </Column>
       <Column header="Действия">
         <template #body="{ data: t }">
-          <Button label="Править" text size="small" :data-testid="`type-edit-${t.code}`"
-                  @click="openTypeEdit(t)" />
+          <Button icon="pi pi-pencil" text rounded size="small"
+                  v-tooltip.top="'Править тип'"
+                  :data-testid="`type-edit-${t.code}`" @click="openTypeEdit(t)" />
         </template>
       </Column>
     </AppTable>
