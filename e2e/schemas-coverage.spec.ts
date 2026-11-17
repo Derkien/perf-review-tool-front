@@ -28,18 +28,33 @@ test.describe.serial('Покрытие схем', () => {
     await page.getByTestId('coverage-reset-filters').click()
     await expect(page.getByTestId('coverage-status-hard-android')).toBeVisible() // сброс вернул все
 
-    // РАЗНОТИПНАЯ выборка (регресс жалобы: hard + soft одновременно) → масс-выгрузка
-    const rows = page.getByTestId('coverage-table').locator('tbody tr')
-    const hardRow = rows.filter({ hasText: /^hard/ }).first()
-    const softRow = rows.filter({ hasText: /^soft/ }).first()
-    await hardRow.locator('.p-checkbox-input').check()
-    await softRow.locator('.p-checkbox-input').check()
+    // РАЗНОТИПНАЯ выборка (hard + soft) своим чекбокс-слоем → масс-выгрузка.
+    // Регресс инцидента 17.11: выбор обязан переживать смену фильтра, а POST-
+    // выгрузка длинных выборок — 200 (раньше GET ловил 414 на длинном URI).
     const massBar = page.locator('.mass-bar') // единая плавающая панель внизу
-    await expect(massBar).toBeVisible()
+    const table = page.getByTestId('coverage-table')
+    const rowCheckbox = (row: ReturnType<typeof table.locator>) =>
+      row.locator('[data-testid^="coverage-check-"] input')
+
+    const hardRow = table.locator('tbody tr').filter({ hasText: /^hard/ }).first()
+    const softRow = table.locator('tbody tr').filter({ hasText: /^soft/ }).first()
+    await rowCheckbox(hardRow).check()
+    await rowCheckbox(softRow).check()
     await expect(massBar).toContainText('выбрано: 2')
     await page.screenshot({ path: 'e2e/screenshots/coverage/01b-mass-bar.png', fullPage: true })
+
+    // живучесть: фильтр «нет схемы» прячет обе строки — выбор и счётчик живут
+    await page.getByTestId('coverage-status-filter').click()
+    await page.getByRole('option', { name: 'нет схемы' }).click()
+    await expect(massBar).toContainText('выбрано: 2')
+    await expect(massBar).toContainText('в т.ч. скрыто фильтром: 2')
+    await page.getByTestId('coverage-reset-filters').click()
+    await expect(massBar).toContainText('выбрано: 2')
+
+    const exportResp = page.waitForResponse((r) => r.url().includes('coverage/export'))
     const downloadPromise = page.waitForEvent('download')
     await massBar.getByTestId('coverage-export-btn').click()
+    expect((await exportResp).status()).toBe(200)                 // контракт выгрузки
     expect((await downloadPromise).suggestedFilename()).toBe('schemas-coverage.xlsx')
 
     // исключение выбранной пары с подтверждением → статус excluded → возврат
@@ -55,7 +70,7 @@ test.describe.serial('Покрытие схем', () => {
     const excludedRow = page.getByTestId('coverage-table').locator('tbody tr').first()
     await expect(excludedRow).toContainText('исключена')
     await page.screenshot({ path: 'e2e/screenshots/coverage/04-excluded.png', fullPage: true })
-    await excludedRow.locator('.p-checkbox-input').check()
+    await excludedRow.locator('[data-testid^="coverage-check-"] input').check()
     await page.getByTestId('coverage-include-btn').click()
     await confirm.getByRole('button', { name: 'Вернуть' }).click()
     await expect(page.getByText('Возвращено в квалификацию')).toBeVisible()

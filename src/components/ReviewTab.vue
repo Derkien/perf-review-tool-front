@@ -62,7 +62,7 @@
         <template #title>Достижения</template>
         <template #content>
           <DataTable v-if="result.achievements_table?.length"
-                     :value="result.achievements_table" size="small">
+                     :value="result.achievements_table" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
             <Column header="Достижение">
               <template #body="{ data: a }"><span class="ach-text">{{ a.text }}</span></template>
             </Column>

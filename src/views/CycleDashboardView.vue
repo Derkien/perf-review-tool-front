@@ -81,7 +81,7 @@
       <Card>
         <template #title>Прогресс по отделам</template>
         <template #content>
-          <DataTable :value="deptRows" size="small" scrollable scroll-height="260px">
+          <DataTable :value="deptRows" size="small" scrollable scroll-height="260px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
             <Column field="dept" header="Отдел" />
             <Column field="total" header="Чел." />
             <Column field="self_done" header="Селф" />

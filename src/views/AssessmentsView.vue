@@ -64,7 +64,7 @@
           </Message>
 
           <!-- история -->
-          <DataTable v-if="showHistory && historyRows.length" :value="historyRows" size="small" style="margin-top: 12px">
+          <DataTable v-if="showHistory && historyRows.length" :value="historyRows" size="small" style="margin-top: 12px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
             <Column header="Тип"><template #body="{ data: a }">{{ a.kind_title }}</template></Column>
             <Column header="Кого"><template #body="{ data: a }">{{ a.subject?.name || a.assignee?.name }}</template></Column>
             <Column header="Статус"><template #body="{ data: a }">

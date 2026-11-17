@@ -25,7 +25,7 @@
     <Card v-if="analytics" style="margin-bottom: 14px">
       <template #title>Аналитика голосований</template>
       <template #content>
-        <DataTable :value="analytics.by_voter" size="small">
+        <DataTable :value="analytics.by_voter" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
           <Column field="voter" header="Голосующий" />
           <Column field="voter_group" header="Направление" />
           <Column field="votes" header="Голосов" />

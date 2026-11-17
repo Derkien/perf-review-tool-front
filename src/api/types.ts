@@ -1051,15 +1051,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
          * Coverage Export
-         * @description Масс-файл разметки по выбранным парам (format импорта): пары с активной
+         * @description Масс-файл разметки по выбранным парам (формат импорта): пары с активной
          *     версией — с пунктами и нормами, без схемы — скелет-заготовка с ролью и типом.
-         *     Один файл на все пары; дозаполненный грузится штатным импортом.
+         *     Один файл на все пары; дозаполненный грузится штатным импортом. POST-тело:
+         *     длинные кириллические выборки не влезают в URL (414 nginx, инцидент 17.11).
          */
-        get: operations["coverage_export_api_v1_competencies_schemas_coverage_export_get"];
-        put?: never;
-        post?: never;
+        post: operations["coverage_export_api_v1_competencies_schemas_coverage_export_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4908,16 +4909,18 @@ export interface operations {
             };
         };
     };
-    coverage_export_api_v1_competencies_schemas_coverage_export_get: {
+    coverage_export_api_v1_competencies_schemas_coverage_export_post: {
         parameters: {
-            query: {
-                pairs: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoveragePairs"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

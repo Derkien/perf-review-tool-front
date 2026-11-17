@@ -221,7 +221,7 @@
           <p v-if="!catalog" class="muted">Загрузка каталога прав…</p>
           <div v-for="group in permissionGroups" :key="group.name" class="rights-group">
             <h3 class="rights-title">{{ group.name }}</h3>
-            <DataTable :value="matrixRows" size="small" scrollable>
+            <DataTable :value="matrixRows" size="small" scrollable paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
               <Column field="role" header="Роль" class="role-col">
                 <template #body="{ data: r }">
                   <Tag :value="roleLabels[r.role] || r.role" severity="secondary" />

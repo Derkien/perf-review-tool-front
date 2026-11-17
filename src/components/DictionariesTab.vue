@@ -57,7 +57,7 @@
     <!-- список справочников -->
     <template v-if="!selected">
       <DataTable :value="filteredDictionaries" size="small" data-testid="dict-list-table"
-                 :row-click="true" style="max-width: 860px" @row-click="openDict">
+                 :row-click="true" style="max-width: 860px" @row-click="openDict" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
         <Column field="slug" header="Слаг">
           <template #body="{ data: d }"><code>{{ d.slug }}</code></template>
         </Column>
@@ -83,7 +83,7 @@
       <template v-if="search.trim() && globalMatches.length">
         <h4 style="margin:16px 0 4px">Значения всех справочников</h4>
         <DataTable :value="globalMatches" size="small" data-testid="dict-global-results"
-                   style="max-width: 860px">
+                   style="max-width: 860px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
           <Column field="value" header="Значение">
             <template #body="{ data: it }"><b>{{ it.value }}</b></template>
           </Column>
@@ -108,7 +108,7 @@
 
     <!-- значения выбранного справочника -->
     <template v-else>
-      <DataTable :value="filteredItems" size="small" data-testid="dict-items-table" style="max-width: 960px">
+      <DataTable :value="filteredItems" size="small" data-testid="dict-items-table" style="max-width: 960px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
         <Column field="slug" header="Слаг">
           <template #body="{ data: it }"><code>{{ it.slug }}</code></template>
         </Column>

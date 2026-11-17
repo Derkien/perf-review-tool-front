@@ -10,6 +10,7 @@
       <FileUpload mode="basic" custom-upload choose-label="Импорт AI-ответов" @select="importAi" />
     </div>
     <DataTable :value="sessions" size="small" style="margin-top: 12px"
+               paginator :rows="20" :rows-per-page-options="[20, 50, 100]"
                @row-click="(e: any) => $router.push(`/calibration/${e.data.id}`)"
                style-cursor="cursor:pointer">
       <Column field="title" header="Сессия" />

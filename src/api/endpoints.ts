@@ -555,10 +555,11 @@ export const competenciesApi = {
     if (error) raise(error, '/competencies/schemas/coverage/include')
     return data as never
   },
-  /** Масс-файл разметки по выбранным парам: скелеты без схем + существующие версии. */
+  /** Масс-файл разметки по выбранным парам: скелеты без схем + существующие версии.
+   *  POST-телом: длинные кириллические выборки не влезают в URL (414). */
   async coverageExport(pairs: string[]): Promise<Blob> {
-    const { data, error } = await client.GET('/competencies/schemas/coverage/export', {
-      params: { query: { pairs: pairs.join(',') } },
+    const { data, error } = await client.POST('/competencies/schemas/coverage/export', {
+      body: { pairs },
       parseAs: 'blob',
     })
     if (error) raise(error, '/competencies/schemas/coverage/export')

@@ -18,8 +18,9 @@
       <Select v-model="statusFilter" :options="statusOptions" option-label="label"
               option-value="value" placeholder="все статусы" show-clear size="small"
               data-testid="coverage-status-filter" />
-      <Select v-model="typeFilter" :options="typeOptions" placeholder="все типы"
-              show-clear size="small" data-testid="coverage-type-filter" />
+      <MultiSelect v-model="typeFilter" :options="typeOptions" placeholder="все типы"
+                   show-clear :max-selected-labels="2" size="small"
+                   data-testid="coverage-type-filter" class="coverage-type-ms" />
       <IconField icon-position="left">
         <InputIcon class="pi pi-search" />
         <InputText v-model="search" size="small" placeholder="поиск по роли"
@@ -27,12 +28,13 @@
       </IconField>
       <Button v-if="hasFilters" label="Сбросить фильтры" icon="pi pi-filter-slash"
               size="small" text severity="secondary" data-testid="coverage-reset-filters"
-              @click="statusFilter = null; typeFilter = null; search = ''" />
+              @click="statusFilter = null; typeFilter = []; search = ''" />
       <span class="muted small">строк: {{ filtered.length }} из {{ withKeys.length }}</span>
     </div>
 
     <!-- единый фреймворк таблиц: масс-действия — MassActionBar (попап внизу) -->
-    <MassActionBar :count="selected.size" @clear="selection = []">
+    <MassActionBar :count="selected.size" @clear="clearSelection">
+      <span v-if="hiddenSelected > 0" class="mass-note">в т.ч. скрыто фильтром: {{ hiddenSelected }}</span>
       <Button label="Выгрузить для разметки" icon="pi pi-download" size="small"
               text data-testid="coverage-export-btn" @click="exportSelected" />
       <Button v-if="canExclude" label="Исключить из квалификации" icon="pi pi-ban"
@@ -43,11 +45,24 @@
               @click="includeSelected" />
     </MassActionBar>
 
-    <DataTable :value="filtered" v-model:selection="selection" data-key="key" size="small"
+    <DataTable :value="filtered" data-key="key" size="small"
                data-testid="coverage-table" style="max-width: 1080px"
                paginator :rows="20" :rows-per-page-options="[20, 50, 100]"
                :total-records="filtered.length" current-page-report-template="{first}–{last} из {totalRecords}">
-      <Column selection-mode="multiple" />
+      <!-- свой чекбокс-слой: выбор по ключам переживает фильтр/страницу; события
+           DataTable-селекции (update:selection/row-select) unreliable при смене
+           :value (инцидент 17.11) — полный контроль вместо магии -->
+      <Column>
+        <template #header>
+          <Checkbox :model-value="allVisibleChecked" binary
+                    :indeterminate="someVisibleChecked && !allVisibleChecked"
+                    data-testid="coverage-check-all" @update:model-value="toggleAllVisible" />
+        </template>
+        <template #body="{ data: r }">
+          <Checkbox :model-value="selectedKeys.has(r.key)" binary
+                    :data-testid="`coverage-check-${r.key}`" @update:model-value="() => toggleKey(r.key)" />
+        </template>
+      </Column>
       <Column header="Тип">
         <template #body="{ data: r }">
           <Tag :value="r.type_code"
@@ -86,6 +101,8 @@ import DataTable from 'primevue/datatable'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
+import Checkbox from 'primevue/checkbox'
+import MultiSelect from 'primevue/multiselect'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { competenciesApi, trackAction } from '../api/endpoints'
@@ -98,10 +115,13 @@ const toast = useToast()
 const confirmDialog = useAppConfirm()
 
 const rows = ref<SchemasCoverageRow[]>([])
-const selection = ref<(SchemasCoverageRow & { key: string })[]>([])
 const statusFilter = ref<string | null>(null)
-const typeFilter = ref<string | null>(null)
+const typeFilter = ref<string[]>([])
 const search = ref('')
+/** Выбор живёт по ключам пар: переживает смену фильтра/страницы (PrimeVue
+ *  DataTable выкидывает из v-model строки вне текущего :value — инцидент 17.11:
+ *  выбор тихо терялся, выгрузка уходила усечённой). */
+const selectedKeys = ref<Set<string>>(new Set())
 
 const withKeys = computed(() =>
   rows.value.map((r) => ({ ...r, key: `${r.type_code}:${r.specialty}` })))
@@ -117,15 +137,46 @@ const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   return withKeys.value.filter((r) =>
     (!statusFilter.value || r.status === statusFilter.value)
-    && (!typeFilter.value || r.type_code === typeFilter.value)
+    && (!typeFilter.value.length || typeFilter.value.includes(r.type_code))
     && (!q || r.specialty.toLowerCase().includes(q)))
 })
-const selected = computed(() => new Set(selection.value.map((r) => r.key)))
-const selectedPairs = computed(() => selection.value.map((r) => r.key))
-const canExclude = computed(() => selection.value.some((r) => !r.excluded))
-const canInclude = computed(() => selection.value.some((r) => r.excluded))
+const selected = computed(() => selectedKeys.value)
+const selectedPairs = computed(() => [...selectedKeys.value])
+const selectedRows = computed(() =>
+  withKeys.value.filter((r) => selectedKeys.value.has(r.key)))
+const visibleChecked = computed(() =>
+  filtered.value.filter((r) => selectedKeys.value.has(r.key)))
+const hiddenSelected = computed(() =>
+  selectedRows.value.length - visibleChecked.value.length)
+const canExclude = computed(() => selectedRows.value.some((r) => !r.excluded))
+const canInclude = computed(() => selectedRows.value.some((r) => r.excluded))
+
+const allVisibleChecked = computed(() =>
+  filtered.value.length > 0 && filtered.value.every((r) => selectedKeys.value.has(r.key)))
+const someVisibleChecked = computed(() =>
+  filtered.value.some((r) => selectedKeys.value.has(r.key))
+  && !allVisibleChecked.value)
+
+function toggleKey(key: string) {
+  const next = new Set(selectedKeys.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  selectedKeys.value = next
+}
+function toggleAllVisible(checked: boolean) {
+  const next = new Set(selectedKeys.value)
+  for (const r of filtered.value) {
+    if (checked) next.add(r.key)
+    else next.delete(r.key)
+  }
+  selectedKeys.value = next
+}
+function selectKey(key: string) { toggleKey(key) }
+function clearSelection() {
+  selectedKeys.value = new Set()
+}
 const hasFilters = computed(() =>
-  statusFilter.value !== null || typeFilter.value !== null || search.value.trim() !== '')
+  statusFilter.value !== null || typeFilter.value.length > 0 || search.value.trim() !== '')
 
 function statusLabel(s: string): string {
   return ({ active: 'активна', draft: 'черновик', missing: 'нет схемы',
@@ -158,7 +209,7 @@ async function exportSelected() {
 
 /** Подтверждение с объектом действия: пары до 5 имён, дальше счётчик. */
 async function confirmPairs(header: string, actionLabel: string): Promise<boolean> {
-  const names = selection.value.map((r) => `${r.type_code}: ${r.specialty}`)
+  const names = selectedRows.value.map((r) => `${r.type_code}: ${r.specialty}`)
   const list = names.slice(0, 5).join(', ') + (names.length > 5 ? ` … (всего ${names.length})` : '')
   const ok = await confirmDialog.ask({
     header,
@@ -174,18 +225,18 @@ async function confirmPairs(header: string, actionLabel: string): Promise<boolea
 async function excludeSelected() {
   if (!(await confirmPairs('Исключить из квалификации?', 'Кого'))) return
   await competenciesApi.coverageExclude(
-    selection.value.filter((r) => !r.excluded).map((r) => r.key))
+    selectedRows.value.filter((r) => !r.excluded).map((r) => r.key))
   toast.add({ severity: 'success', summary: 'Исключено из квалификации', life: 4000 })
-  selection.value = []
+  clearSelection()
   await load()
 }
 
 async function includeSelected() {
   if (!(await confirmPairs('Вернуть в квалификацию?', 'Кого'))) return
   await competenciesApi.coverageInclude(
-    selection.value.filter((r) => r.excluded).map((r) => r.key))
+    selectedRows.value.filter((r) => r.excluded).map((r) => r.key))
   toast.add({ severity: 'success', summary: 'Возвращено в квалификацию', life: 4000 })
-  selection.value = []
+  clearSelection()
   await load()
 }
 </script>
@@ -194,6 +245,8 @@ async function includeSelected() {
 .toolbar { margin-bottom: 10px; }
 .filters { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
 .muted { color: #64748b; }
+.mass-note { font-size: 0.8rem; opacity: 0.85; margin-right: 4px; }
+.coverage-type-ms { min-width: 140px; }
 .mass-bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; margin-bottom: 10px;
             border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; flex-wrap: wrap; }
 .small { font-size: 0.82rem; }

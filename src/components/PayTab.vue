@@ -13,7 +13,7 @@
     <Card style="margin-top: 12px; max-width: 760px">
       <template #title>История изменений</template>
       <template #content>
-        <DataTable v-if="salaryHistory.length" :value="salaryHistory" size="small">
+        <DataTable v-if="salaryHistory.length" :value="salaryHistory" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
           <Column field="date" header="Дата" sortable />
           <Column field="salary" header="Оклад">
             <template #body="{ data: h }">{{ h.salary.toLocaleString('ru') }} ₽</template>

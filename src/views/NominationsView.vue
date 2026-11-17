@@ -6,7 +6,7 @@
       <Button label="Экспорт XLSX" severity="secondary" @click="exportXlsx" />
       <span class="muted">Список к подаче до 4 сентября</span>
     </div>
-    <DataTable :value="nominations" size="small" stripedRows>
+    <DataTable :value="nominations" size="small" stripedRows paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
       <Column field="employee" header="Сотрудник" />
       <Column field="grade" header="Грейд" />
       <Column field="salary" header="Оклад">

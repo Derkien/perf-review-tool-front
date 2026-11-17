@@ -65,7 +65,7 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
     await settle()
     const vm: any = w.vm
-    vm.selection = vm.withKeys.filter((r: any) => r.status !== 'excluded')
+    vm.withKeys.filter((r: any) => r.status !== 'excluded').forEach((r: any) => vm.toggleKey(r.key))
     await settle()
     expect(w.find('.mass-bar').exists()).toBe(true)  // единая плавающая панель MassActionBar
     await vm.exportSelected()
@@ -77,7 +77,7 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
     await settle()
     const vm: any = w.vm
-    vm.selection = vm.withKeys.slice(0, 2)
+    vm.withKeys.slice(0, 2).forEach((r: any) => vm.toggleKey(r.key))
     await settle()
     const saving = vm.excludeSelected()
     await settle()
@@ -91,7 +91,7 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     expect(competenciesApi.coverageExclude).toHaveBeenCalledWith(['hard:backend', 'hard:qa'])
 
     // отмена: запрос не уходит
-    vm.selection = vm.withKeys.slice(0, 1)
+    vm.withKeys.slice(0, 1).forEach((r: any) => vm.toggleKey(r.key))
     const cancelled = vm.excludeSelected()
     await settle()
     useAppConfirm().state.value?.resolve(null) // отмена
@@ -107,7 +107,7 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     await settle()
     // масс-действия — единая плавающая панель (тот же MassActionBar, что у сотрудников)
     const vm: any = w.vm
-    vm.selection = vm.withKeys.slice(0, 1)
+    vm.withKeys.slice(0, 1).forEach((r: any) => vm.toggleKey(r.key))
     await settle()
     expect(w.find('.mass-bar').exists()).toBe(true)
     expect(w.find('.mass-bar [data-testid="coverage-export-btn"]').exists()).toBe(true)
@@ -117,12 +117,14 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     expect(status.text()).toContain('все статусы')
     expect(w.find('[data-testid="coverage-reset-filters"]').exists()).toBe(false)
     vm.statusFilter = 'missing'
-    vm.search = 'qa'
+    vm.typeFilter = ['hard']
+    vm.search = 'q'
     await settle()
     expect(w.find('[data-testid="coverage-reset-filters"]').exists()).toBe(true)
     await w.find('[data-testid="coverage-reset-filters"]').trigger('click')
     await settle()
     expect(vm.statusFilter).toBe(null)
+    expect(vm.typeFilter).toEqual([])
     expect(vm.search).toBe('')
     expect(vm.filtered.length).toBe(3)
 
@@ -131,11 +133,48 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     expect(w.text()).toContain('3 из 3')
   })
 
+  it('регресс 17.11: выбор переживает смену фильтра — выгрузка полным набором', async () => {
+    const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
+    await settle()
+    const vm: any = w.vm
+    // выбрал hard-строку при фильтре hard
+    vm.typeFilter = ['hard']
+    await settle()
+    vm.toggleKey(vm.filtered[0].key)                      // hard:backend
+    // сменил фильтр на soft: DataTable сбрасывает видимый выбор (отдал пустое) —
+    // ключ hard:backend обязан выжить
+    vm.typeFilter = ['soft']
+    await settle()
+    vm.toggleKey(vm.filtered[0].key)                       // + soft-строка (свой чекбокс —
+                                                           //  смена фильтра выбор не трогает)
+    expect(vm.selectedPairs).toEqual(['hard:backend', 'soft:Разработчик бэкенд'])
+    expect(vm.hiddenSelected).toBe(1)                      // hard скрыт фильтром
+    await vm.exportSelected()
+    await settle()
+    expect(competenciesApi.coverageExport).toHaveBeenCalledWith(
+      ['hard:backend', 'soft:Разработчик бэкенд'])         // ПОЛНЫЙ набор, не усечённый
+  })
+
+  it('клик по чекбоксу строки (свой слой) — выбор регистрируется без магии DataTable', async () => {
+    const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
+    await settle()
+    const cb = w.find('[data-testid="coverage-check-hard:backend"]')
+    expect(cb.exists()).toBe(true)
+    await cb.get('input').trigger('change')
+    await settle()
+    const vm: any = w.vm
+    expect(vm.selectedKeys.has('hard:backend')).toBe(true)
+    // повторный клик снимает
+    await cb.get('input').trigger('change')
+    await settle()
+    expect(vm.selectedKeys.has('hard:backend')).toBe(false)
+  })
+
   it('возврат: только исключённые выбранные уходят в include', async () => {
     const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
     await settle()
     const vm: any = w.vm
-    vm.selection = vm.withKeys // все, включая excluded soft
+    vm.withKeys.forEach((r: any) => vm.toggleKey(r.key)) // все, включая excluded soft
     await settle()
     const saving = vm.includeSelected()
     await settle()

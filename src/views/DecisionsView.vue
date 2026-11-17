@@ -20,7 +20,7 @@
         </div>
       </template>
     </Card>
-    <DataTable :value="decisions" size="small" scrollable edit-mode="cell" stripedRows>
+    <DataTable :value="decisions" size="small" scrollable edit-mode="cell" stripedRows paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
       <Column field="employee" header="Сотрудник" />
       <Column field="grade" header="Грейд" />
       <Column field="salary" header="Оклад">

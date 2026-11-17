@@ -15,7 +15,7 @@
             Тренд: <b :style="{ color: effTrend.color }">{{ effTrend.arrow }} {{ effTrend.text }}</b>
             ({{ effTrend.from }} → {{ effTrend.to }}, {{ effTrend.delta > 0 ? '+' : '' }}{{ effTrend.delta }})
           </div>
-          <DataTable :value="[...effRows].reverse()" size="small" style="max-width: 360px">
+          <DataTable :value="[...effRows].reverse()" size="small" style="max-width: 360px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
             <Column field="month" header="Месяц" />
             <Column field="value" header="Result" />
           </DataTable>
@@ -25,7 +25,7 @@
       <Card v-if="effParams.length" style="margin-top: 12px; max-width: 820px">
         <template #title>Аналитика параметров</template>
         <template #content>
-          <DataTable :value="effParams" size="small">
+          <DataTable :value="effParams" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
             <Column header="Параметр">
               <template #body="{ data: p }">{{ paramLabel(p.code) }}</template>
             </Column>
@@ -59,7 +59,7 @@
       <Card style="max-width: 640px">
         <template #title>Светофор</template>
         <template #content>
-          <DataTable :value="[...trafficRows].reverse()" size="small" style="max-width: 320px">
+          <DataTable :value="[...trafficRows].reverse()" size="small" style="max-width: 320px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
             <Column field="month" header="Дата" />
             <Column header="Значение">
               <template #body="{ data: t }">

@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <DataTable :value="groups" data-key="key" v-model:expanded-rows="expandedRows" size="small">
+    <DataTable :value="groups" data-key="key" v-model:expanded-rows="expandedRows" size="small" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
       <Column expander style="width: 3rem" />
       <Column header="Тип">
         <template #body="{ data: g }">
@@ -56,6 +56,7 @@
       <template #expansion="{ data: g }">
         <div class="versions-block">
           <DataTable :value="g.versions" size="small" class="versions-table"
+                     paginator :rows="20" :rows-per-page-options="[20, 50, 100]"
                      :row-class="(v: SchemaVersion) => v.id === selectedId ? 'row-selected' : ''"
                      @row-click="selectVersion(g, $event.data)">
             <Column header="Версия">
@@ -132,7 +133,7 @@
       <Button label="Добавить тип" icon="pi pi-plus" size="small" data-testid="type-create-btn"
               @click="openTypeCreate" />
     </div>
-    <DataTable :value="registryTypes" size="small" data-testid="types-table" style="max-width: 720px">
+    <DataTable :value="registryTypes" size="small" data-testid="types-table" style="max-width: 720px" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
       <Column field="code" header="Код" />
       <Column field="title" header="Название" />
       <Column field="order_no" header="Порядок" />
@@ -158,7 +159,7 @@
         <b>черновики</b> изменившихся пар — активные матрицы не изменятся до активации.
       </p>
       <DataTable v-if="uploadPreview" :value="uploadPreview.pairs || []" size="small"
-                 data-testid="upload-pairs">
+                 data-testid="upload-pairs" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
         <Column header="Тип">
           <template #body="{ data: p }">
             <Tag :value="p.type_code"

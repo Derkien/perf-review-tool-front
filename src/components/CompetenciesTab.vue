@@ -116,7 +116,7 @@
       Клик по строке — добавить/убрать сессию на паутинку (до двух сравнений).
     </p>
     <DataTable :value="visibleSessions" size="small" class="history-table"
-               :row-class="sessionRowClass" @row-click="toggleCompare($event.data)">
+               :row-class="sessionRowClass" @row-click="toggleCompare($event.data)" paginator :rows="20" :rows-per-page-options="[20, 50, 100]">
       <Column header="">
         <template #body="{ data: s }">
           <i v-if="s.assessor_kind === 'manager'" class="pi"
