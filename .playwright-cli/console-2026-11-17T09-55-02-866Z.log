@@ -1,2 +1,0 @@
-[   72343ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8081/api/v1/notifications/unread-count:1
-[  132337ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8081/api/v1/notifications/unread-count:1
