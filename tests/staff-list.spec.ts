@@ -159,7 +159,7 @@ describe('StaffListView (fixes8: вёрстка и поведение)', () => {
     await new Promise((r) => setTimeout(r, 20))
     expect(w.find('.mass-bar').exists()).toBe(false)
     const vm: any = w.vm
-    vm.selected = vm.rows
+    vm.toggleAll(true)
     await nextTick()
     expect(w.find('.mass-bar').exists()).toBe(true)
     expect(w.find('.mass-bar').text()).toContain('2')
@@ -181,6 +181,29 @@ describe('StaffListView (fixes8: вёрстка и поведение)', () => {
 
 
 
+describe('StaffListView: выбор по ключам AppTable (перевод срезов 17.11)', () => {
+  it('выбор переживает смену данных; select-all дорабатывает выбор, а не сбрасывает', async () => {
+    const w = mountPage()
+    const vm: any = w.vm
+    await new Promise((r) => setTimeout(r, 20))
+    expect(vm.baseRows.length).toBeGreaterThan(0)
+    vm.toggleKey(String(vm.baseRows[0].id))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(vm.selectedKeys.size).toBe(1)
+    // смена фильтра не трогает ключи (жалоба «не вижу, что выбрал» — закрыта)
+    vm.q = 'несуществующее'
+    await new Promise((r) => setTimeout(r, 20))
+    expect(vm.selectedKeys.size).toBe(1)
+    // select-all ДОБАВЛЯЕТ все видимые к уже выбранным
+    vm.q = ''
+    await new Promise((r) => setTimeout(r, 20))
+    vm.toggleAll(true)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(vm.selectedKeys.size).toBe(vm.baseRows.length)
+    expect([...vm.selectedKeys]).toContain(String(vm.baseRows[0].id))
+  })
+})
+
 describe('StaffListView: масс-действия из плавающей панели (клик → запрос)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -197,7 +220,7 @@ describe('StaffListView: масс-действия из плавающей па�
   async function mountAndSelect(w: any) {
     await new Promise((r) => setTimeout(r, 20))
     const vm: any = w.vm
-    vm.selected = vm.baseRows
+    vm.baseRows.forEach((e: any) => vm.toggleKey(String(e.id)))
     await nextTick()
     return vm
   }
@@ -293,7 +316,7 @@ describe('StaffListView: панель в фильтре «Исключены»',
     const vm: any = w.vm
     vm.participantFilter = 'excluded'
     vm.excludedIds = new Set(vm.baseRows.map((e: any) => e.id)) // все исключены
-    vm.selected = [...vm.baseRows]
+    vm.baseRows.forEach((e: any) => vm.toggleKey(String(e.id)))
     await nextTick()
     const bar = w.find('.mass-bar')
     expect(bar.exists()).toBe(true)
@@ -307,7 +330,7 @@ describe('StaffListView: панель в фильтре «Исключены»',
     await new Promise((r) => setTimeout(r, 20))
     const vm: any = w.vm
     vm.excludedIds = new Set([vm.baseRows[0].id]) // первый исключён, второй нет
-    vm.selected = [...vm.baseRows]
+    vm.baseRows.forEach((e: any) => vm.toggleKey(String(e.id)))
     await nextTick()
     const bar = w.find('.mass-bar')
     expect(bar.text()).toContain('Исключить из цикла')

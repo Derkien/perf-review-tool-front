@@ -25,10 +25,12 @@
     </label>
   </div>
 
-  <AppTable :value="items" size="small" stripedRows data-key="id" v-model:selection="selected"
-             selection-mode="multiple" :loading="loading" lazy :rows="pageSize" :first="(page - 1) * pageSize"
+  <AppTable :value="items" size="small" stripedRows row-key="id" table-testid="assignments"
+             :selected-keys="selectedKeys" :loading="loading"
+             @toggle-key="toggleKey" @toggle-all="toggleAll"
+             lazy :rows="pageSize" :paginator="total > pageSize" :total-records="total"
+             :first="(page - 1) * pageSize"
              @page="onPage($event.page + 1)" data-testid="assignments-table">
-    <Column selection-mode="multiple" style="width: 34px" />
     <Column header="Тип">
       <template #body="{ data: a }">{{ a.kind_title }}</template>
     </Column>
@@ -71,21 +73,17 @@
     </Column>
   </AppTable>
 
-  <!-- плавающая панель массовых действий: применимы только открытые из выбранных -->
-  <Transition name="mass-bar">
-    <div v-if="selected.length > 0" class="mass-bar" role="toolbar" aria-label="Действия с выбранными заданиями">
-      <span class="mass-count">выбрано: <b>{{ selected.length }}</b>
-        <span v-if="applicable.length !== selected.length" class="muted-small">
-          (применимы: {{ applicable.length }})
-        </span>
-      </span>
-      <Button label="Напомнить выбранным" size="small" severity="info" text :disabled="!applicable.length"
-              :loading="busy" data-testid="bulk-remind" @click="bulk('remind')" />
-      <Button label="Отменить выбранные" size="small" severity="danger" text :disabled="!applicable.length"
-              :loading="busy" data-testid="bulk-cancel" @click="bulk('cancel')" />
-      <Button label="Снять выбор" size="small" text @click="selected = []" />
-    </div>
-  </Transition>
+  <!-- масс-действия — единый MassActionBar (тёмная панель внизу); применимы только
+       открытые из выбранных (lazy-страница: ключи вне страницы неактуальны) -->
+  <MassActionBar :count="selectedKeys.size" :busy="busy" @clear="clearSelection">
+    <span v-if="applicable.length !== selectedKeys.size" class="mass-note">
+      применимы: {{ applicable.length }}
+    </span>
+    <Button label="Напомнить выбранным" size="small" severity="info" text :disabled="!applicable.length"
+            :loading="busy" data-testid="bulk-remind" @click="bulk('remind')" />
+    <Button label="Отменить выбранные" size="small" severity="danger" text :disabled="!applicable.length"
+            :loading="busy" data-testid="bulk-cancel" @click="bulk('cancel')" />
+  </MassActionBar>
 </template>
 
 <script setup lang="ts">
@@ -102,6 +100,7 @@ import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import AssignmentGuide from './AssignmentGuide.vue'
+import MassActionBar from './MassActionBar.vue'
 import AssignmentRowActions from './AssignmentRowActions.vue'
 import { adminAssignmentsApi, reassessmentApi, type AssignmentDto,
   type AssignmentProgressMatrix } from '../api/endpoints'
@@ -134,7 +133,26 @@ const q = ref('')
 const launchId = ref<number | null>(null)
 const overdueOnly = ref(false)
 const items = ref<AssignmentDto[]>([])
-const selected = ref<AssignmentDto[]>([])
+/** Выбор по ключам (AppTable); lazy-режим: после загрузки страницы оставляем
+ *  только ключи актуальной страницы (семантика прежнего v-model). */
+const selectedKeys = ref<Set<string>>(new Set())
+
+function toggleKey(key: string) {
+  const next = new Set(selectedKeys.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  selectedKeys.value = next
+}
+function toggleAll(checked: boolean) {
+  const next = new Set(selectedKeys.value)
+  for (const a of items.value) {
+    const key = String(a.id)
+    if (checked) next.add(key)
+    else next.delete(key)
+  }
+  selectedKeys.value = next
+}
+function clearSelection() { selectedKeys.value = new Set() }
 const total = ref(0)
 const page = ref(1)
 const pageSize = 50
@@ -142,7 +160,8 @@ const loading = ref(false)
 const busy = ref(false)
 
 const isOpen = (a: AssignmentDto) => ['pending', 'notified'].includes(a.status)
-const applicable = computed(() => selected.value.filter(isOpen))
+const applicable = computed(() =>
+  items.value.filter((a) => isOpen(a) && selectedKeys.value.has(String(a.id))))
 
 let debounce: ReturnType<typeof setTimeout> | undefined
 function debounced() {
@@ -165,7 +184,8 @@ async function load() {
     })
     items.value = res.items
     total.value = res.total
-    selected.value = selected.value.filter((s) => items.value.some((i) => i.id === s.id))
+    const pageIds = new Set(res.items.map((i) => String(i.id)))
+    selectedKeys.value = new Set([...selectedKeys.value].filter((k) => pageIds.has(k)))
   } finally {
     loading.value = false
   }
@@ -249,7 +269,7 @@ async function bulk(action: 'cancel' | 'remind') {
     const res = await adminAssignmentsApi.bulk(action, rows.map((r) => r.id))
     toast.add({ severity: 'success',
                 summary: `Применено: ${res.applied} из ${res.requested}`, life: 4000 })
-    selected.value = []
+    clearSelection()
     await load()
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
@@ -269,16 +289,7 @@ onMounted(() => { load().catch(() => undefined) })
   border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px 8px; background: #fff; }
 .mine-toggle { display: flex; gap: 6px; align-items: center; font-size: .85rem; white-space: nowrap; }
 .w100 { width: 100%; }
+.mass-note { font-size: 0.8rem; opacity: 0.85; margin-right: 4px; }
 .ulink { color: #2563eb; cursor: pointer; }
 .ulink:hover { text-decoration: underline; }
-/* плавающая панель над таблицей — паттерн MassActionBar (StaffListView) */
-.mass-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px; z-index: 30;
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  background: #0f172a; color: #e2e8f0; border-radius: 14px;
-  padding: 10px 16px; box-shadow: 0 12px 32px rgba(15, 23, 42, .35); }
-.mass-count { font-size: .85rem; }
-.muted-small { font-size: .75rem; opacity: .8; }
-.mass-bar :deep(.p-button) { color: #e2e8f0; }
-.mass-bar-enter-active, .mass-bar-leave-active { transition: all .18s ease; }
-.mass-bar-enter-from, .mass-bar-leave-to { opacity: 0; transform: translateX(-50%) translateY(12px); }
 </style>

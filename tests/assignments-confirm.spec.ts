@@ -130,10 +130,12 @@ describe('модалки подтверждения контура задани�
     setAuth(['ROLE_U_ASSIGNMENTS'])
     const w = mount(RegistryWithDialog, { global: { stubs: { teleport: true } } })
     await settle()
-    // выбрать обе строки чекбоксами таблицы
-    const boxes = w.findAll('input[type="checkbox"]')
-    for (const b of boxes) await b.setValue(true)
-    await settle()
+    // выбрать обе строки чекбоксами таблицы (чекбоксы строк AppTable — не фильтры!)
+    // чекбоксы перерендериваются после каждого выбора — ищем заново
+    for (const id of [21, 22]) {
+      await w.find(`[data-testid="assignments-check-${id}"] input`).trigger('change')
+      await settle()
+    }
     await w.find('[data-testid="bulk-cancel"]').trigger('click')
     await nextTick()
 

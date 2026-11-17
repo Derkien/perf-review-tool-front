@@ -1,5 +1,5 @@
 <template>
-  <div class="page" :class="{ 'has-mass-bar': selected.length > 0 }">
+  <div class="page" :class="{ 'has-mass-bar': selectedKeys.size > 0 }">
     <div class="head-row">
       <h1 style="margin:0">Сотрудники</h1>
       <Select v-if="canManageCycle" v-model="cycleId" :options="cycleOptions"
@@ -26,9 +26,9 @@
                     @change="applyParticipantFilter" />
     </div>
 
-    <AppTable v-model:selection="selected" :value="rows" size="small"
-               scrollable stripedRows data-key="id" selection-mode="multiple">
-      <Column selection-mode="multiple" style="width: 34px" />
+    <AppTable :value="rows" size="small" row-key="id" table-testid="staff"
+               :selected-keys="selectedKeys" scrollable stripedRows
+               @toggle-key="toggleKey" @toggle-all="toggleAll">
       <Column field="full_name" header="ФИО" sortable>
         <template #body="{ data: e }">
           <!-- fixes9: ФИО — текст без ссылки; переход в профиль только иконкой в «Действиях» -->
@@ -53,7 +53,7 @@
                            :can-send="auth.can('ROLE_C_PEER_ASSIGNMENT')"
                            :send-window="sendWindow" :stage-label="activeStageLabel"
                            @profile="openCard(e)" @peers="peersFor = e"
-                           @notify="notifyTargets = [e]"
+                           @notify="notifyTargets = [e.id]"
                            @send="sendTo([e.id])"
                            @toggle-cycle="toggleCycleFor(e)" />
         </template>
@@ -62,17 +62,17 @@
 
     <!-- плавающая панель: кнопки по составу выбранных (исключённым не предлагают
          исключиться, участникам — вернуться) — меню непротиворечиво -->
-    <MassActionBar :count="selected.length" :busy="busy"
+    <MassActionBar :count="selectedKeys.size" :busy="busy"
                    :can-exclude="auth.can('ROLE_U_CYCLE_PARTICIPANTS') && hasIncludedInSelection"
                    :can-include="auth.can('ROLE_U_CYCLE_PARTICIPANTS') && hasExcludedInSelection"
                    :can-broadcast="auth.can('ROLE_C_CYCLE_BROADCAST') && hasIncludedInSelection"
                    :can-send="auth.can('ROLE_C_PEER_ASSIGNMENT') && hasIncludedInSelection"
                    :send-window="sendWindow" :stage-label="activeStageLabel"
-                   @exclude="excludeFrom(selected.map((e: any) => e.id))"
+                   @exclude="excludeFrom(selectedIds)"
                    @include="includeBack(excludedSelection)"
-                   @notify="notifyTargets = [...selected]"
-                   @send="sendTo(selected.map((e: any) => e.id))"
-                   @clear="selected = []" />
+                   @notify="notifyTargets = [...selectedIds]"
+                   @send="sendTo(selectedIds)"
+                   @clear="clearSelection" />
 
     <!-- масс-уведомление: пресет по стадии или свой текст -->
     <Dialog :visible="notifyTargets !== null" modal
@@ -133,14 +133,33 @@ const toast = useToast()
 const confirmDialog = useAppConfirm()
 const rows = ref<any[]>([])
 const baseRows = ref<any[]>([])
-const selected = ref<any[]>([])
+/** Выбор по ключам (AppTable): переживает фильтр поиска/специализации/грейда. */
+const selectedKeys = ref<Set<string>>(new Set())
+const selectedIds = computed(() => [...selectedKeys.value].map(Number))
+
+function toggleKey(key: string) {
+  const next = new Set(selectedKeys.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  selectedKeys.value = next
+}
+function toggleAll(checked: boolean) {
+  const next = new Set(selectedKeys.value)
+  for (const e of rows.value) {
+    const key = String(e.id)
+    if (checked) next.add(key)
+    else next.delete(key)
+  }
+  selectedKeys.value = next
+}
+function clearSelection() { selectedKeys.value = new Set() }
 const q = ref('')
 const group = ref<string | null>(null)
 const grade = ref<string | null>(null)
 const mineOnly = ref(false)
 const peersFor = ref<any>(null)
 const busy = ref(false)
-const notifyTargets = ref<any[] | null>(null)
+const notifyTargets = ref<number[] | null>(null)
 const notifyTemplate = ref('')
 const notifyText = ref('')
 const groups = ['backend', 'frontend', 'qa', 'ios', 'android', 'devops', 'management', 'other']
@@ -169,7 +188,7 @@ const cycleOptions = computed(() =>
 const cycleLabelOf = (id: number | null) =>
   cycles.value.find((c) => c.id === id)?.name || ''
 const notifyNames = computed(() =>
-  notifyTargets.value ? namesOf(notifyTargets.value.map((e: any) => e.id)) : '')
+  notifyTargets.value ? namesOf(notifyTargets.value) : '')
 
 const templateOptions = computed(() => {
   const stage = cycles.value.find((c) => c.id === cycleId.value)?.stage
@@ -204,13 +223,13 @@ function namesOf(ids: number[]): string {
 
 // для масс-возврата берём только реально исключённых из выбранных
 const excludedSelection = computed(() =>
-  selected.value.filter((e: any) => excludedIds.value.has(e.id)).map((e: any) => e.id))
+  selectedIds.value.filter((id) => excludedIds.value.has(id)))
 
 // контекст панели: состав выбора (факт) развязан с правами (каждое действие — своё право)
 const hasIncludedInSelection = computed(() =>
-  !!cycleId.value && selected.value.some((e: any) => !excludedIds.value.has(e.id)))
+  !!cycleId.value && selectedIds.value.some((id) => !excludedIds.value.has(id)))
 const hasExcludedInSelection = computed(() =>
-  !!cycleId.value && selected.value.some((e: any) => excludedIds.value.has(e.id)))
+  !!cycleId.value && selectedIds.value.some((id) => excludedIds.value.has(id)))
 
 let timer: number | undefined
 function debounced() { clearTimeout(timer); timer = window.setTimeout(load, 300) }
@@ -241,7 +260,7 @@ async function reloadParticipants() {
 }
 
 function onCycleChange() {
-  selected.value = []
+  clearSelection()
   excludedIds.value = new Set()
   participantFilter.value = 'included'
   reloadParticipants()
@@ -296,7 +315,7 @@ async function excludeFrom(ids: number[]) {
   await reviewsApi.excludeParticipants(cycleId.value, ids, note)
   trackAction('/staff', { action: 'cycle-exclude', cycle_id: cycleId.value, count: ids.length })
   toast.add({ severity: 'success', summary: `Исключено: ${ids.length}`, life: 4000 })
-  selected.value = []
+  clearSelection()
   await reloadParticipants()
 }
 
@@ -305,7 +324,7 @@ async function includeBack(ids: number[]) {
   const r = await reviewsApi.includeParticipants(cycleId.value, ids)
   trackAction('/staff', { action: 'cycle-include', cycle_id: cycleId.value, count: ids.length })
   toast.add({ severity: 'success', summary: `Возвращено: ${r.included}`, life: 4000 })
-  selected.value = []
+  clearSelection()
   await reloadParticipants()
 }
 
@@ -343,7 +362,7 @@ async function sendTo(ids: number[]) {
       severity: 'success', life: 6000,
       summary: `Заданий создано: ${r.created}, уведомлено: ${r.notified} (цикл «${cycle.name}»)`,
     })
-    selected.value = []
+    clearSelection()
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
@@ -354,7 +373,7 @@ async function sendNotify() {
   busy.value = true
   try {
     const r = await reviewsApi.broadcast(cycleId.value, {
-      employee_ids: notifyTargets.value.map((e: any) => e.id),
+      employee_ids: notifyTargets.value,
       template: notifyTemplate.value,
       text: notifyText.value,
     })
@@ -364,7 +383,7 @@ async function sendNotify() {
     notifyTargets.value = null
     notifyText.value = ''
     notifyTemplate.value = ''
-    selected.value = []
+    clearSelection()
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: errMsg(e), life: 8000 })
   } finally { busy.value = false }
