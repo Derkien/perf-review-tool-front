@@ -1,21 +1,22 @@
 <template>
   <Transition name="mass-bar">
-    <div v-if="count > 0" class="mass-bar" role="toolbar"
-         aria-label="Действия с выбранными сотрудниками">
+    <div v-if="count > 0" class="mass-bar" role="toolbar" aria-label="Действия с выбранными">
       <span class="mass-count">выбрано: <b>{{ count }}</b></span>
-      <!-- контекстное меню: кнопки только те, что применимы к составу выбранных -->
-      <Button v-if="canExclude" label="Исключить из цикла" size="small" severity="danger"
-              text :loading="busy" @click="$emit('exclude')" />
-      <Button v-if="canInclude" label="Вернуть в цикл" size="small" severity="success"
-              text :loading="busy" @click="$emit('include')" />
-      <Button v-if="canBroadcast" label="Уведомить" size="small" severity="info" text
-              :loading="busy" @click="$emit('notify')" />
-      <Button v-if="canSend" label="Отправить задания на оценку" size="small"
-              severity="secondary" :disabled="!sendWindow" :loading="busy"
-              v-tooltip.top="sendWindow
-                ? 'По итоговому набору пиров: новые задания + напоминания несдавшим'
-                : `Окно стадий закрыто (${stageLabel || '—'})`"
-              @click="$emit('send')" />
+      <!-- единый фреймворк таблиц: слот действий; без слота — домен участников цикла -->
+      <slot>
+        <Button v-if="canExclude" label="Исключить из цикла" size="small" severity="danger"
+                text :loading="busy" @click="$emit('exclude')" />
+        <Button v-if="canInclude" label="Вернуть в цикл" size="small" severity="success"
+                text :loading="busy" @click="$emit('include')" />
+        <Button v-if="canBroadcast" label="Уведомить" size="small" severity="info" text
+                :loading="busy" @click="$emit('notify')" />
+        <Button v-if="canSend" label="Отправить задания на оценку" size="small"
+                severity="secondary" :disabled="!sendWindow" :loading="busy"
+                v-tooltip.top="sendWindow
+                  ? 'По итоговому набору пиров: новые задания + напоминания несдавшим'
+                  : `Окно стадий закрыто (${stageLabel || '—'})`"
+                @click="$emit('send')" />
+      </slot>
       <Button label="Снять выбор" size="small" text @click="$emit('clear')" />
     </div>
   </Transition>
@@ -26,14 +27,14 @@ import Button from 'primevue/button'
 
 defineProps<{
   count: number
-  busy: boolean
+  busy?: boolean
   /** среди выбранных есть участники цикла — доступны исключить/уведомить/отправить */
-  canExclude: boolean
+  canExclude?: boolean
   /** среди выбранных есть исключённые — доступен возврат */
-  canInclude: boolean
-  canBroadcast: boolean
-  canSend: boolean
-  sendWindow: boolean
+  canInclude?: boolean
+  canBroadcast?: boolean
+  canSend?: boolean
+  sendWindow?: boolean
   stageLabel?: string
 }>()
 

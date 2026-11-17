@@ -67,7 +67,7 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     const vm: any = w.vm
     vm.selection = vm.withKeys.filter((r: any) => r.status !== 'excluded')
     await settle()
-    expect(w.find('[data-testid="coverage-mass-bar"]').exists()).toBe(true)
+    expect(w.find('.mass-bar').exists()).toBe(true)  // единая плавающая панель MassActionBar
     await vm.exportSelected()
     await settle()
     expect(competenciesApi.coverageExport).toHaveBeenCalledWith(['hard:backend', 'hard:qa'])
@@ -99,6 +99,36 @@ describe('SchemasCoverageTab: таблица покрытия и масс-дей
     await cancelled
     await settle()
     expect(competenciesApi.coverageExclude).toHaveBeenCalledTimes(1)
+  })
+
+
+  it('единый фреймворк таблиц: MassActionBar-попап, фильтры с очисткой и сбросом, пагинатор', async () => {
+    const w = mount(SchemasCoverageTab, { global: { stubs: { teleport: true } } })
+    await settle()
+    // масс-действия — единая плавающая панель (тот же MassActionBar, что у сотрудников)
+    const vm: any = w.vm
+    vm.selection = vm.withKeys.slice(0, 1)
+    await settle()
+    expect(w.find('.mass-bar').exists()).toBe(true)
+    expect(w.find('.mass-bar [data-testid="coverage-export-btn"]').exists()).toBe(true)
+
+    // фильтры: селекты с placeholder «все …» и очисткой; кнопка сброса только при активных
+    const status = w.find('[data-testid="coverage-status-filter"]')
+    expect(status.text()).toContain('все статусы')
+    expect(w.find('[data-testid="coverage-reset-filters"]').exists()).toBe(false)
+    vm.statusFilter = 'missing'
+    vm.search = 'qa'
+    await settle()
+    expect(w.find('[data-testid="coverage-reset-filters"]').exists()).toBe(true)
+    await w.find('[data-testid="coverage-reset-filters"]').trigger('click')
+    await settle()
+    expect(vm.statusFilter).toBe(null)
+    expect(vm.search).toBe('')
+    expect(vm.filtered.length).toBe(3)
+
+    // пагинация из коробки: 20 строк на страницу, счётчик «N из M»
+    expect(w.find('[data-testid="coverage-table"] .p-paginator').exists()).toBe(true)
+    expect(w.text()).toContain('3 из 3')
   })
 
   it('возврат: только исключённые выбранные уходят в include', async () => {

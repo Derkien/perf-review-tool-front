@@ -3,43 +3,49 @@ import { login, USERS } from './helpers'
 
 /**
  * Панель «Покрытие схем» (change competency-schemas-coverage) через nginx
- * e2e-стенда: прямой URL + рефреш сохраняют раздел; таблица статусов; фильтр
- * «нет схемы»; масс-выгрузка файла разметки; исключение/возврат пары с
- * подтверждением. Дозаполненный скелет и roundtrip выгрузки покрыты pytest
- * (test_schemas_coverage.py).
+ * e2e-стенда: прямой URL + рефреш; единый фреймворк таблиц (пагинатор, фильтры
+ * со сбросом, масс-действия плавающей панелью MassActionBar); масс-выгрузка
+ * файла разметки по РАЗНОТИПНОЙ выборке (hard + soft — регресс жалобы 17.11);
+ * исключение/возврат пары. Roundtrip дозаполненного скелета — в pytest.
  */
 test.describe.serial('Покрытие схем', () => {
-  test('панель: URL/рефреш → фильтр → выгрузка → исключение → возврат', async ({ page }) => {
+  test('панель: URL/рефреш → фильтры/пагинация → разнотипная выгрузка → исключение → возврат', async ({ page }) => {
     await login(page, USERS.admin)
     await page.goto('/#/admin/schemas-coverage')
     await expect(page.getByTestId('coverage-table')).toBeVisible()
     await page.reload() // URL-роут сохраняет раздел
     await expect(page.getByTestId('coverage-table')).toBeVisible()
 
-    // таблица статусов: в демо-мире есть активные пары (android/qa/soft)
+    // единый фреймворк таблиц: пагинатор из коробки, фильтры очищаются и сбрасываются
+    await expect(page.locator('[data-testid="coverage-table"] .p-paginator')).toBeVisible()
     await expect(page.getByTestId('coverage-status-hard-android')).toHaveText('активна')
-    await page.screenshot({ path: 'e2e/screenshots/coverage/01-table.png', fullPage: true })
-
-    // фильтр «нет схемы» сужает таблицу
     await page.getByTestId('coverage-status-filter').click()
     await page.getByRole('option', { name: 'нет схемы' }).click()
-    const rows = page.getByTestId('coverage-table').locator('tbody tr')
-    const missingCount = await rows.count()
-    expect(missingCount).toBeGreaterThan(0)
+    const missingRows = page.getByTestId('coverage-table').locator('tbody tr')
+    expect(await missingRows.count()).toBeGreaterThan(0)
     await page.screenshot({ path: 'e2e/screenshots/coverage/02-filter-missing.png', fullPage: true })
+    await expect(page.getByTestId('coverage-reset-filters')).toBeVisible()
+    await page.getByTestId('coverage-reset-filters').click()
+    await expect(page.getByTestId('coverage-status-hard-android')).toBeVisible() // сброс вернул все
 
-    // масс-выгрузка: выбрать все «нет схемы» → файл разметки
-    await rows.first().locator('.p-checkbox-input').check()
-    await expect(page.getByTestId('coverage-mass-bar')).toBeVisible()
+    // РАЗНОТИПНАЯ выборка (регресс жалобы: hard + soft одновременно) → масс-выгрузка
+    const rows = page.getByTestId('coverage-table').locator('tbody tr')
+    const hardRow = rows.filter({ hasText: /^hard/ }).first()
+    const softRow = rows.filter({ hasText: /^soft/ }).first()
+    await hardRow.locator('.p-checkbox-input').check()
+    await softRow.locator('.p-checkbox-input').check()
+    const massBar = page.locator('.mass-bar') // единая плавающая панель внизу
+    await expect(massBar).toBeVisible()
+    await expect(massBar).toContainText('выбрано: 2')
+    await page.screenshot({ path: 'e2e/screenshots/coverage/01b-mass-bar.png', fullPage: true })
     const downloadPromise = page.waitForEvent('download')
-    await page.getByTestId('coverage-export-btn').click()
+    await massBar.getByTestId('coverage-export-btn').click()
     expect((await downloadPromise).suggestedFilename()).toBe('schemas-coverage.xlsx')
 
     // исключение выбранной пары с подтверждением → статус excluded → возврат
-    await page.getByTestId('coverage-exclude-btn').click()
+    await massBar.getByTestId('coverage-exclude-btn').click()
     const confirm = page.getByRole('dialog')
     await expect(confirm).toContainText('Исключить из квалификации')
-    await expect(confirm).toContainText('перестанут требоваться')
     await page.screenshot({ path: 'e2e/screenshots/coverage/03-exclude-confirm.png' })
     await confirm.getByRole('button', { name: 'Исключить' }).click()
     await expect(page.getByText('Исключено из квалификации')).toBeVisible()

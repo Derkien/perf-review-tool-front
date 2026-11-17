@@ -12,36 +12,41 @@
       </div>
     </div>
 
+    <!-- единый фреймворк таблиц: фильтры очищаются точкой в селекте (= «все»)
+         и кнопкой полного сброса; число активных фильтров видно -->
     <div class="filters">
       <Select v-model="statusFilter" :options="statusOptions" option-label="label"
-              option-value="value" placeholder="статус" size="small"
+              option-value="value" placeholder="все статусы" show-clear size="small"
               data-testid="coverage-status-filter" />
-      <Select v-model="typeFilter" :options="typeOptions" placeholder="тип" size="small"
-              data-testid="coverage-type-filter" />
+      <Select v-model="typeFilter" :options="typeOptions" placeholder="все типы"
+              show-clear size="small" data-testid="coverage-type-filter" />
       <IconField icon-position="left">
         <InputIcon class="pi pi-search" />
         <InputText v-model="search" size="small" placeholder="поиск по роли"
                    data-testid="coverage-search" />
       </IconField>
-      <span class="muted small">строк: {{ filtered.length }}</span>
+      <Button v-if="hasFilters" label="Сбросить фильтры" icon="pi pi-filter-slash"
+              size="small" text severity="secondary" data-testid="coverage-reset-filters"
+              @click="statusFilter = null; typeFilter = null; search = ''" />
+      <span class="muted small">строк: {{ filtered.length }} из {{ withKeys.length }}</span>
     </div>
 
-    <!-- масс-действия: панель по паттерну MassActionBar, кнопки применимы к составу выборки -->
-    <div v-if="selected.size" class="mass-bar" role="toolbar" data-testid="coverage-mass-bar">
-      <span>выбрано: <b>{{ selected.size }}</b></span>
-      <Button label="Выгрузить для разметки" icon="pi pi-download" size="small" text
-              data-testid="coverage-export-btn" @click="exportSelected" />
+    <!-- единый фреймворк таблиц: масс-действия — MassActionBar (попап внизу) -->
+    <MassActionBar :count="selected.size" @clear="selection = []">
+      <Button label="Выгрузить для разметки" icon="pi pi-download" size="small"
+              text data-testid="coverage-export-btn" @click="exportSelected" />
       <Button v-if="canExclude" label="Исключить из квалификации" icon="pi pi-ban"
               size="small" severity="danger" text data-testid="coverage-exclude-btn"
               @click="excludeSelected" />
       <Button v-if="canInclude" label="Вернуть в квалификацию" icon="pi pi-undo"
               size="small" severity="secondary" text data-testid="coverage-include-btn"
               @click="includeSelected" />
-      <Button label="Снять выбор" size="small" text @click="selection = []" />
-    </div>
+    </MassActionBar>
 
     <DataTable :value="filtered" v-model:selection="selection" data-key="key" size="small"
-               data-testid="coverage-table" style="max-width: 1080px">
+               data-testid="coverage-table" style="max-width: 1080px"
+               paginator :rows="20" :rows-per-page-options="[20, 50, 100]"
+               :total-records="filtered.length" current-page-report-template="{first}–{last} из {totalRecords}">
       <Column selection-mode="multiple" />
       <Column header="Тип">
         <template #body="{ data: r }">
@@ -87,6 +92,7 @@ import { competenciesApi, trackAction } from '../api/endpoints'
 import type { SchemasCoverageRow } from '../api/endpoints'
 import { useAppConfirm } from '../composables/useAppConfirm'
 import { useToast } from 'primevue/usetoast'
+import MassActionBar from './MassActionBar.vue'
 
 const toast = useToast()
 const confirmDialog = useAppConfirm()
@@ -118,6 +124,8 @@ const selected = computed(() => new Set(selection.value.map((r) => r.key)))
 const selectedPairs = computed(() => selection.value.map((r) => r.key))
 const canExclude = computed(() => selection.value.some((r) => !r.excluded))
 const canInclude = computed(() => selection.value.some((r) => r.excluded))
+const hasFilters = computed(() =>
+  statusFilter.value !== null || typeFilter.value !== null || search.value.trim() !== '')
 
 function statusLabel(s: string): string {
   return ({ active: 'активна', draft: 'черновик', missing: 'нет схемы',
