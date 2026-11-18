@@ -789,6 +789,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/competencies/assessment-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Assessment Session
+         * @description Запуск сессии ассесмента: гейты — открытая сессия, минимальный период
+         *     (90д настраивается), админ-исключение с причиной; снапшот matrix_ids —
+         *     активные схемы скоупа сотрудника на момент запуска.
+         */
+        post: operations["create_assessment_session_api_v1_competencies_assessment_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/assessment-sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assessment Session Detail
+         * @description Детали сессии: обе стороны, нормы, матрица соответствий зачёт/незачёт.
+         */
+        get: operations["assessment_session_detail_api_v1_competencies_assessment_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencies/employees/{employee_id}/assessment-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Assessment Sessions
+         * @description История сессий сотрудника парами: цель, статус, стороны, полнота X/Y.
+         */
+        get: operations["list_assessment_sessions_api_v1_competencies_employees__employee_id__assessment_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/competencies/employees/{employee_id}/dynamics": {
         parameters: {
             query?: never;
@@ -2791,6 +2853,8 @@ export interface components {
             item_id: number;
             /** Level */
             level: string;
+            /** Session Id */
+            session_id?: number | null;
         };
         /** MatrixOut */
         MatrixOut: {
@@ -2963,25 +3027,6 @@ export interface components {
             /** Employee Ids */
             employee_ids: number[];
         };
-        /** SessionIn */
-        SessionIn: {
-            /** Cycle Id */
-            cycle_id: number;
-            /** Group */
-            group: string;
-            /** Host User Id */
-            host_user_id: number;
-            /**
-             * Participant Ids
-             * @default []
-             */
-            participant_ids: number[];
-            /**
-             * Title
-             * @default
-             */
-            title: string;
-        };
         /** SessionPatch */
         SessionPatch: {
             /** Levels */
@@ -3066,6 +3111,39 @@ export interface components {
             item_id: number;
             /** Letter */
             letter: string;
+        };
+        /** SessionIn */
+        app__calibration__router__SessionIn: {
+            /** Cycle Id */
+            cycle_id: number;
+            /** Group */
+            group: string;
+            /** Host User Id */
+            host_user_id: number;
+            /**
+             * Participant Ids
+             * @default []
+             */
+            participant_ids: number[];
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+        };
+        /** SessionIn */
+        app__competencies__router__SessionIn: {
+            /** Deadline */
+            deadline?: string | null;
+            /** Employee Id */
+            employee_id: number;
+            /** Goal */
+            goal: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
         };
     };
     responses: never;
@@ -4095,7 +4173,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SessionIn"];
+                "application/json": components["schemas"]["app__calibration__router__SessionIn"];
             };
         };
         responses: {
@@ -4425,6 +4503,101 @@ export interface operations {
                 "application/json": components["schemas"]["VoteIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_assessment_session_api_v1_competencies_assessment_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["app__competencies__router__SessionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assessment_session_detail_api_v1_competencies_assessment_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_assessment_sessions_api_v1_competencies_employees__employee_id__assessment_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

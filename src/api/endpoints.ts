@@ -458,6 +458,7 @@ export const competenciesApi = {
   },
   async createMark(body: {
     employee_id: number; item_id: number; level: string
+    session_id?: number
     assessed_on?: string | null; comment?: string; ipr_note?: string | null
     assessor_kind?: 'self' | 'manager'
   }): Promise<{ id: number; updated: boolean }> {
@@ -543,6 +544,29 @@ export const competenciesApi = {
     if (error) raise(error, '/competencies/schemas/coverage')
     return data as never
   },
+  /** Сессии ассесмента (change 3): запуск с целью и гейтами. */
+  async createSession(employeeId: number, goal: string, reason: string = ''): Promise<{ id: number; goal: string; deadline: string; matrix_ids: number[]; bypass_reason: string | null }> {
+    const { data, error } = await client.POST('/competencies/assessment-sessions', {
+      body: { employee_id: employeeId, goal, reason },
+    })
+    if (error) raise(error, 'POST /competencies/assessment-sessions')
+    return data as never
+  },
+  async assessmentSessions(employeeId: number) {
+    const { data, error } = await client.GET('/competencies/employees/{employee_id}/assessment-sessions', {
+      params: { path: { employee_id: employeeId } },
+    })
+    if (error) raise(error, 'GET /competencies/assessment-sessions')
+    return data as never
+  },
+  async assessmentSessionDetail(sessionId: number) {
+    const { data, error } = await client.GET('/competencies/assessment-sessions/{session_id}', {
+      params: { path: { session_id: sessionId } },
+    })
+    if (error) raise(error, 'GET /competencies/assessment-sessions/{session_id}')
+    return data as never
+  },
+
   /** Исключить пары тип:role из квалификации (задания разметки их не требуют). */
   async coverageExclude(pairs: string[]): Promise<{ excluded: string[] }> {
     const { data, error } = await client.POST('/competencies/schemas/coverage/exclude', { body: { pairs } })

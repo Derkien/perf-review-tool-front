@@ -253,6 +253,39 @@ const auth = useAuth()
 /** вкладки типов — из реестра (порядок order_no), дефолт — первый активный */
 const types = ref<CompetencyTypeRow[]>([])
 const kind = ref('')
+/** Открытая сессия ассесмента (change 3): разметка только внутри неё. */
+const activeSession = ref<{ id: number; goal: string; deadline: string } | null>(null)
+
+async function loadActiveSession() {
+  try {
+    const pairs: any[] = await competenciesApi.assessmentSessions(Number(props.employeeId))
+    const open = pairs.find((p) => p.status === 'open')
+    activeSession.value = open ? { id: open.id, goal: open.goal, deadline: open.deadline } : null
+  } catch { activeSession.value = null }
+}
+
+async function startAssessment() {
+  const goals = [
+    { label: 'Плановый', value: 'regular' },
+    { label: 'Задать базу', value: 'baseline' },
+    { label: 'Испытательный срок', value: 'probation' },
+    { label: 'На повышение', value: 'promotion' },
+    { label: 'Перф-ревью', value: 'review' },
+  ]
+  const goal = goals[0].value // плановый по умолчанию (упрощаем — выбор цели отдельной итерацией)
+  const ok = await confirmDialog.ask({
+    header: 'Приступить к ассесменту',
+    message: `Кого: ${props.employeeId}\nЦель: плановый\nДедлайн: 90 дней`,
+    okLabel: 'Запустить',
+  })
+  if (ok === null) return
+  try {
+    const sess = await competenciesApi.createSession(Number(props.employeeId), goal)
+    activeSession.value = { id: sess.id, goal: sess.goal, deadline: sess.deadline }
+    markMode.value = true
+    toast.add({ severity: 'success', summary: `Сессия #${sess.id} запущена`, life: 4000 })
+  } catch { /* raise уже показал ошибку */ }
+}
 
 /** Орг-семантика разметки (правило бэка save_mark): line-manager — только soft,
  *  functional-manager — только hard; прочие держатели ROLE_U_COMPETENCY_MARKS —
@@ -408,6 +441,7 @@ function isClosedSession(s: any): boolean {
   return total !== undefined && s.marks >= total
 }
 
+loadActiveSession()
 onMounted(async () => {
   try { types.value = await competenciesApi.types() } catch { types.value = [] }
   kind.value = types.value[0]?.code || ''
@@ -520,6 +554,7 @@ async function saveMarks() {
       const level = markDraft.value[row.item_id]
       if (!level) continue
       await competenciesApi.createMark({
+      session_id: activeSession.value?.id,
         employee_id: Number(props.employeeId), item_id: row.item_id, level,
         assessed_on: markDate.value, assessor_kind: assessorKind,
       })
