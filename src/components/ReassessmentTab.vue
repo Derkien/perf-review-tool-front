@@ -12,7 +12,7 @@
                  :max-selected-labels="3" class="grow" data-testid="filter-employees" />
     <DatePicker v-model="dueDate" date-format="yy-mm-dd" placeholder="Дедлайн"
                 data-testid="filter-due" />
-    <Button label="Предпросмотр" :loading="busy" data-testid="btn-preview" @click="doPreview" />
+    <Button icon="pi pi-eye" label="Предпросмотр" :loading="busy" data-testid="btn-preview" @click="doPreview" />
   </div>
 
   <!-- предпросмотр: получат / отсеиваются / незавершённые прежние -->
@@ -38,7 +38,7 @@
       </span>
     </Message>
     <div class="actions">
-      <Button label="Запустить переоценку" :disabled="!totalCreated" data-testid="btn-launch"
+      <Button icon="pi pi-play" label="Запустить" :disabled="!totalCreated" data-testid="btn-launch"
               @click="doLaunch" />
     </div>
   </div>
@@ -87,7 +87,7 @@
       </div>
       <p v-if="!l.unfinished.length" class="muted small">Незаполненных нет</p>
       <div class="actions" v-if="l.counts.open">
-        <Button label="Отменить незаполненные" size="small" severity="danger" text
+        <Button icon="pi pi-ban" label="Отменить незаполненные" size="small" severity="danger" text
                 :loading="busy" data-testid="btn-cancel-launch"
                 @click.stop="cancelLaunch(l)" />
       </div>

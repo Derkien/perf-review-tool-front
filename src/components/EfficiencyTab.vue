@@ -2,7 +2,7 @@
   <div>
     <div class="comp-head">
       <SelectButton v-model="effKind" :options="effKinds" option-label="label" option-value="value" />
-      <Button v-if="effKind === 'traffic' && canEditTraffic" label="Внести значение"
+      <Button v-if="effKind === 'traffic' && canEditTraffic" icon="pi pi-pencil" label="Внести"
               size="small" @click="trafficDialog = true" />
     </div>
     <template v-if="effKind === 'efficiency'">

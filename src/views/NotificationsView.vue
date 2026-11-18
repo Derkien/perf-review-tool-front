@@ -6,7 +6,7 @@
         <span v-if="total" class="muted">
           {{ shown }} из {{ total }}{{ unreadCount ? ` · непрочитанных: ${unreadCount}` : '' }}
         </span>
-        <Button v-if="items.some((i) => !i.is_read)" label="Прочитать все" text size="small"
+        <Button v-if="items.some((i) => !i.is_read)" icon="pi pi-check-double" label="Прочитать все" text size="small"
                 @click="readAll" />
       </div>
     </div>

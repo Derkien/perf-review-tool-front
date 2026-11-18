@@ -3,7 +3,8 @@
     <h1>Внецикловые номинации на повышение</h1>
     <div class="head">
       <Button v-if="canNominate" label="+ Номинация" @click="dialog = true" />
-      <Button label="Экспорт XLSX" severity="secondary" @click="exportXlsx" />
+      <Button icon="pi pi-file-excel" text rounded severity="secondary" aria-label="Экспорт XLSX"
+            v-tooltip.top="'Выгрузить номинации в Excel'" @click="exportXlsx" />
       <span class="muted">Список к подаче до 4 сентября</span>
     </div>
     <AppTable :value="nominations" size="small" stripedRows>

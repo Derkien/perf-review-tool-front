@@ -3,7 +3,8 @@
     <h1>Решения и бюджет</h1>
     <div class="head">
       <Select v-model="cycleId" :options="cycles" option-label="name" option-value="id" placeholder="Цикл" />
-      <Button label="Экспорт XLSX" severity="secondary" :disabled="!cycleId" @click="exportXlsx" />
+      <Button icon="pi pi-file-excel" text rounded severity="secondary" aria-label="Экспорт XLSX"
+            v-tooltip.top="'Выгрузить решения цикла в Excel'" :disabled="!cycleId" @click="exportXlsx" />
       <Button label="Создать решение по…" text :disabled="!cycleId" @click="createDialog = true" />
     </div>
     <Card v-if="budget" style="margin: 12px 0">

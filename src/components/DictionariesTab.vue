@@ -12,7 +12,8 @@
         </p>
       </div>
       <div v-else>
-        <Button label="← Справочники" text size="small" data-testid="dict-back"
+        <Button icon="pi pi-arrow-left" text rounded size="small" aria-label="← Справочники"
+                v-tooltip.top="'Вернуться к списку справочников'" data-testid="dict-back"
                 @click="closeDict" />
         <h2 style="margin:2px 0 4px">{{ selected.title }} <Tag class="dict-code-tag" v-if="selected.code_managed" severity="secondary" value="в коде" v-tooltip.top="'Справочник зарегистрирован в коде константой: слаг изменить нельзя'" /></h2>
         <p class="muted small" style="margin:0">
@@ -23,20 +24,25 @@
            создающее действие всегда крайнее правое (консистентность, приёмка 17.11) -->
       <div class="toolbar-actions">
         <template v-if="!selected">
-          <Button label="Выгрузить справочники" icon="pi pi-download" size="small" severity="secondary"
+          <Button icon="pi pi-download" text rounded size="small" severity="secondary" aria-label="Выгрузить справочники"
+                  v-tooltip.top="'Выгрузить все справочники одним файлом'"
                   :loading="busy" data-testid="dict-export-btn" @click="downloadExport()" />
         </template>
         <template v-else>
-          <Button label="Выгрузить справочник" icon="pi pi-download" size="small" severity="secondary"
+          <Button icon="pi pi-download" text rounded size="small" severity="secondary" aria-label="Выгрузить справочник"
+                  v-tooltip.top="'Выгрузить один справочник — источник диффа'"
                   :loading="busy" data-testid="dict-export-one-btn" @click="downloadExport(selected ? selected.slug : undefined)" />
         </template>
         <FileUpload mode="basic" custom-upload choose-label="Выбрать файл справочников"
                     :accept="'.xlsx'" @select="onFileSelected" />
-        <Button label="Импортировать справочники" icon="pi pi-upload" size="small"
+        <Button icon="pi pi-upload" text rounded size="small" aria-label="Импортировать справочники"
+                v-tooltip.top="'Загрузить файл справочников — апсерт'"
                 :disabled="!file" :loading="busy" data-testid="dict-import-btn" @click="previewImport" />
-        <Button v-if="!selected" label="Новый справочник" icon="pi pi-plus" size="small"
-                severity="secondary" data-testid="dict-create-btn" @click="openDictCreate" />
-        <Button v-else label="Добавить значение" icon="pi pi-plus" size="small"
+        <Button v-if="!selected" icon="pi pi-plus" text rounded size="small" severity="secondary"
+                aria-label="Новый справочник" v-tooltip.top="'Создать справочник'"
+                data-testid="dict-create-btn" @click="openDictCreate" />
+        <Button v-else icon="pi pi-plus" text rounded size="small" aria-label="Добавить значение"
+                v-tooltip.top="'Добавить значение в справочник'"
                 data-testid="dict-item-create-btn" @click="openCreate" />
       </div>
     </div>

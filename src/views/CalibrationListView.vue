@@ -6,7 +6,8 @@
       <Select v-model="group" :options="groups" placeholder="Функц. группа" />
       <Select v-model="hostId" :options="users" option-label="full_name" option-value="id" placeholder="Ведущий" filter />
       <Button label="Создать сессию" :loading="busy" @click="create" />
-      <Button label="AI-пакет (xlsx)" severity="secondary" :disabled="!cycleId" @click="exportAi" />
+      <Button icon="pi pi-sparkles" text rounded severity="secondary" aria-label="AI-пакет"
+            v-tooltip.top="'Выгрузить AI-пакет цикла в Excel'" :disabled="!cycleId" @click="exportAi" />
       <FileUpload mode="basic" custom-upload choose-label="Импорт AI-ответов" @select="importAi" />
     </div>
     <AppTable :value="sessions" size="small" style="margin-top: 12px"

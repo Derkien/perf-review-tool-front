@@ -18,12 +18,12 @@
     <!-- единый фреймворк таблиц: масс-действия — MassActionBar (попап внизу) -->
     <MassActionBar :count="selected.size" @clear="clearSelection">
       <span v-if="hiddenSelected > 0" class="mass-note">в т.ч. скрыто фильтром: {{ hiddenSelected }}</span>
-      <Button label="Выгрузить для разметки" icon="pi pi-download" size="small"
+      <Button icon="pi pi-download" label="Выгрузить" size="small"
               text data-testid="coverage-export-btn" @click="exportSelected" />
-      <Button v-if="canExclude" label="Исключить из квалификации" icon="pi pi-ban"
+      <Button v-if="canExclude" icon="pi pi-ban" label="Исключить"
               size="small" severity="danger" text data-testid="coverage-exclude-btn"
               @click="excludeSelected" />
-      <Button v-if="canInclude" label="Вернуть в квалификацию" icon="pi pi-undo"
+      <Button v-if="canInclude" icon="pi pi-undo" label="Вернуть"
               size="small" severity="secondary" text data-testid="coverage-include-btn"
               @click="includeSelected" />
     </MassActionBar>

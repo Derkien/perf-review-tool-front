@@ -9,11 +9,13 @@
         </p>
       </div>
       <div class="toolbar-actions">
-        <Button label="Скачать шаблон" icon="pi pi-download" size="small" severity="secondary"
+        <Button icon="pi pi-download" text rounded size="small" severity="secondary" aria-label="Скачать шаблон"
+                v-tooltip.top="'Скачать пустой шаблон схемы'"
                 :loading="busy" @click="downloadTemplate" />
         <FileUpload mode="basic" custom-upload choose-label="Выбрать файл схемы"
                     :accept="'.xlsx'" @select="onFileSelected" />
-        <Button label="Загрузить схему" icon="pi pi-upload" size="small"
+        <Button icon="pi pi-upload" text rounded size="small" aria-label="Загрузить схему"
+                v-tooltip.top="'Импортировать заполненный шаблон схемы'"
                 :disabled="!file" :loading="busy" @click="uploadSchema" />
       </div>
     </div>

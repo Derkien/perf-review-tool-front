@@ -211,7 +211,7 @@ describe('CompetencySchemasTab: предпросмотр/apply импорта и
     URL.createObjectURL = (() => 'blob:x') as typeof URL.createObjectURL
     URL.revokeObjectURL = (() => undefined) as typeof URL.revokeObjectURL
     ;(HTMLAnchorElement.prototype as any).click = () => { clicked = true }
-    const btn = w.findAll('button').find((b) => b.text().includes('Скачать шаблон'))!
+    const btn = w.findAll('button').find((b) => b.attributes('aria-label') === 'Скачать шаблон')!
     await btn.trigger('click')
     await settle()
     URL.createObjectURL = origCreate

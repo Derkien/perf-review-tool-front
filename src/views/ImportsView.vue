@@ -6,7 +6,7 @@
         <div class="upload-row">
           <Select v-model="type" :options="types" option-label="label" option-value="value" placeholder="Тип импорта" />
           <FileUpload mode="basic" custom-upload :choose-label="'Выбрать файл'" @select="onSelect" />
-          <Button label="Предпросмотр" :disabled="!file || !type" :loading="busy" @click="preview" />
+          <Button icon="pi pi-eye" label="Предпросмотр" :disabled="!file || !type" :loading="busy" @click="preview" />
           <InputText v-if="type === 'traffic' || type === 'efficiency'" v-model="month"
                      placeholder="YYYY-MM (если не в имени файла)" size="small" />
         </div>

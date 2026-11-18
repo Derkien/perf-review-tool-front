@@ -2,7 +2,8 @@
   <AssignmentGuide />
   <div class="head-row">
     <h2 style="margin:0">Реестр заданий</h2>
-    <Button label="Обновить" size="small" text @click="load" />
+    <Button icon="pi pi-refresh" text rounded size="small" aria-label="Обновить"
+            v-tooltip.top="'Перезагрузить реестр'" @click="load" />
   </div>
 
   <div class="filter-bar">
